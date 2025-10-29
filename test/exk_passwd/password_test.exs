@@ -326,12 +326,23 @@ defmodule ExkPasswd.PasswordTest do
           num_words: 3,
           separator: "-",
           digits: {0, 0},
-          padding: %{char: "", before: 0, after: 0, to_length: 0}
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          case_transform: :lower
         )
 
-      password = Password.create(config)
-      words = String.split(password, "-")
-      assert Enum.all?(words, fn word -> String.length(word) == 5 end)
+      # Run multiple times to ensure consistency
+      for _ <- 1..10 do
+        password = Password.create(config)
+        words = String.split(password, "-", trim: true)
+
+        # Verify we got the right number of words
+        assert length(words) == 3,
+               "Expected 3 words, got #{length(words)}: #{inspect(words)}"
+
+        # Verify all words are the correct length
+        assert Enum.all?(words, fn word -> String.length(word) == 5 end),
+               "Expected all words to be length 5, got: #{inspect(words)}"
+      end
     end
 
     test "respects word length range" do
@@ -341,16 +352,26 @@ defmodule ExkPasswd.PasswordTest do
           num_words: 3,
           separator: "-",
           digits: {0, 0},
-          padding: %{char: "", before: 0, after: 0, to_length: 0}
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          case_transform: :lower
         )
 
-      password = Password.create(config)
-      words = String.split(password, "-")
+      # Run multiple times to ensure consistency
+      for _ <- 1..10 do
+        password = Password.create(config)
+        words = String.split(password, "-", trim: true)
 
-      assert Enum.all?(words, fn word ->
-               len = String.length(word)
-               len >= 4 and len <= 8
-             end)
+        # Verify we got the right number of words
+        assert length(words) == 3,
+               "Expected 3 words, got #{length(words)}: #{inspect(words)}"
+
+        # Verify all words are within the correct length range
+        assert Enum.all?(words, fn word ->
+                 len = String.length(word)
+                 len >= 4 and len <= 8
+               end),
+               "Expected all words to be length 4-8, got: #{inspect(words)}"
+      end
     end
   end
 

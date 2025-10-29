@@ -144,11 +144,24 @@ jobs:
 
       - name: Check coverage threshold
         run: |
+          # Run coveralls.json to generate JSON output
           mix coveralls.json
-          COVERAGE=$(cat cover/excoveralls.json | grep -o '"coverage":[0-9.]*' | grep -o '[0-9.]*')
+          # Try different possible locations for the coverage file
+          if [ -f "cover/excoveralls.json" ]; then
+            COVERAGE_FILE="cover/excoveralls.json"
+          elif [ -f "excoveralls.json" ]; then
+            COVERAGE_FILE="excoveralls.json"
+          else
+            echo "Could not find coverage JSON file"
+            echo "Checking cover directory:"
+            ls -la cover/ || echo "No cover directory"
+            exit 1
+          fi
+          COVERAGE=$(grep -o '"coverage":[0-9.]*' "$COVERAGE_FILE" | grep -o '[0-9.]*')
           echo "Coverage: $COVERAGE%"
           if [ -z "$COVERAGE" ]; then
-            echo "Failed to parse coverage"
+            echo "Failed to parse coverage from $COVERAGE_FILE"
+            cat "$COVERAGE_FILE"
             exit 1
           fi
           # Use awk for floating point comparison (bc may not be available)

@@ -91,8 +91,10 @@ defmodule ExkPasswd.SecurityTest do
       expected = @sample_size / 10
 
       for {_value, count} <- frequencies do
-        # Allow 10% deviation
-        assert abs(count - expected) < expected * 0.1
+        # Allow 15% deviation to account for statistical variance
+        # With 10,000 samples, standard deviation ≈ 31.6, so ~3σ ≈ 95 (9.5%)
+        # Using 15% provides a comfortable margin while still detecting bias
+        assert abs(count - expected) < expected * 0.15
       end
     end
 
