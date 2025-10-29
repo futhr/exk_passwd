@@ -36,7 +36,7 @@ Inspired by the famous [XKCD comic](https://xkcd.com/936/) and based on the orig
 The concept of using random words for passwords was popularized by [Randall Munroe's XKCD comic #936](https://xkcd.com/936/), which illustrated why long, memorable passphrases can be more effective than short, complex passwords.
 
 <p align="center">
-  <img src="assets/xkcd.png" alt="XKCD Password Strength Comic" width="740">
+  <img src="https://raw.githubusercontent.com/futhr/exk_passwd/main/priv/static/xkcd.png" alt="XKCD Password Strength Comic" width="740">
   <br>
   <em>XKCD #936: Password Strength - "Through 20 years of effort, we've successfully trained everyone to use passwords that are hard for humans to remember, but easy for computers to guess."</em>
 </p>
@@ -758,4 +758,4 @@ BSD-2-Clause License - see [LICENSE](LICENSE.md) file for details.
 
 ---
 
-**Built with Elixir ❤️ | Secure by Design**
+**Built with Elixir ❤️ Secure by Design**

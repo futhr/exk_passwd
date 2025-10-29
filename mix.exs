@@ -145,7 +145,7 @@ defmodule ExkPasswd.MixProject do
   defp docs do
     [
       main: "readme",
-      assets: "priv/static",
+      assets: %{"priv/static" => "assets"},
       extras: [
         "README.md": [title: "Overview"],
         "docs/SECURITY.md": [title: "Security"],

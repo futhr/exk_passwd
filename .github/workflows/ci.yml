@@ -144,12 +144,19 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          COVERAGE=$(mix coveralls.json | grep -o '"coverage":[0-9.]*' | grep -o '[0-9.]*')
+          mix coveralls.json
+          COVERAGE=$(cat cover/excoveralls.json | grep -o '"coverage":[0-9.]*' | grep -o '[0-9.]*')
           echo "Coverage: $COVERAGE%"
-          if (( $(echo "$COVERAGE < 95.0" | bc -l) )); then
-            echo "Coverage is below 95%"
+          if [ -z "$COVERAGE" ]; then
+            echo "Failed to parse coverage"
             exit 1
           fi
+          # Use awk for floating point comparison (bc may not be available)
+          if awk "BEGIN {exit !($COVERAGE < 95.0)}"; then
+            echo "Coverage $COVERAGE% is below 95% threshold"
+            exit 1
+          fi
+          echo "Coverage $COVERAGE% meets 95% threshold"
         env:
           MIX_ENV: test
 
