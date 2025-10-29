@@ -138,38 +138,18 @@ jobs:
         run: mix compile
 
       - name: Run tests with coverage
-        run: mix coveralls.html
-        env:
-          MIX_ENV: test
-
-      - name: Check coverage threshold
         run: |
-          # Run coveralls.json to generate JSON output
-          mix coveralls.json
-          # Try different possible locations for the coverage file
-          if [ -f "cover/excoveralls.json" ]; then
-            COVERAGE_FILE="cover/excoveralls.json"
-          elif [ -f "excoveralls.json" ]; then
-            COVERAGE_FILE="excoveralls.json"
-          else
-            echo "Could not find coverage JSON file"
-            echo "Checking cover directory:"
-            ls -la cover/ || echo "No cover directory"
-            exit 1
-          fi
-          COVERAGE=$(grep -o '"coverage":[0-9.]*' "$COVERAGE_FILE" | grep -o '[0-9.]*')
+          mix test --cover 2>&1 | tee test_output.txt
+          # Extract coverage percentage from test output using sed
+          COVERAGE=$(grep '\[TOTAL\]' test_output.txt | sed -n 's/.*\[TOTAL\][[:space:]]*\([0-9.]*\)%.*/\1/p' || echo "0")
           echo "Coverage: $COVERAGE%"
-          if [ -z "$COVERAGE" ]; then
-            echo "Failed to parse coverage from $COVERAGE_FILE"
-            cat "$COVERAGE_FILE"
+          # Use Python for floating point comparison (more portable than awk/bc)
+          THRESHOLD=95.0
+          python3 -c "import sys; sys.exit(0 if float('$COVERAGE') >= $THRESHOLD else 1)" || {
+            echo "❌ Coverage $COVERAGE% is below $THRESHOLD% threshold"
             exit 1
-          fi
-          # Use awk for floating point comparison (bc may not be available)
-          if awk "BEGIN {exit !($COVERAGE < 95.0)}"; then
-            echo "Coverage $COVERAGE% is below 95% threshold"
-            exit 1
-          fi
-          echo "Coverage $COVERAGE% meets 95% threshold"
+          }
+          echo "✅ Coverage $COVERAGE% meets $THRESHOLD% threshold"
         env:
           MIX_ENV: test
 
