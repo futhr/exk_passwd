@@ -4,7 +4,7 @@
 
 ---
 
-[![CI](https://github.com/futhr/exk_passwd/workflows/CI/badge.svg)](https://github.com/futhr/exk_passwd/actions)
+[![Test Suite](https://github.com/futhr/exk_passwd/workflows/Test%20Suite/badge.svg)](https://github.com/futhr/exk_passwd/actions)
 [![Coverage](https://img.shields.io/badge/coverage-97.3%25-brightgreen.svg)](https://github.com/futhr/exk_passwd)
 [![Hex.pm](https://img.shields.io/hexpm/v/exk_passwd.svg)](https://hex.pm/packages/exk_passwd)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-purple.svg)](https://hexdocs.pm/exk_passwd)
