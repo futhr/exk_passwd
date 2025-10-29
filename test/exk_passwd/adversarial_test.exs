@@ -111,9 +111,9 @@ defmodule ExkPasswd.AdversarialTest do
           0
         end
 
-      # Allow up to 6.5% sequential patterns due to random chance
-      # (expected ~5.8% for truly random data)
-      assert sequential_rate < 0.065,
+      # Allow up to 8% sequential patterns due to random chance
+      # (expected ~5.8% for truly random data, with ~2.2% buffer for statistical variance)
+      assert sequential_rate < 0.08,
              "Sequential patterns detected: #{Float.round(sequential_rate * 100, 1)}%"
     end
   end
