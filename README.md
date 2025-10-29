@@ -14,7 +14,7 @@
 
 ---
 
-## 🚀 Try It Interactively
+## Try It Interactively
 
 Explore ExkPasswd with interactive Livebook notebooks:
 
@@ -24,10 +24,6 @@ Explore ExkPasswd with interactive Livebook notebooks:
 * **[Advanced Usage](notebooks/advanced.livemd)** - Custom configurations and transformations
 * **[Security Analysis](notebooks/security.livemd)** - Entropy, strength, and cryptographic properties
 * **[Benchmarks](notebooks/benchmarks.livemd)** - Performance metrics and comparisons
-
----
-
-Inspired by the famous [XKCD comic](https://xkcd.com/936/) and based on the original [Crypt::HSXKPasswd](https://github.com/bbusschots/hsxkpasswd) Perl module. Uses the [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) (7,776 words) for maximum security and memorability.
 
 ---
 
@@ -55,23 +51,21 @@ Traditional password advice suggests random strings like `x4$9Kp2m`, but these h
 - **Short to be memorable** → limited entropy
 
 Word-based passwords like `correct-horse-battery-staple` offer:
-- ✅ **Easy to remember** (no need to write down)
-- ✅ **Easy to type** (real words)
-- ✅ **Long enough for high entropy** (more characters = exponentially more secure)
-- ✅ **Still unpredictable** when generated with cryptographic randomness
+- **Easy to remember** (no need to write down)
+- **Easy to type** (real words)
+- **Long enough for high entropy** (more characters = exponentially more secure)
+- **Still unpredictable** when generated with cryptographic randomness
 
 ---
 
 ## Features
 
 ### Core Features
-- ** Cryptographically Secure** - Uses `:crypto.strong_rand_bytes/1` for all randomness
-- ** EFF Large Wordlist** - 7,776 carefully curated words (12.9 bits entropy per word)
-- ** Zero Runtime Dependencies** - Only uses Elixir stdlib and `:crypto`
-- ** Multiple Presets** - 7 built-in presets for different use cases
-- ** Fully Customizable** - Fine-grained control over all generation parameters
-- **Well-Tested** - 97% test coverage with comprehensive security tests
-- ** Well-Documented** - Extensive documentation and examples
+- **Cryptographically Secure** - Uses `:crypto.strong_rand_bytes/1` for all randomness
+- **EFF Large Wordlist** - 7,776 carefully curated words (12.9 bits entropy per word)
+- **Zero Runtime Dependencies** - Only uses Elixir stdlib and `:crypto`
+- **Multiple Presets** - 7 built-in presets for different use cases
+- **Fully Customizable** - Fine-grained control over all generation parameters
 
 ### Advanced Features
 - **Efficient Performance** - Tuple-based constant-time word lookups
@@ -653,58 +647,34 @@ mix deps.audit         # Run mix_audit security scan
 ### Running Tests
 
 ```bash
-# Run all tests
-mix test
-
-# Run with coverage
-mix coveralls.html
-
-# Run in watch mode
-mix test.watch
+mix test               # Run all tests
+mix coveralls.html     # Run with coverage
+mix test.watch         # Run in watch mode
 ```
 
 ### Code Quality
 
 ```bash
-# Format code
-mix format
-
-# Run Credo analysis
-mix credo --strict
-
-# Run Dialyzer
-mix dialyzer
-
-# Run all checks (format, credo, tests)
-mix check
-
-# Run all checks including dialyzer
-mix check.all
+mix format             # Format code
+mix credo --strict     # Run Credo analysis
+mix dialyzer           # Run Dialyzer
+mix check              # Run all checks (format, credo, tests)
+mix check.all          # Run all checks including dialyzer
 ```
 
 ### Building Documentation
 
 ```bash
-# Generate documentation
-mix docs
-
-# Open in browser
-open doc/index.html
+mix docs               # Generate documentation
+open doc/index.html    # ..then open in browser
 ```
 
 ### Running Benchmarks
 
 ```bash
-# Run all benchmarks
-mix bench
-
-# Or run individually
-mix bench.password  # Password generation benchmarks
-mix bench.dict      # Dictionary operations benchmarks
-
-# Results are saved to:
-# - bench/results/password_generation.html
-# - bench/results/dictionary.html
+mix bench              # Run all benchmarks
+mix bench.password     # Password generation benchmarks
+mix bench.dict         # Dictionary operations benchmarks
 ```
 
 Benchmarks measure:
