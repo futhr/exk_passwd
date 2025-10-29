@@ -1,0 +1,113 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "HSXK",
+    "appleid",
+    "benchee",
+    "bohwalli",
+    "busschots",
+    "centur",
+    "codepoint",
+    "crackable",
+    "credo",
+    "crypto",
+    "defdelegate",
+    "defmodule",
+    "defp",
+    "defstruct",
+    "deps",
+    "dialyxir",
+    "dialyzer",
+    "doctest",
+    "doctests",
+    "ecto",
+    "elixir",
+    "enum",
+    "enumerable",
+    "erlang",
+    "erts",
+    "ets",
+    "excoveralls",
+    "exk",
+    "exs",
+    "fingerprintable",
+    "futhr",
+    "hexdocs",
+    "iex",
+    "impl",
+    "leetspeak",
+    "livebook",
+    "livemd",
+    "moduledoc",
+    "nowarn",
+    "nums",
+    "passphrase",
+    "passphrases",
+    "passwd",
+    "plts",
+    "prng",
+    "repo",
+    "repos",
+    "req",
+    "romaji",
+    "sakura",
+    "statistex",
+    "stdlib",
+    "struct",
+    "structs",
+    "syscall",
+    "syscalls",
+    "tuple",
+    "tuples",
+    "typability",
+    "uniq",
+    "westbay",
+    "westbaystars",
+    "whereis",
+    "wordlist",
+    "wordlists",
+    "xkcd"
+  ],
+  "ignoreWords": [],
+  "ignorePaths": [
+    "**/_build/**",
+    "**/deps/**",
+    "**/node_modules/**",
+    "**/.elixir_ls/**",
+    "**/.lexical/**",
+    "**/cover/**",
+    "**/doc/**",
+    "**/priv/plts/**",
+    "**/*.plt",
+    "**/.git/**",
+    "**/CHANGELOG.md",
+    "mix.lock"
+  ],
+  "overrides": [
+    {
+      "filename": "**/*.{ex,exs}",
+      "languageSettings": [
+        {
+          "languageId": "elixir",
+          "dictionaries": ["elixir"]
+        }
+      ]
+    },
+    {
+      "filename": "**/test/**/*.exs",
+      "words": [
+        "refute",
+        "floki",
+        "mox",
+        "bypass",
+        "mimic"
+      ]
+    }
+  ],
+  "dictionaries": ["elixir", "en-US", "software-terms"],
+  "import": [],
+  "enableFiletypes": [
+    "elixir"
+  ]
+}

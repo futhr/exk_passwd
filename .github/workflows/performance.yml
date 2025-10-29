@@ -1,0 +1,78 @@
+name: Performance Regression Testing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  deployments: write
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.18'
+          otp-version: '28'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-bench-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-bench-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Compile
+        run: mix compile
+
+      - name: Run benchmarks (password generation)
+        run: |
+          mix run bench/password_generation.exs > bench_results.txt
+          cat bench_results.txt
+
+      - name: Run benchmarks (dictionary)
+        run: |
+          mix run bench/dictionary.exs >> bench_results.txt
+          cat bench/dictionary.exs | tail -20
+
+      - name: Run benchmarks (batch generation)
+        run: |
+          mix run bench/batch.exs >> bench_results.txt
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        if: github.event_name != 'pull_request'
+        with:
+          name: ExkPasswd Performance
+          tool: 'customBiggerIsBetter'
+          output-file-path: bench_results.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          # Show alert with commit comment on detecting possible performance regression
+          alert-threshold: '150%'
+          comment-on-alert: true
+          fail-on-alert: false
+          alert-comment-cc-users: '@futhr'
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: bench_results.txt
+          retention-days: 30
