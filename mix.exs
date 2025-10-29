@@ -130,8 +130,12 @@ defmodule ExkPasswd.MixProject do
         CLAUDE.md
         usage-rules.md
       ),
-      maintainers: ["Michael Westbay", "Tobias Bohwalli"],
+      maintainers: [
+        "Michael Westbay <westbaystars@gmail.com>",
+        "Tobias Bohwalli <hi@futhr.io>"
+      ],
       licenses: ["BSD-2-Clause"],
+      source_url: @source_url,
       links: %{
         "GitHub" => @source_url,
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md",
