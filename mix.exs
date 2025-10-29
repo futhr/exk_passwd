@@ -158,6 +158,8 @@ defmodule ExkPasswd.MixProject do
         "notebooks/advanced.livemd": [title: "Advanced Usage"],
         "notebooks/security.livemd": [title: "Security Analysis"],
         "notebooks/benchmarks.livemd": [title: "Benchmarks"],
+        "notebooks/i18n_chinese.livemd": [title: "Chinese i18n (Pinyin)"],
+        "notebooks/i18n_japanese.livemd": [title: "Japanese i18n (Romaji)"],
         "notebooks/contributing.livemd": [title: "Contributing Guide (Interactive)"],
         "CHANGELOG.md": [title: "Changelog"],
         "docs/CONTRIBUTING.md": [title: "Contributing"],
