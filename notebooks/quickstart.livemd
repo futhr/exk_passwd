@@ -1,0 +1,128 @@
+# ExkPasswd Quick Start
+
+```elixir
+Mix.install([
+  {:exk_passwd, "~> 0.1.0"}
+])
+```
+
+## Introduction
+
+Welcome to **ExkPasswd** - a secure, memorable password generator using the XKPasswd method!
+
+XKPasswd creates strong passwords by combining:
+
+* Random words (easy to remember)
+* Numbers and symbols (hard to crack)
+* Configurable transformations (customizable strength)
+
+This interactive notebook lets you explore ExkPasswd and generate passwords right in your browser.
+
+## Basic Usage
+
+The simplest way to generate a password:
+
+```elixir
+ExkPasswd.generate()
+```
+
+Run the cell above multiple times - you'll get a different password each time! All randomness uses cryptographically secure sources.
+
+## Using Presets
+
+ExkPasswd includes several built-in presets for common use cases:
+
+```elixir
+# XKCD-style: 4 lowercase words with hyphens
+ExkPasswd.generate(:xkcd)
+```
+
+```elixir
+# Web-friendly: 32 character max length
+ExkPasswd.generate(:web32)
+```
+
+```elixir
+# WiFi: Maximum 63 characters for WPA2
+ExkPasswd.generate(:wifi)
+```
+
+```elixir
+# Security: Maximum strength with 6 words
+ExkPasswd.generate(:security)
+```
+
+```elixir
+# Apple ID: Meets Apple's requirements
+ExkPasswd.generate(:appleid)
+```
+
+## Exploring Available Presets
+
+See all available presets:
+
+```elixir
+ExkPasswd.Config.list_presets()
+```
+
+Get details about a specific preset:
+
+```elixir
+ExkPasswd.Config.preset(:xkcd)
+```
+
+## Generate Multiple Passwords
+
+Need several passwords at once? Use batch generation:
+
+```elixir
+ExkPasswd.Batch.generate_batch(5, :default)
+```
+
+Batch generation is optimized for performance - it's faster than generating passwords one at a time!
+
+## Password Strength
+
+Check the strength of generated passwords:
+
+```elixir
+password = ExkPasswd.generate(:security)
+strength = ExkPasswd.Strength.analyze(password)
+
+IO.puts("Password: #{password}")
+IO.puts("Strength: #{strength.rating}")
+IO.puts("Entropy: #{Float.round(strength.entropy, 2)} bits")
+IO.puts("Crack time: #{strength.crack_time_display}")
+```
+
+## Interactive Playground
+
+Try modifying these examples:
+
+```elixir
+# Generate 10 different preset passwords and compare them
+presets = [:xkcd, :web32, :wifi, :security, :appleid]
+
+for preset <- presets do
+  password = ExkPasswd.generate(preset)
+  strength = ExkPasswd.Strength.analyze(password)
+
+  IO.puts("#{preset}: #{password}")
+  IO.puts("  → #{strength.rating} (#{Float.round(strength.entropy, 1)} bits)")
+  IO.puts("")
+end
+
+:ok
+```
+
+## Next Steps
+
+* [Advanced Usage](advanced.livemd) - Custom configurations and transformations
+* [Security Analysis](security.livemd) - Deep dive into entropy and strength
+* [Benchmarks](benchmarks.livemd) - Performance metrics and comparisons
+
+## Learn More
+
+* [GitHub Repository](https://github.com/futhr/exk_passwd)
+* [Documentation](https://hexdocs.pm/exk_passwd)
+* [XKCD Comic #936](https://xkcd.com/936/) - The inspiration for this method

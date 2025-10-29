@@ -1,0 +1,382 @@
+<!-- livebook:{"app_settings":{"access_type":"public","slug":"exk-passwd-contributing"}} -->
+
+# Contributing to ExkPasswd
+
+```elixir
+Mix.install([
+  {:exk_passwd, path: Path.join(__DIR__, "..")}
+])
+```
+
+## Introduction
+
+Welcome to ExkPasswd development! This interactive notebook helps you understand the codebase architecture, run examples, and test changes in real-time.
+
+**Why use this notebook?**
+
+* **Interactive exploration** - Call functions, inspect results, experiment with code
+* **Immediate feedback** - Test your changes without running the full test suite
+* **Architecture understanding** - See how modules interact with each other
+* **Safe experimentation** - Try ideas without modifying the actual codebase
+
+## Project Structure
+
+ExkPasswd follows a clean, modular architecture:
+
+```
+lib/exk_passwd/
+├── config/               # Configuration system
+│   ├── presets.ex       # Built-in presets (Agent-based)
+│   └── schema.ex        # Configuration validation
+├── transform/            # Transform protocol implementations
+│   ├── case_transform.ex
+│   └── substitution.ex
+├── config.ex            # Configuration struct (schema-driven)
+├── dictionary.ex        # ETS-backed word storage (O(1) lookups)
+├── password.ex          # Core password generation engine
+├── batch.ex             # Optimized batch generation
+├── token.ex             # Random number/symbol generation
+├── buffer.ex            # Buffered random bytes for performance
+├── entropy.ex           # Entropy calculation
+├── strength.ex          # Password strength analysis
+├── transform.ex         # Transform protocol definition
+├── validator.ex         # Configuration validation
+└── random.ex            # Cryptographically secure random utilities
+```
+
+## Architecture Overview
+
+Let's explore how the core components work together:
+
+```elixir
+# 1. Configuration (schema-driven, validated)
+config = ExkPasswd.Config.new!(
+  num_words: 3,
+  word_length: 4..6,
+  separator: "-",
+  case_transform: :capitalize
+)
+
+IO.inspect(config, label: "Config struct")
+```
+
+```elixir
+# 2. Dictionary (ETS-backed for custom dictionaries, compile-time for :eff)
+IO.puts("Dictionary size: #{ExkPasswd.Dictionary.size()}")
+IO.puts("Min word length: #{ExkPasswd.Dictionary.min_length()}")
+IO.puts("Max word length: #{ExkPasswd.Dictionary.max_length()}")
+
+# Count words in range
+count = ExkPasswd.Dictionary.count_between(4, 6)
+IO.puts("Words between 4-6 chars: #{count}")
+
+# Get a random word
+word = ExkPasswd.Dictionary.random_word_between(4, 6)
+IO.puts("Random word (4-6): #{word}")
+```
+
+```elixir
+# 3. Password generation (orchestrates Dictionary + Config + Transforms)
+password = ExkPasswd.Password.create(config)
+IO.puts("Generated: #{password}")
+
+# Generate a few more to see variety
+for _ <- 1..5 do
+  ExkPasswd.Password.create(config)
+end
+```
+
+```elixir
+# 4. Custom Dictionaries (ETS-backed, O(1) operations)
+# Load a custom dictionary
+custom_words = ["alpha", "bravo", "charlie", "delta", "echo"]
+ExkPasswd.Dictionary.load_custom(:military, custom_words)
+
+# Use it
+custom_config = ExkPasswd.Config.new!(
+  num_words: 3,
+  separator: "-",
+  dictionary: :military
+)
+
+ExkPasswd.Password.create(custom_config)
+```
+
+## Key Design Patterns
+
+### 1. Schema-Driven Configuration
+
+The `Config` module uses schema-based validation for fail-fast error handling:
+
+```elixir
+# Valid config
+{:ok, valid_config} = ExkPasswd.Config.new(num_words: 3)
+IO.inspect(valid_config)
+
+# Invalid config - immediate feedback
+case ExkPasswd.Config.new(num_words: 0) do
+  {:ok, _} -> IO.puts("Should not happen")
+  {:error, msg} -> IO.puts("Error: #{msg}")
+end
+```
+
+### 2. Transform Protocol
+
+The Transform protocol allows extensibility without modifying core code:
+
+```elixir
+# Built-in substitution transform
+config_with_transform = ExkPasswd.Config.new!(
+  num_words: 3,
+  word_length: 4..6,
+  separator: "-",
+  meta: %{
+    transforms: [
+      %ExkPasswd.Transform.Substitution{
+        map: %{"a" => "@", "e" => "3", "o" => "0"},
+        mode: :random
+      }
+    ]
+  }
+)
+
+# Generate with transforms applied
+for _ <- 1..3 do
+  ExkPasswd.Password.create(config_with_transform)
+  |> IO.puts()
+end
+```
+
+### 3. O(1) Dictionary Lookups
+
+Dictionary uses a tuple-based structure for constant-time operations:
+
+```elixir
+# All these operations are O(1)
+:timer.tc(fn ->
+  for _ <- 1..10_000 do
+    ExkPasswd.Dictionary.random_word_between(4, 8)
+  end
+end)
+|> then(fn {microseconds, _result} ->
+  IO.puts("10,000 random word selections: #{microseconds / 1000}ms")
+  IO.puts("Average: #{microseconds / 10_000} microseconds per selection")
+end)
+```
+
+### 4. Buffered Random Generation
+
+Batch generation uses buffered random bytes for performance:
+
+```elixir
+# Compare batch vs individual generation
+count = 100
+
+# Individual generation
+{individual_time, _individual_passwords} =
+  :timer.tc(fn ->
+    for _ <- 1..count do
+      ExkPasswd.generate()
+    end
+  end)
+
+# Batch generation (buffered random)
+{batch_time, _batch_passwords} =
+  :timer.tc(fn ->
+    ExkPasswd.generate_batch(count)
+  end)
+
+speedup = individual_time / batch_time
+
+IO.puts("Individual: #{individual_time / 1000}ms")
+IO.puts("Batch: #{batch_time / 1000}ms")
+IO.puts("Speedup: #{Float.round(speedup, 2)}x faster")
+```
+
+## Testing Your Changes
+
+After modifying code in `lib/`, recompile and test immediately:
+
+```elixir
+# Recompile the project
+IEx.Helpers.recompile()
+
+# Test your changes
+ExkPasswd.generate()
+```
+
+## Security Verification
+
+Verify cryptographic randomness:
+
+```elixir
+# Generate 1000 passwords and check uniqueness
+passwords =
+  for _ <- 1..1000 do
+    ExkPasswd.generate()
+  end
+
+unique_count = passwords |> Enum.uniq() |> length()
+collision_rate = (1000 - unique_count) / 1000 * 100
+
+IO.puts("Generated: 1000 passwords")
+IO.puts("Unique: #{unique_count}")
+IO.puts("Collision rate: #{Float.round(collision_rate, 4)}%")
+IO.puts("(Should be near 0% for good randomness)")
+```
+
+## Entropy Analysis
+
+Understanding entropy calculations:
+
+```elixir
+config = ExkPasswd.Config.new!(num_words: 4, separator: "-")
+password = ExkPasswd.Password.create(config)
+
+entropy = ExkPasswd.Entropy.calculate(password, config)
+
+IO.puts("Password: #{password}")
+IO.puts("\nEntropy Analysis:")
+IO.inspect(entropy, pretty: true)
+```
+
+## Performance Testing
+
+Quick performance verification:
+
+```elixir
+# Benchmark password generation
+{time, _password} = :timer.tc(fn -> ExkPasswd.generate() end)
+IO.puts("Single password: #{time} microseconds")
+
+# Benchmark dictionary lookup
+{time, _word} = :timer.tc(fn -> ExkPasswd.Dictionary.random_word_between(4, 8) end)
+IO.puts("Dictionary lookup: #{time} microseconds (should be < 1μs for O(1))")
+```
+
+## Common Development Tasks
+
+### Adding a New Preset
+
+```elixir
+# 1. Create config
+my_preset = ExkPasswd.Config.new!(
+  num_words: 5,
+  word_length: 3..5,
+  separator: "_",
+  case_transform: :upper,
+  digits: {3, 3},
+  padding: %{char: "!", before: 2, after: 2, to_length: 0}
+)
+
+# 2. Register it
+ExkPasswd.Config.Presets.register(:my_strong, my_preset)
+
+# 3. Use it
+ExkPasswd.generate(:my_strong)
+```
+
+### Creating a Custom Transform
+
+```elixir
+defmodule DevTransform do
+  @moduledoc "Adds dev-friendly markers"
+  defstruct [:marker]
+
+  defimpl ExkPasswd.Transform do
+    def apply(%{marker: marker}, word, _config) do
+      "#{marker}#{word}#{marker}"
+    end
+
+    def entropy_bits(%{marker: _marker}, _config) do
+      # Deterministic, no additional entropy
+      0.0
+    end
+  end
+end
+
+# Use it
+dev_config =
+  ExkPasswd.Config.new!(
+    num_words: 3,
+    meta: %{
+      transforms: [%DevTransform{marker: ">>"}]
+    }
+  )
+
+ExkPasswd.Password.create(dev_config)
+```
+
+### Testing Edge Cases
+
+```elixir
+# Minimum configuration
+min_config = ExkPasswd.Config.new!(
+  num_words: 1,
+  word_length: 3..3,
+  separator: "",
+  digits: {0, 0},
+  padding: %{char: "", before: 0, after: 0, to_length: 0}
+)
+
+IO.inspect(ExkPasswd.Password.create(min_config), label: "Minimum password")
+
+# Maximum configuration
+max_config = ExkPasswd.Config.new!(
+  num_words: 10,
+  word_length: 3..9,
+  separator: "-+-",
+  case_transform: :random,
+  digits: {5, 5},
+  padding: %{char: "★", before: 5, after: 5, to_length: 0}
+)
+
+IO.inspect(ExkPasswd.Password.create(max_config), label: "Maximum password")
+```
+
+## Running Tests
+
+After making changes, run the test suite:
+
+```elixir
+# In your terminal:
+# mix test                    # All tests
+# mix test --stale            # Only changed tests
+# mix coveralls.html          # With coverage
+# mix test test/path/file_test.exs:123  # Specific test
+```
+
+## Code Quality Checks
+
+Before submitting a PR:
+
+```elixir
+# In your terminal:
+# mix format                  # Format code
+# mix credo --strict          # Linting
+# mix dialyzer                # Type checking
+# mix docs                    # Generate docs
+# mix bench.all               # Run benchmarks
+```
+
+## Next Steps
+
+1. **Read the test files** - They show how each module is used
+2. **Experiment with this notebook** - Try different configurations
+3. **Check CLAUDE.md in the repository** - Agent guidelines and best practices
+4. **Review existing code** - Small, focused modules are easy to understand
+5. **Ask questions** - Open an issue if something is unclear
+
+## Resources
+
+* [Main README](../README.md)
+* [Quick Start Notebook](quickstart.livemd)
+* [Advanced Usage Notebook](advanced.livemd)
+* [Security Analysis Notebook](security.livemd)
+* [Benchmarks Notebook](benchmarks.livemd)
+* CLAUDE.md (in repository root) - Agent guidelines
+* [Hex Docs](https://hexdocs.pm/exk_passwd)
+
+---
+
+**Happy contributing!** 🚀

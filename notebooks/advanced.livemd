@@ -1,0 +1,480 @@
+# ExkPasswd Advanced Usage
+
+```elixir
+Mix.install([
+  {:exk_passwd, "~> 0.1.0"}
+])
+```
+
+## Introduction
+
+This notebook covers advanced ExkPasswd features including:
+
+* Custom configurations
+* Character transformations
+* Word length constraints
+* Padding and separators
+* Character substitutions
+
+## Custom Configuration
+
+Instead of using presets, you can create custom configurations:
+
+```elixir
+alias ExkPasswd.Config
+
+# Create a custom configuration
+custom_config =
+  Config.new(
+    num_words: 3,
+    word_length_min: 5,
+    word_length_max: 7,
+    separator_character: "_",
+    padding_digits_before: 2,
+    padding_digits_after: 2,
+    padding_type: :fixed,
+    case_transform: :capitalize
+  )
+
+ExkPasswd.generate(custom_config)
+```
+
+## Case Transformations
+
+ExkPasswd supports several case transformation strategies:
+
+```elixir
+# Lowercase: all words lowercase
+config_lower = Config.new(num_words: 3, case_transform: :lower, separator_character: "-")
+IO.puts("Lower: #{ExkPasswd.generate(config_lower)}")
+
+# Uppercase: all words uppercase
+config_upper = Config.new(num_words: 3, case_transform: :upper, separator_character: "-")
+IO.puts("Upper: #{ExkPasswd.generate(config_upper)}")
+
+# Capitalize: first letter of each word capitalized
+config_cap = Config.new(num_words: 3, case_transform: :capitalize, separator_character: "-")
+IO.puts("Capitalize: #{ExkPasswd.generate(config_cap)}")
+
+# Alternate: alternate between UPPER and lower
+config_alt = Config.new(num_words: 4, case_transform: :alternate, separator_character: "-")
+IO.puts("Alternate: #{ExkPasswd.generate(config_alt)}")
+
+# Random: randomly uppercase or lowercase each word
+config_rand = Config.new(num_words: 3, case_transform: :random, separator_character: "-")
+IO.puts("Random: #{ExkPasswd.generate(config_rand)}")
+
+# Invert: fIRST LETTER LOWERCASE, rest uppercase
+config_invert = Config.new(num_words: 3, case_transform: :invert, separator_character: "-")
+IO.puts("Invert: #{ExkPasswd.generate(config_invert)}")
+```
+
+## Word Length Control
+
+Control the length of words used in passwords:
+
+```elixir
+# Short words (3-5 characters)
+short_config = Config.new(num_words: 4, word_length_min: 3, word_length_max: 5)
+IO.puts("Short: #{ExkPasswd.generate(short_config)}")
+
+# Medium words (6-8 characters)
+medium_config = Config.new(num_words: 3, word_length_min: 6, word_length_max: 8)
+IO.puts("Medium: #{ExkPasswd.generate(medium_config)}")
+
+# Long words (9-12 characters)
+long_config = Config.new(num_words: 3, word_length_min: 9, word_length_max: 12)
+IO.puts("Long: #{ExkPasswd.generate(long_config)}")
+
+# Exact length
+exact_config = Config.new(num_words: 4, word_length_min: 6, word_length_max: 6)
+IO.puts("Exact (6): #{ExkPasswd.generate(exact_config)}")
+```
+
+## Separator Characters
+
+Customize how words are joined:
+
+```elixir
+separators = ["-", "_", ".", "!", "@", "#", " ", ""]
+
+for sep <- separators do
+  config = Config.new(num_words: 3, separator_character: sep)
+  password = ExkPasswd.generate(config)
+  display_sep = if sep == "", do: "(none)", else: "#{sep}"
+  IO.puts("Sep #{display_sep}: #{password}")
+end
+```
+
+## Padding Configuration
+
+Add numbers before and/or after the password:
+
+```elixir
+# Fixed padding: exact number of digits
+fixed_config =
+  Config.new(
+    num_words: 3,
+    padding_type: :fixed,
+    padding_digits_before: 3,
+    padding_digits_after: 3
+  )
+
+IO.puts("Fixed padding: #{ExkPasswd.generate(fixed_config)}")
+
+# Adaptive padding: varies the number of digits
+adaptive_config =
+  Config.new(
+    num_words: 3,
+    padding_type: :adaptive,
+    padding_digits_before: 2,
+    padding_digits_after: 2
+  )
+
+IO.puts("Adaptive padding: #{ExkPasswd.generate(adaptive_config)}")
+
+# No padding
+none_config = Config.new(num_words: 3, padding_type: :none)
+IO.puts("No padding: #{ExkPasswd.generate(none_config)}")
+```
+
+## Symbol Padding
+
+Add symbols before and after:
+
+```elixir
+symbol_config =
+  Config.new(
+    num_words: 3,
+    padding_type: :fixed,
+    padding_digits_before: 2,
+    padding_digits_after: 2,
+    symbol_alphabet: "!@#$%^&*",
+    padding_symbols_before: 1,
+    padding_symbols_after: 1
+  )
+
+ExkPasswd.generate(symbol_config)
+```
+
+## Character Substitutions
+
+Replace letters with numbers/symbols for extra complexity:
+
+```elixir
+# Enable character substitutions (a→@, e→3, i→1, o→0, s→$)
+subst_config =
+  Config.new(
+    num_words: 3,
+    case_transform: :capitalize,
+    character_substitutions: [
+      {"a", "@"},
+      {"e", "3"},
+      {"i", "1"},
+      {"o", "0"},
+      {"s", "$"}
+    ]
+  )
+
+ExkPasswd.generate(subst_config)
+```
+
+## Building Complex Passwords
+
+Combine multiple features for highly secure passwords:
+
+```elixir
+complex_config =
+  Config.new(
+    num_words: 4,
+    word_length_min: 6,
+    word_length_max: 9,
+    separator_character: "-",
+    case_transform: :capitalize,
+    padding_type: :adaptive,
+    padding_digits_before: 2,
+    padding_digits_after: 3,
+    symbol_alphabet: "!@#$%",
+    padding_symbols_before: 1,
+    padding_symbols_after: 1,
+    character_substitutions: [
+      {"e", "3"},
+      {"a", "@"}
+    ]
+  )
+
+password = ExkPasswd.generate(complex_config)
+strength = ExkPasswd.Strength.analyze(password)
+
+IO.puts("Password: #{password}")
+IO.puts("Length: #{String.length(password)} characters")
+IO.puts("Strength: #{strength.rating}")
+IO.puts("Entropy: #{Float.round(strength.entropy, 2)} bits")
+```
+
+## Batch Generation with Custom Config
+
+Generate multiple passwords with your custom configuration:
+
+```elixir
+my_config = Config.new(num_words: 4, case_transform: :capitalize, separator_character: "_")
+
+passwords = ExkPasswd.Batch.generate_batch(10, my_config)
+
+Enum.with_index(passwords, 1)
+|> Enum.each(fn {pwd, idx} ->
+  IO.puts("#{idx}. #{pwd}")
+end)
+```
+
+## Configuration Validation
+
+ExkPasswd validates your configuration:
+
+```elixir
+# This will show what happens with invalid config
+try do
+  bad_config = Config.new(num_words: 0)
+  ExkPasswd.generate(bad_config)
+rescue
+  e -> IO.inspect(e, label: "Error")
+end
+
+# Valid ranges
+IO.puts("\nValid configuration ranges:")
+IO.puts("num_words: 2-10")
+IO.puts("word_length_min: 3-20")
+IO.puts("word_length_max: 3-20 (must be >= word_length_min)")
+IO.puts("padding_digits: 0-10")
+IO.puts("padding_symbols: 0-5")
+```
+
+## Saving Custom Configurations
+
+You can save your favorite configurations for reuse:
+
+```elixir
+# Create a module to store your configs
+defmodule MyConfigs do
+  alias ExkPasswd.Config
+
+  def gaming do
+    Config.new(
+      num_words: 3,
+      case_transform: :alternate,
+      separator_character: "",
+      padding_digits_after: 4
+    )
+  end
+
+  def banking do
+    Config.new(
+      num_words: 5,
+      word_length_min: 6,
+      case_transform: :capitalize,
+      padding_type: :adaptive,
+      padding_digits_before: 2,
+      padding_digits_after: 3,
+      padding_symbols_after: 1
+    )
+  end
+end
+
+IO.puts("Gaming: #{ExkPasswd.generate(MyConfigs.gaming())}")
+IO.puts("Banking: #{ExkPasswd.generate(MyConfigs.banking())}")
+```
+
+## Internationalization (i18n)
+
+ExkPasswd supports Unicode natively and can generate passwords in any language. Custom dictionaries
+enable domain-specific or language-specific password generation.
+
+### Japanese Passwords
+
+```elixir
+# Load a Japanese word dictionary
+japanese_words = [
+  "さくら",     # sakura (cherry blossom)
+  "たいよう",   # taiyou (sun)
+  "うみ",       # umi (ocean)
+  "やま",       # yama (mountain)
+  "かぜ",       # kaze (wind)
+  "ほし",       # hoshi (star)
+  "つき",       # tsuki (moon)
+  "はな",       # hana (flower)
+  "みず",       # mizu (water)
+  "そら"        # sora (sky)
+]
+
+ExkPasswd.Dictionary.load_custom(:japanese, japanese_words)
+
+# Generate Japanese passwords
+japanese_config = ExkPasswd.Config.new!(
+  num_words: 3,
+  separator: "・",  # Japanese middle dot
+  digits: {2, 2},
+  padding: %{char: "※", before: 1, after: 1, to_length: 0},
+  dictionary: :japanese
+)
+
+password_jp = ExkPasswd.generate(japanese_config)
+IO.puts("Japanese password: #{password_jp}")
+IO.inspect(password_jp, label: "Bytes", limit: :infinity)
+```
+
+### Multi-Language Passwords
+
+```elixir
+# Spanish words
+spanish_words = ["casa", "gato", "perro", "sol", "luna", "mar", "cielo", "flor"]
+ExkPasswd.Dictionary.load_custom(:spanish, spanish_words)
+
+# German words
+german_words = ["haus", "katze", "hund", "sonne", "mond", "meer", "himmel", "blume"]
+ExkPasswd.Dictionary.load_custom(:german, german_words)
+
+# French words
+french_words = ["maison", "chat", "chien", "soleil", "lune", "mer", "ciel", "fleur"]
+ExkPasswd.Dictionary.load_custom(:french, french_words)
+
+# Generate passwords in different languages
+languages = [:spanish, :german, :french]
+
+for lang <- languages do
+  config = ExkPasswd.Config.new!(
+    num_words: 3,
+    separator: "-",
+    digits: {2, 2},
+    dictionary: lang
+  )
+
+  password = ExkPasswd.generate(config)
+  IO.puts("#{lang |> to_string() |> String.capitalize()}: #{password}")
+end
+```
+
+### Unicode Security Considerations
+
+**Character Encoding:**
+- ExkPasswd uses UTF-8 natively (Elixir's String module)
+- String.length/1 returns grapheme count (not byte count)
+- Entropy calculations account for character set size
+
+**Practical Implications:**
+
+```elixir
+# Demonstration of Unicode handling
+unicode_words = ["café", "naïve", "résumé", "Zürich", "日本", "🌸🌙"]
+ExkPasswd.Dictionary.load_custom(:unicode_demo, unicode_words)
+
+config_unicode = ExkPasswd.Config.new!(
+  num_words: 3,
+  separator: "→",
+  digits: {2, 2},
+  dictionary: :unicode_demo
+)
+
+unicode_pwd = ExkPasswd.generate(config_unicode)
+IO.puts("Unicode password: #{unicode_pwd}")
+IO.puts("Grapheme length: #{String.length(unicode_pwd)}")
+IO.puts("Byte size: #{byte_size(unicode_pwd)}")
+
+# Check entropy
+entropy = ExkPasswd.calculate_entropy(unicode_pwd, config_unicode)
+IO.puts("Entropy: #{Float.round(entropy.blind, 2)} bits")
+```
+
+**Security Notes for i18n Passwords:**
+
+1. **Larger character sets**: Non-ASCII adds ~10 bits entropy per character over ASCII
+2. **Input methods**: Consider keyboard availability for target users
+3. **System compatibility**: Ensure target systems support UTF-8 passwords
+4. **Normalization**: Unicode has multiple representations (NFC vs NFD) - store normalized forms
+
+### Domain-Specific Dictionaries
+
+Create specialized dictionaries for specific contexts:
+
+```elixir
+# Technical/DevOps terms
+tech_words = [
+  "docker", "kubernetes", "lambda", "cache", "queue",
+  "cluster", "deploy", "rollback", "metric", "trace"
+]
+ExkPasswd.Dictionary.load_custom(:devops, tech_words)
+
+# Medical terms (simplified)
+medical_words = [
+  "cardiac", "neural", "hepatic", "renal", "pulmonary",
+  "vascular", "skeletal", "muscular", "endocrine", "lymphatic"
+]
+ExkPasswd.Dictionary.load_custom(:medical, medical_words)
+
+# Generate domain-specific passwords
+devops_config = ExkPasswd.Config.new!(
+  num_words: 3,
+  separator: "_",
+  case_transform: :lower,
+  digits: {3, 0},
+  dictionary: :devops
+)
+
+medical_config = ExkPasswd.Config.new!(
+  num_words: 3,
+  separator: "-",
+  case_transform: :capitalize,
+  digits: {2, 2},
+  dictionary: :medical
+)
+
+IO.puts("DevOps password: #{ExkPasswd.generate(devops_config)}")
+IO.puts("Medical password: #{ExkPasswd.generate(medical_config)}")
+```
+
+### Mixed-Language Passwords
+
+For multilingual environments, combine dictionaries:
+
+```elixir
+# Combine English + Japanese for bilingual users
+bilingual_words = [
+  "cherry", "sakura", "mountain", "yama",
+  "ocean", "umi", "forest", "mori",
+  "river", "kawa", "sky", "sora"
+]
+ExkPasswd.Dictionary.load_custom(:bilingual, bilingual_words)
+
+bilingual_config = ExkPasswd.Config.new!(
+  num_words: 4,
+  separator: "•",
+  case_transform: :capitalize,
+  digits: {2, 2},
+  dictionary: :bilingual
+)
+
+bilingual_pwd = ExkPasswd.generate(bilingual_config)
+IO.puts("Bilingual password: #{bilingual_pwd}")
+```
+
+### Performance with Custom Dictionaries
+
+Custom dictionaries use ETS for O(1) lookups:
+
+```elixir
+# Load large dictionary and benchmark
+large_dict = for i <- 1..10_000, do: "word#{i}"
+ExkPasswd.Dictionary.load_custom(:large, large_dict)
+
+{time_us, _passwords} = :timer.tc(fn ->
+  ExkPasswd.generate_batch(100, ExkPasswd.Config.new!(dictionary: :large))
+end)
+
+IO.puts("100 passwords from 10k-word dictionary: #{time_us / 1000}ms")
+IO.puts("Performance: O(1) ETS lookups maintain constant time regardless of dictionary size")
+```
+
+## Next Steps
+
+* [Security Analysis](security.livemd) - Analyze password strength and entropy
+* [Benchmarks](benchmarks.livemd) - Performance testing
+* [Quick Start](quickstart.livemd) - Back to basics
