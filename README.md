@@ -24,6 +24,8 @@ Explore ExkPasswd with interactive Livebook notebooks:
 * **[Advanced Usage](notebooks/advanced.livemd)** - Custom configurations and transformations
 * **[Security Analysis](notebooks/security.livemd)** - Entropy, strength, and cryptographic properties
 * **[Benchmarks](notebooks/benchmarks.livemd)** - Performance metrics and comparisons
+* **[Chinese i18n](notebooks/i18n_chinese.livemd)** - 中文密码生成 (Chinese password generation with Pinyin)
+* **[Japanese i18n](notebooks/i18n_japanese.livemd)** - 日本語パスワード生成 (Japanese password generation with Romaji)
 
 ---
 
@@ -174,7 +176,7 @@ ExkPasswd.generate(:web32)
 ```
 
 ### `:web16`
-For websites with 16 character limits. ⚠️ **Not recommended** - too short for good security. Only use if absolutely required.
+For websites with 16 character limits. **Not recommended** - too short for good security. Only use if absolutely required.
 
 ```elixir
 ExkPasswd.generate(:web16)

@@ -46,22 +46,50 @@ defmodule ExkPasswd.Config.Schema do
   end
 
   # Validate word_length field (should be a Range)
-  defp validate_word_length(%{word_length: %Range{first: min, last: max}})
-       when is_integer(min) and is_integer(max) and min >= 4 and max <= 10 and min <= max do
-    :ok
-  end
+  defp validate_word_length(%{word_length: %Range{first: min, last: max}} = config)
+       when is_integer(min) and is_integer(max) do
+    cond do
+      min > max ->
+        {:error, "word_length range invalid: #{min}..#{max} (min must be <= max)"}
 
-  defp validate_word_length(%{word_length: %Range{first: min, last: max}})
-       when is_integer(min) and is_integer(max) and min > max do
-    {:error, "word_length range invalid: #{min}..#{max} (min must be <= max)"}
-  end
+      min < 1 ->
+        {:error, "word_length minimum must be at least 1, got: #{min}"}
 
-  defp validate_word_length(%{word_length: %Range{first: min, last: max}}) do
-    {:error, "word_length range must be between 4 and 10, got: #{min}..#{max}"}
+      max > 50 ->
+        {:error, "word_length maximum must be at most 50, got: #{max}"}
+
+      config.word_length_bounds != nil ->
+        validate_word_length_against_bounds(min, max, config.word_length_bounds)
+
+      true ->
+        validate_word_length_default_bounds(min, max)
+    end
   end
 
   defp validate_word_length(%{word_length: other}) do
     {:error, "word_length must be a Range (e.g., 4..8), got: #{inspect(other)}"}
+  end
+
+  # Validate against default bounds (4-10 for English/Latin scripts)
+  defp validate_word_length_default_bounds(min, max)
+       when min >= 4 and max <= 10 do
+    :ok
+  end
+
+  defp validate_word_length_default_bounds(min, max) do
+    {:error,
+     "word_length range must be between 4 and 10 (English default), got: #{min}..#{max}. " <>
+       "For non-Latin scripts, set word_length_bounds (e.g., word_length_bounds: 1..4 for Chinese/Japanese)."}
+  end
+
+  # Validate against custom bounds
+  defp validate_word_length_against_bounds(min, max, %Range{first: bound_min, last: bound_max})
+       when min >= bound_min and max <= bound_max do
+    :ok
+  end
+
+  defp validate_word_length_against_bounds(min, max, %Range{first: bound_min, last: bound_max}) do
+    {:error, "word_length range #{min}..#{max} exceeds custom bounds #{bound_min}..#{bound_max}"}
   end
 
   # Validate case_transform field

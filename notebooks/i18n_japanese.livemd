@@ -1,0 +1,316 @@
+# Japanese Password Generation with ExkPasswd
+
+```elixir
+Mix.install([
+  {:exk_passwd, "~> 0.1.0"}
+])
+```
+
+## Introduction
+
+This notebook demonstrates how to generate **memorable Japanese passwords** that output as **ASCII Romaji** for universal keyboard compatibility.
+
+### The Problem
+
+Most password systems worldwide (including in Japan) require ASCII-only passwords, but:
+- Japanese users want memorable passwords in their native language
+- Typing Japanese requires specific input methods (Hiragana/Katakana)
+- International travel means accessing accounts on non-Japanese keyboards
+
+### The Solution
+
+1. **Dictionary**: Japanese words (memorable for Japanese speakers)
+2. **Transform**: Romaji romanization (ASCII output)
+3. **Result**: Typeable on any keyboard, memorable in Japanese
+
+---
+
+## Setup: Load Japanese Dictionary
+
+```elixir
+# Common Japanese words in Hiragana
+japanese_words = [
+  "さくら",   # Cherry blossom
+  "やま",     # Mountain
+  "うみ",     # Sea
+  "そら",     # Sky
+  "かぜ",     # Wind
+  "ひかり",   # Light
+  "ほし",     # Star
+  "つき",     # Moon
+  "たいよう", # Sun
+  "はる",     # Spring
+  "なつ",     # Summer
+  "あき",     # Autumn
+  "ふゆ",     # Winter
+  "はな",     # Flower
+  "き",       # Tree
+  "みず",     # Water
+  "あめ",     # Rain
+  "ゆき",     # Snow
+  "くも",     # Cloud
+  "にじ",     # Rainbow
+  "ともだち"  # Friend
+]
+
+# Load into ExkPasswd
+ExkPasswd.Dictionary.load_custom(:japanese, japanese_words)
+
+IO.puts("✓ Loaded #{length(japanese_words)} Japanese words")
+```
+
+## Configure Password Generation
+
+```elixir
+config = ExkPasswd.Config.new!(
+  # Use Japanese dictionary
+  dictionary: :japanese,
+
+  # Japanese words are typically 2-5 characters
+  word_length: 2..5,
+
+  # Override English default (4-10) to allow shorter words
+  word_length_bounds: 1..10,
+
+  # Use 3 words for good memorability and security
+  num_words: 3,
+
+  # ASCII separator (compatible everywhere)
+  separator: "-",
+
+  # Add digits for additional entropy
+  digits: {2, 2},
+
+  # No padding (keep it clean)
+  padding: %{char: "", before: 0, after: 0, to_length: 0},
+
+  # No case transforms (Hiragana has no uppercase/lowercase)
+  case_transform: :none,
+
+  # Apply Romaji transform for ASCII output
+  meta: %{
+    transforms: [%ExkPasswd.Transform.Romaji{}]
+  }
+)
+
+IO.puts("✓ Configuration created")
+```
+
+## Generate Passwords
+
+```elixir
+IO.puts("\n=== Generated Passwords ===\n")
+
+for i <- 1..10 do
+  password = ExkPasswd.generate(config)
+  IO.puts("#{i}. #{password}")
+end
+```
+
+## How It Works
+
+The generation process:
+
+```mermaid
+graph LR
+    A[Japanese Words] --> B[Random Selection]
+    B --> C[さくら-やま-うみ]
+    C --> D[Romaji Transform]
+    D --> E[sakura-yama-umi]
+    E --> F[Add Digits]
+    F --> G[23-sakura-yama-umi-78]
+```
+
+**Internal representation:** `さくら-やま-うみ`
+**Output:** `23-sakura-yama-umi-78`
+
+✅ **Memorable:** Japanese speaker remembers the meaning
+✅ **Compatible:** Works on any keyboard, any system
+✅ **Secure:** Cryptographically random word selection
+
+## Security Analysis
+
+```elixir
+sample_password = ExkPasswd.generate(config)
+
+IO.puts("\n=== Security Analysis ===")
+IO.puts("Sample password: #{sample_password}")
+IO.puts("")
+IO.puts("Dictionary size: #{length(japanese_words)} words")
+IO.puts("Entropy per word: #{Float.round(:math.log2(length(japanese_words)), 2)} bits")
+IO.puts("Total word entropy: #{Float.round(:math.log2(length(japanese_words)) * 3, 2)} bits")
+IO.puts("Additional entropy: Digits (2 before + 2 after) = ~13.3 bits")
+IO.puts("Total entropy: ~#{Float.round(:math.log2(length(japanese_words)) * 3 + 13.3, 1)} bits")
+IO.puts("")
+IO.puts("Status: Good security for most accounts")
+IO.puts("Recommendation: Add more words to dictionary for higher security")
+```
+
+## Test Romaji Transform
+
+Test the Romaji transform with both Hiragana and Katakana:
+
+```elixir
+transform = %ExkPasswd.Transform.Romaji{}
+
+# Test Hiragana
+IO.puts("\n=== Hiragana → Romaji ===\n")
+
+hiragana_tests = [
+  {"さくら", "sakura"},
+  {"やま", "yama"},
+  {"うみ", "umi"},
+  {"そら", "sora"},
+  {"かぜ", "kaze"}
+]
+
+for {hiragana, expected} <- hiragana_tests do
+  result = ExkPasswd.Transform.apply(transform, hiragana, nil)
+  match = if result == expected, do: "✓", else: "✗"
+  IO.puts("#{match} #{hiragana} → #{result} (expected: #{expected})")
+end
+
+# Test Katakana
+IO.puts("\n=== Katakana → Romaji ===\n")
+
+katakana_tests = [
+  {"サクラ", "sakura"},
+  {"ヤマ", "yama"},
+  {"ウミ", "umi"},
+  {"コーヒー", "kohi"},
+  {"ラーメン", "ramen"}
+]
+
+for {katakana, expected} <- katakana_tests do
+  result = ExkPasswd.Transform.apply(transform, katakana, nil)
+  match = if result == expected, do: "✓", else: "✗"
+  IO.puts("#{match} #{katakana} → #{result} (expected: #{expected})")
+end
+```
+
+## Mixed Script Support
+
+ExkPasswd handles both Hiragana and Katakana seamlessly:
+
+```elixir
+# Dictionary with mixed scripts
+mixed_words = [
+  "さくら",     # Hiragana
+  "サクラ",     # Katakana (same word)
+  "やま",       # Hiragana
+  "ヤマ",       # Katakana
+  "コーヒー",   # Katakana (coffee)
+  "ラーメン",   # Katakana (ramen)
+  "おちゃ",     # Hiragana (tea)
+  "すし"        # Hiragana (sushi)
+]
+
+ExkPasswd.Dictionary.load_custom(:japanese_mixed, mixed_words)
+
+mixed_config = ExkPasswd.Config.new!(
+  dictionary: :japanese_mixed,
+  word_length: 2..5,
+  word_length_bounds: 1..10,
+  num_words: 3,
+  separator: "-",
+  digits: {2, 2},
+  padding: %{char: "", before: 0, after: 0, to_length: 0},
+  case_transform: :none,
+  meta: %{transforms: [%ExkPasswd.Transform.Romaji{}]}
+)
+
+IO.puts("\n=== Mixed Script Passwords ===\n")
+
+for i <- 1..5 do
+  password = ExkPasswd.generate(mixed_config)
+  IO.puts("#{i}. #{password}")
+end
+```
+
+## Customization Examples
+
+### More Words for Higher Security
+
+```elixir
+config_secure = ExkPasswd.Config.new!(
+  dictionary: :japanese,
+  word_length: 2..5,
+  word_length_bounds: 1..10,
+  num_words: 5,  # More words = more entropy
+  separator: "-",
+  digits: {3, 3},  # More digits
+  padding: %{char: "", before: 0, after: 0, to_length: 0},
+  case_transform: :none,
+  meta: %{transforms: [%ExkPasswd.Transform.Romaji{}]}
+)
+
+IO.puts("High security password:")
+IO.puts(ExkPasswd.generate(config_secure))
+```
+
+### Shorter for Website Limits
+
+```elixir
+config_short = ExkPasswd.Config.new!(
+  dictionary: :japanese,
+  word_length: 2..3,
+  word_length_bounds: 1..10,
+  num_words: 2,  # Fewer words
+  separator: "",  # No separator
+  digits: {2, 2},
+  padding: %{char: "", before: 0, after: 0, to_length: 0},
+  case_transform: :none,
+  meta: %{transforms: [%ExkPasswd.Transform.Romaji{}]}
+)
+
+IO.puts("Short password:")
+IO.puts(ExkPasswd.generate(config_short))
+```
+
+## Real-World Usage
+
+### Example: Japanese User Traveling
+
+**Scenario:** Yuki is traveling to Europe and needs to access Rakuten on a hostel computer.
+
+**Without ExkPasswd:**
+- Password: `さくらやま2023!`
+- Problem: Hostel computer has no Japanese input method ❌
+
+**With ExkPasswd:**
+- Password: `23-sakura-yama-umi-78`
+- Memorized as: "さくら やま うみ" (Cherry Mountain Sea)
+- Types on QWERTY: Easy! ✅
+
+---
+
+## Romaji Pronunciation Guide
+
+For those learning Japanese, here's how Romaji maps to pronunciation:
+
+| Hiragana | Katakana | Romaji | Sound |
+|----------|----------|--------|-------|
+| あ | ア | a | "ah" |
+| さ | サ | sa | "sah" |
+| か | カ | ka | "kah" |
+| ら | ラ | ra | "rah" |
+| や | ヤ | ya | "yah" |
+| ま | マ | ma | "mah" |
+
+**Example:** `さくら` (sakura) = "sah-koo-rah"
+
+## Key Takeaways
+
+1. **Most systems require ASCII** - Even Japanese banks use ASCII-only passwords
+2. **Memorability + Compatibility** - Japanese words transformed to Romaji
+3. **Cryptographically secure** - Random selection, not predictable
+4. **Works everywhere** - Any keyboard, any system, any country
+5. **Mixed scripts supported** - Hiragana and Katakana both work
+
+## Next Steps
+
+- Add more Japanese words to your dictionary for higher entropy
+- Try Chinese with Pinyin: See `notebooks/i18n_chinese.livemd`
+- Mix Hiragana, Katakana, and Kanji readings
+- Build custom transforms for other languages
+- Integrate into your password manager workflow

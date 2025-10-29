@@ -1,0 +1,241 @@
+# Chinese Password Generation with ExkPasswd
+
+```elixir
+Mix.install([
+  {:exk_passwd, "~> 0.1.0"}
+])
+```
+
+## Introduction
+
+This notebook demonstrates how to generate **memorable Chinese passwords** that output as **ASCII Pinyin** for universal keyboard compatibility.
+
+### The Problem
+
+Most password systems worldwide (including in China) require ASCII-only passwords, but:
+- Chinese users want memorable passwords in their native language
+- Typing Chinese characters requires specific input methods
+- International travel means accessing accounts on non-Chinese keyboards
+
+### The Solution
+
+1. **Dictionary**: Chinese words (memorable for Chinese speakers)
+2. **Transform**: Pinyin romanization (ASCII output)
+3. **Result**: Typeable on any keyboard, memorable in Chinese
+
+---
+
+## Setup: Load Chinese Dictionary
+
+```elixir
+# Common Chinese words for passwords
+chinese_words = [
+  "中国",  # China
+  "世界",  # World
+  "你好",  # Hello
+  "朋友",  # Friend
+  "爱情",  # Love
+  "家人",  # Family
+  "快乐",  # Happy
+  "美好",  # Beautiful
+  "春天",  # Spring
+  "夏天",  # Summer
+  "秋天",  # Autumn
+  "冬天",  # Winter
+  "太阳",  # Sun
+  "月亮",  # Moon
+  "星星",  # Stars
+  "山水",  # Mountains and water
+  "花朵",  # Flowers
+  "树木",  # Trees
+  "和平",  # Peace
+  "希望"   # Hope
+]
+
+# Load into ExkPasswd
+ExkPasswd.Dictionary.load_custom(:chinese, chinese_words)
+
+IO.puts("✓ Loaded #{length(chinese_words)} Chinese words")
+```
+
+## Configure Password Generation
+
+```elixir
+config = ExkPasswd.Config.new!(
+  # Use Chinese dictionary
+  dictionary: :chinese,
+
+  # Chinese words are typically 2 characters
+  word_length: 2..2,
+
+  # Override English default (4-10) to allow shorter words
+  word_length_bounds: 1..10,
+
+  # Use 3 words for good memorability and security
+  num_words: 3,
+
+  # ASCII separator (compatible everywhere)
+  separator: "-",
+
+  # Add digits for additional entropy
+  digits: {2, 2},
+
+  # No padding (keep it clean)
+  padding: %{char: "", before: 0, after: 0, to_length: 0},
+
+  # No case transforms (Chinese has no uppercase/lowercase)
+  case_transform: :none,
+
+  # Apply Pinyin transform for ASCII output
+  meta: %{
+    transforms: [%ExkPasswd.Transform.Pinyin{}]
+  }
+)
+
+IO.puts("✓ Configuration created")
+```
+
+## Generate Passwords
+
+```elixir
+IO.puts("\n=== Generated Passwords ===\n")
+
+for i <- 1..10 do
+  password = ExkPasswd.generate(config)
+  IO.puts("#{i}. #{password}")
+end
+```
+
+## How It Works
+
+The generation process:
+
+```mermaid
+graph LR
+    A[Chinese Words] --> B[Random Selection]
+    B --> C[中国-世界-你好]
+    C --> D[Pinyin Transform]
+    D --> E[zhongguo-shijie-nihao]
+    E --> F[Add Digits]
+    F --> G[45-zhongguo-shijie-nihao-89]
+```
+
+**Internal representation:** `中国-世界-你好`
+**Output:** `45-zhongguo-shijie-nihao-89`
+
+✅ **Memorable:** Chinese speaker remembers the meaning
+✅ **Compatible:** Works on any keyboard, any system
+✅ **Secure:** Cryptographically random word selection
+
+## Security Analysis
+
+```elixir
+sample_password = ExkPasswd.generate(config)
+
+IO.puts("\n=== Security Analysis ===")
+IO.puts("Sample password: #{sample_password}")
+IO.puts("")
+IO.puts("Dictionary size: #{length(chinese_words)} words")
+IO.puts("Entropy per word: #{Float.round(:math.log2(length(chinese_words)), 2)} bits")
+IO.puts("Total word entropy: #{Float.round(:math.log2(length(chinese_words)) * 3, 2)} bits")
+IO.puts("Additional entropy: Digits (2 before + 2 after) = ~13.3 bits")
+IO.puts("Total entropy: ~#{Float.round(:math.log2(length(chinese_words)) * 3 + 13.3, 1)} bits")
+IO.puts("")
+IO.puts("Status: Good security for most accounts")
+IO.puts("Recommendation: Add more words to dictionary for higher security")
+```
+
+## Test Pinyin Transform
+
+Test the Pinyin transform directly:
+
+```elixir
+transform = %ExkPasswd.Transform.Pinyin{}
+
+test_words = [
+  {"中国", "zhongguo"},
+  {"世界", "shijie"},
+  {"你好", "nihao"},
+  {"朋友", "pengyou"},
+  {"春天", "chuntian"}
+]
+
+IO.puts("\n=== Pinyin Transform Test ===\n")
+
+for {chinese, expected} <- test_words do
+  result = ExkPasswd.Transform.apply(transform, chinese, nil)
+  match = if result == expected, do: "✓", else: "✗"
+  IO.puts("#{match} #{chinese} → #{result} (expected: #{expected})")
+end
+```
+
+## Customization Examples
+
+### More Words for Higher Security
+
+```elixir
+config_secure = ExkPasswd.Config.new!(
+  dictionary: :chinese,
+  word_length: 2..2,
+  word_length_bounds: 1..10,
+  num_words: 5,  # More words = more entropy
+  separator: "-",
+  digits: {3, 3},  # More digits
+  padding: %{char: "", before: 0, after: 0, to_length: 0},
+  case_transform: :none,
+  meta: %{transforms: [%ExkPasswd.Transform.Pinyin{}]}
+)
+
+IO.puts("High security password:")
+IO.puts(ExkPasswd.generate(config_secure))
+```
+
+### Shorter for Website Limits
+
+```elixir
+config_short = ExkPasswd.Config.new!(
+  dictionary: :chinese,
+  word_length: 2..2,
+  word_length_bounds: 1..10,
+  num_words: 2,  # Fewer words
+  separator: "",  # No separator
+  digits: {2, 2},
+  padding: %{char: "", before: 0, after: 0, to_length: 0},
+  case_transform: :none,
+  meta: %{transforms: [%ExkPasswd.Transform.Pinyin{}]}
+)
+
+IO.puts("Short password:")
+IO.puts(ExkPasswd.generate(config_short))
+```
+
+## Real-World Usage
+
+### Example: Chinese User Traveling
+
+**Scenario:** Li Wei is traveling to the US and needs to access Alipay on a hotel computer.
+
+**Without ExkPasswd:**
+- Password: `中国世界2023!`
+- Problem: Hotel computer has no Chinese input method ❌
+
+**With ExkPasswd:**
+- Password: `45-zhongguo-shijie-nihao-89`
+- Memorized as: "中国世界你好" (China World Hello)
+- Types on QWERTY: Easy! ✅
+
+---
+
+## Key Takeaways
+
+1. **Most systems require ASCII** - Even Chinese banks use ASCII-only passwords
+2. **Memorability + Compatibility** - Chinese words transformed to Pinyin
+3. **Cryptographically secure** - Random selection, not predictable
+4. **Works everywhere** - Any keyboard, any system, any country
+
+## Next Steps
+
+- Add more Chinese words to your dictionary for higher entropy
+- Try Japanese with Romaji: See `notebooks/i18n_japanese.livemd`
+- Build custom transforms for other languages
+- Integrate into your password manager workflow

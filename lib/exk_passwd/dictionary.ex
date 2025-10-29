@@ -452,7 +452,8 @@ defmodule ExkPasswd.Dictionary do
             :erlang.element(index + 1, tuple)
 
           nil ->
-            nil
+            # Fallback: dynamically build tuple for uncommon ranges
+            random_word_between_custom_fallback(min, max, case_key, data)
         end
 
       [] ->
@@ -489,22 +490,56 @@ defmodule ExkPasswd.Dictionary do
   defp case_transform_to_key(:upper), do: :upper
   defp case_transform_to_key(:capitalize), do: :capitalize
 
+  # Fallback for custom dictionaries with uncommon ranges
+  defp random_word_between_custom_fallback(min, max, case_key, data) do
+    by_length = get_in(data, [:by_length, case_key])
+
+    words =
+      min..max
+      |> Enum.flat_map(fn len ->
+        case Map.get(by_length, len) do
+          {tuple, _count} -> Tuple.to_list(tuple)
+          nil -> []
+        end
+      end)
+
+    case words do
+      [] -> nil
+      _ -> Random.select(words)
+    end
+  end
+
   # Helper function for building range tuples at runtime (for custom dictionaries)
   defp build_range_tuples(words_by_length) do
-    for min <- 3..10, max <- 3..10, min <= max, into: %{} do
-      words =
-        min..max
-        |> Enum.flat_map(fn len ->
-          case Map.get(words_by_length, len) do
-            # Handle {tuple, count} format (from indexed words)
-            {tuple, _count} when is_tuple(tuple) -> Tuple.to_list(tuple)
-            # Handle plain list format (from fresh word lists)
-            list when is_list(list) -> list
-            nil -> []
-          end
-        end)
+    # Determine actual min/max lengths in the dictionary
+    lengths = Map.keys(words_by_length)
 
-      {{min, max}, {List.to_tuple(words), length(words)}}
+    if Enum.empty?(lengths) do
+      %{}
+    else
+      min_len = Enum.min(lengths)
+      max_len = Enum.max(lengths)
+
+      # Precompute common ranges within the actual word lengths
+      # Limit to reasonable range size to avoid memory explosion
+      for min <- min_len..max_len,
+          max <- min..max_len,
+          max - min <= 10,
+          into: %{} do
+        words =
+          min..max
+          |> Enum.flat_map(fn len ->
+            case Map.get(words_by_length, len) do
+              # Handle {tuple, count} format (from indexed words)
+              {tuple, _count} when is_tuple(tuple) -> Tuple.to_list(tuple)
+              # Handle plain list format (from fresh word lists)
+              list when is_list(list) -> list
+              nil -> []
+            end
+          end)
+
+        {{min, max}, {List.to_tuple(words), length(words)}}
+      end
     end
   end
 

@@ -64,7 +64,8 @@ defmodule ExkPasswd.Config do
           substitution_mode: substitution_mode(),
           dictionary: atom(),
           meta: map(),
-          validators: [module()]
+          validators: [module()],
+          word_length_bounds: Range.t() | nil
         }
 
   @enforce_keys []
@@ -83,7 +84,8 @@ defmodule ExkPasswd.Config do
             substitution_mode: :none,
             dictionary: :eff,
             meta: %{},
-            validators: []
+            validators: [],
+            word_length_bounds: nil
 
   @doc """
   Create a new configuration from keyword list, map, or another config.
