@@ -54,7 +54,7 @@ ExkPasswd.generate(:security)
 
 ```elixir
 # Apple ID: Meets Apple's requirements
-ExkPasswd.generate(:appleid)
+ExkPasswd.generate(:apple_id)
 ```
 
 ## Exploring Available Presets
@@ -62,13 +62,14 @@ ExkPasswd.generate(:appleid)
 See all available presets:
 
 ```elixir
-ExkPasswd.Config.list_presets()
+ExkPasswd.Config.Presets.start_link(nil)
+ExkPasswd.Config.Presets.list()
 ```
 
 Get details about a specific preset:
 
 ```elixir
-ExkPasswd.Config.preset(:xkcd)
+ExkPasswd.Config.Presets.get(:xkcd)
 ```
 
 ## Generate Multiple Passwords
@@ -76,7 +77,8 @@ ExkPasswd.Config.preset(:xkcd)
 Need several passwords at once? Use batch generation:
 
 ```elixir
-ExkPasswd.Batch.generate_batch(5, :default)
+config = ExkPasswd.Config.Presets.get(:default)
+ExkPasswd.Batch.generate_batch(5, config)
 ```
 
 Batch generation is optimized for performance - it's faster than generating passwords one at a time!
@@ -86,13 +88,14 @@ Batch generation is optimized for performance - it's faster than generating pass
 Check the strength of generated passwords:
 
 ```elixir
-password = ExkPasswd.generate(:security)
-strength = ExkPasswd.Strength.analyze(password)
+config = ExkPasswd.Config.Presets.get(:security)
+password = ExkPasswd.generate(config)
+strength = ExkPasswd.Strength.analyze(password, config)
 
 IO.puts("Password: #{password}")
 IO.puts("Strength: #{strength.rating}")
-IO.puts("Entropy: #{Float.round(strength.entropy, 2)} bits")
-IO.puts("Crack time: #{strength.crack_time_display}")
+IO.puts("Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
+# IO.puts("Crack time: #{strength.crack_time_display}")
 ```
 
 ## Interactive Playground
@@ -101,14 +104,15 @@ Try modifying these examples:
 
 ```elixir
 # Generate 10 different preset passwords and compare them
-presets = [:xkcd, :web32, :wifi, :security, :appleid]
+presets = [:xkcd, :web32, :wifi, :security, :apple_id]
 
 for preset <- presets do
-  password = ExkPasswd.generate(preset)
-  strength = ExkPasswd.Strength.analyze(password)
+  config = ExkPasswd.Config.Presets.get(preset)
+  password = ExkPasswd.generate(config)
+  strength = ExkPasswd.Strength.analyze(password, config)
 
   IO.puts("#{preset}: #{password}")
-  IO.puts("  → #{strength.rating} (#{Float.round(strength.entropy, 1)} bits)")
+  IO.puts("  → #{strength.rating} (#{Float.round(strength.entropy_bits, 1)} bits)")
   IO.puts("")
 end
 
