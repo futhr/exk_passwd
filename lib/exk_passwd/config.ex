@@ -38,6 +38,8 @@ defmodule ExkPasswd.Config do
 
   alias ExkPasswd.Config.Schema
 
+  @default_padding %{char: ~s(!@$%^&*-_+=:|~?/.;), before: 2, after: 2, to_length: 0}
+
   @type case_transform :: :none | :alternate | :capitalize | :invert | :lower | :upper | :random
   @type substitution_mode :: :none | :always | :random
 
@@ -74,12 +76,7 @@ defmodule ExkPasswd.Config do
             case_transform: :alternate,
             separator: ~s(!@$%^&*-_+=:|~?/.;),
             digits: {2, 2},
-            padding: %{
-              char: ~s(!@$%^&*-_+=:|~?/.;),
-              before: 2,
-              after: 2,
-              to_length: 0
-            },
+            padding: @default_padding,
             substitutions: %{},
             substitution_mode: :none,
             dictionary: :eff,
@@ -123,6 +120,7 @@ defmodule ExkPasswd.Config do
   end
 
   def new(opts, []) when is_list(opts) do
+    opts = merge_padding(opts)
     config = struct(__MODULE__, opts)
 
     with :ok <- Schema.validate(config),
@@ -289,6 +287,15 @@ defmodule ExkPasswd.Config do
   @spec get_meta(t(), atom(), any()) :: any()
   def get_meta(%__MODULE__{meta: meta}, key, default \\ nil) do
     Map.get(meta, key, default)
+  end
+
+  defp merge_padding(opts) do
+    case Keyword.has_key?(opts, :padding) do
+      true -> {_current_value, updated_opts} =
+              Keyword.get_and_update(opts, :padding, & {&1, Map.merge(@default_padding, &1)})
+              updated_opts
+      false -> opts
+    end
   end
 
   defp run_custom_validators(%__MODULE__{validators: []}), do: :ok
