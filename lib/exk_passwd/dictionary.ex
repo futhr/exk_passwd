@@ -658,7 +658,7 @@ defmodule ExkPasswd.Dictionary do
             {word, new_state}
 
           nil ->
-            word = random_word_between_fallback(min, max, case_transform, dict_name)
+            word = random_word_between_custom_fallback(min, max, case_transform, data)
             {word, random_state}
         end
 
