@@ -87,7 +87,7 @@ defmodule ExkPasswd.ConfigTest do
 
     test "raises on invalid separator" do
       assert_raise ArgumentError, fn ->
-        Config.new!(separator: "#")
+        Config.new!(separator: ">")
       end
     end
 
