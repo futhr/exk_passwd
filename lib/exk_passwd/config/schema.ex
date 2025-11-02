@@ -7,7 +7,7 @@ defmodule ExkPasswd.Config.Schema do
 
   alias ExkPasswd.Config
 
-  @allowed_symbols ~w(- _ ~ + * = @ ! & $ % ? . , : ; ^ | / ' " ) ++ [" "]
+  @allowed_symbols ~w(- _ ~ + * = @ ! # & $ % ? . , : ; ^ | / ' " ) ++ [" "]
 
   @doc """
   Validate a Config struct against the schema.
