@@ -193,7 +193,7 @@ defmodule ExkPasswd.Config.SchemaTest do
     end
 
     test "rejects separator with invalid symbols" do
-      config = %Config{separator: "#"}
+      config = %Config{separator: ">"}
       assert {:error, msg} = Schema.validate(config)
       assert msg =~ "separator contains invalid symbols"
     end
