@@ -298,7 +298,8 @@ defmodule ExkPasswd.Entropy do
     max(alphabet_size, 1)
   end
 
-  defp calculate_word_entropy(%Config{dictionary: dictionary} = config) when is_atom(dictionary) do
+  defp calculate_word_entropy(%Config{dictionary: dictionary} = config)
+       when is_atom(dictionary) do
     word_count =
       Dictionary.count_between(
         config.word_length.first,
