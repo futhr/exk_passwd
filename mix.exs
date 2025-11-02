@@ -1,7 +1,7 @@
 defmodule ExkPasswd.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @source_url "https://github.com/futhr/exk_passwd"
 
   def project do
@@ -13,6 +13,9 @@ defmodule ExkPasswd.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
+
+      # Supress consolidate_protocols warnings in dev environment
+      consolidate_protocols: Mix.env() != :dev,
 
       # Hex package
       description: description(),
