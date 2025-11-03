@@ -75,7 +75,7 @@ jobs:
           - elixir: '1.18'
             otp: '27'
           # Latest
-          - elixir: '1.18'
+          - elixir: '1.19'
             otp: '28'
 
     steps:
