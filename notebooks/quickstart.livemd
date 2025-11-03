@@ -2,7 +2,9 @@
 
 ```elixir
 Mix.install([
-  {:exk_passwd, "~> 0.1.0"}
+  # {:exk_passwd, "~> 0.1.0"}
+  {:exk_passwd, git: "https://github.com/futhr/exk_passwd.git"}
+  # {:exk_passwd, path: "/path/to/exk_passwd"}
 ])
 ```
 
