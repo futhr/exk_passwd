@@ -5,11 +5,11 @@
 ---
 
 [![Test Suite](https://github.com/futhr/exk_passwd/workflows/Test%20Suite/badge.svg)](https://github.com/futhr/exk_passwd/actions)
-[![Coverage](https://img.shields.io/badge/coverage-97.3%25-brightgreen.svg)](https://github.com/futhr/exk_passwd)
+[![Coverage](https://img.shields.io/badge/coverage-96.2%25-brightgreen.svg)](https://github.com/futhr/exk_passwd)
 [![Hex.pm](https://img.shields.io/hexpm/v/exk_passwd.svg)](https://hex.pm/packages/exk_passwd)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-purple.svg)](https://hexdocs.pm/exk_passwd)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.16-blueviolet.svg)](https://elixir-lang.org)
+[![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.18-blueviolet.svg)](https://elixir-lang.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-success.svg)](https://hex.pm/packages/exk_passwd)
 
 ---
@@ -485,55 +485,31 @@ config = ExkPasswd.Config.new!(
 ExkPasswd.generate(config)
 #=> "45?cl3v3r?FOREST?m0unt@!n?89"
 
-# Example 1: Japanese Romaji Transform
-defmodule MyApp.RomajiTransform do
-  @moduledoc """
-  Converts Japanese hiragana/katakana to romaji for keyboard portability.
+# Example 1: Japanese Romaji Transform (Built-in)
+# ExkPasswd includes a production-ready Modified Hepburn romanization transform
 
-  Enables passwords created on Japanese keyboard layouts to be typed on
-  English QWERTY keyboards (e.g., international travel, shared workstations).
-  """
-  defstruct [:mode]  # :hiragana | :katakana | :mixed
-
-  # Romaji conversion tables (simplified for example)
-  @hiragana_to_romaji %{
-    "あ" => "a", "い" => "i", "う" => "u", "え" => "e", "お" => "o",
-    "か" => "ka", "き" => "ki", "く" => "ku", "け" => "ke", "こ" => "ko",
-    "さ" => "sa", "し" => "shi", "す" => "su", "せ" => "se", "そ" => "so",
-    "た" => "ta", "ち" => "chi", "つ" => "tsu", "て" => "te", "と" => "to"
-  }
-
-  defimpl ExkPasswd.Transform do
-    def apply(%{mode: mode}, word, _config) do
-      # Convert any Japanese characters to romaji
-      @hiragana_to_romaji
-      |> Enum.reduce(word, fn {japanese, romaji}, acc ->
-        String.replace(acc, japanese, romaji)
-      end)
-    end
-
-    def entropy_bits(%{mode: _mode}, config) do
-      # Romaji conversion is deterministic, no additional entropy
-      # However, it enables cross-keyboard compatibility without security loss
-      0.0
-    end
-  end
-end
-
-# Use Romaji transform for cross-keyboard compatibility
-ExkPasswd.Dictionary.load_custom(:japanese, ["さくら", "やま", "うみ", "そら"])
+# Load Japanese dictionary
+ExkPasswd.Dictionary.load_custom(:japanese, ["さくら", "やま", "うみ", "そら", "おちゃ", "きょうと"])
 
 config = ExkPasswd.Config.new!(
-  num_words: 2,
+  num_words: 3,
   dictionary: :japanese,
+  word_length: 2..4,
+  word_length_bounds: 1..10,
   separator: "-",
   meta: %{
-    transforms: [%MyApp.RomajiTransform{mode: :hiragana}]
+    transforms: [%ExkPasswd.Transform.Romaji{}]
   }
 )
 
 ExkPasswd.generate(config)
-#=> "45-sakura-yama-89"  # Typeable on any keyboard
+#=> "45-sakura-ocha-yama-89"  # さくら, おちゃ, やま romanized
+# Features:
+# - Modified Hepburn romanization (きょうと → kyouto, おちゃ → ocha)
+# - Sokuon gemination (がっこう → gakkou)
+# - Palatalization (しゃしん → shashin)
+# - N before labials (さんぽ → sampo)
+# - Full Unicode support for hiragana and katakana
 
 # Example 2: NATO Phonetic Alphabet Transform
 defmodule MyApp.PhoneticTransform do

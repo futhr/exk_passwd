@@ -36,7 +36,7 @@ mix coveralls.html  # Check coverage
 All public functions MUST have @spec:
 ```elixir
 @spec generate() :: String.t()
-@spec generate(atom() | String.t() | Settings.t()) :: String.t()
+@spec generate(atom() | String.t() | Config.t()) :: String.t()
 ```
 
 ### Documentation
@@ -53,12 +53,12 @@ All public modules and functions MUST have:
 Prefer pattern matching over conditionals:
 ```elixir
 # Good
-def generate(%Settings{} = settings), do: create(settings)
+def generate(%Config{} = config), do: create(config)
 def generate(preset) when is_atom(preset), do: ...
 
 # Avoid
 def generate(input) do
-  if is_struct(input, Settings) do
+  if is_struct(input, Config) do
     ...
   end
 end
@@ -164,7 +164,7 @@ lib/
 ### Module Responsibilities
 
 - **ExkPasswd**: Public API only, delegate to other modules
-- **Settings**: Struct definition and validation
+- **Config**: Configuration struct and validation
 - **Presets**: Immutable preset configurations (use module attributes)
 - **PasswordCreator**: Core generation orchestration
 - **Dictionary**: Word loading and selection
@@ -195,9 +195,9 @@ describe "generate/1" do
     assert String.length(password) <= 63
   end
 
-  test "generates password with custom settings" do
-    settings = %Settings{num_words: 2, separator_character: "_"}
-    password = ExkPasswd.generate(settings)
+  test "generates password with custom config" do
+    config = ExkPasswd.Config.new!(num_words: 2, separator: "_")
+    password = ExkPasswd.generate(config)
     assert password =~ ~r/\w+_\w+/
   end
 
@@ -214,8 +214,8 @@ Use StreamData for property testing:
 ```elixir
 property "generated passwords have correct number of words" do
   check all num_words <- integer(2..6) do
-    settings = %Settings{num_words: num_words, separator_character: "-"}
-    password = ExkPasswd.generate(settings)
+    config = ExkPasswd.Config.new!(num_words: num_words, separator: "-")
+    password = ExkPasswd.generate(config)
     word_count = password |> String.split("-") |> length()
     assert word_count == num_words
   end
@@ -377,37 +377,44 @@ Use compile-time constants:
 ```elixir
 # Good - Computed at compile time
 @presets %{
-  "default" => %Settings{...},
-  "wifi" => %Settings{...}
+  "default" => Config.new!(...),
+  "wifi" => Config.new!(...)
 }
 
 def get(name), do: Map.get(@presets, name)
 
 # Avoid - Rebuilding on every call
 def get(name) do
-  presets = %{"default" => %Settings{...}, ...}
+  presets = %{"default" => Config.new!(...), ...}
   Map.get(presets, name)
 end
 ```
 
 ## Common Patterns
 
-### Settings Validation
+### Configuration Validation
 
 ```elixir
-defmodule ExkPasswd.Settings do
+defmodule ExkPasswd.Config do
   defstruct [...]
 
-  def validate(%__MODULE__{} = settings) do
-    with :ok <- validate_num_words(settings),
-         :ok <- validate_word_length(settings),
-         :ok <- validate_separator(settings) do
-      {:ok, settings}
+  def new!(opts) do
+    config = struct(__MODULE__, opts)
+
+    case ExkPasswd.Config.Schema.validate(config) do
+      :ok -> config
+      {:error, reason} -> raise ArgumentError, reason
     end
   end
 
-  defp validate_num_words(%{num_words: n}) when n >= 1, do: :ok
-  defp validate_num_words(_), do: {:error, "num_words must be >= 1"}
+  def new(opts) do
+    config = struct(__MODULE__, opts)
+
+    case ExkPasswd.Config.Schema.validate(config) do
+      :ok -> {:ok, config}
+      {:error, _} = error -> error
+    end
+  end
 end
 ```
 
@@ -427,23 +434,21 @@ end
 
 ```elixir
 @presets %{
-  "default" => %Settings{
+  default: Config.new!(
     num_words: 3,
-    separator_character: "-",
+    separator: "-",
     case_transform: :random,
-    word_length_min: 4,
-    word_length_max: 8,
-    padding_digits_before: 2,
-    padding_digits_after: 2
-  },
-  "xkcd" => %Settings{
+    word_length: 4..8,
+    digits: {2, 2}
+  ),
+  xkcd: Config.new!(
     num_words: 4,
-    separator_character: "-",
+    separator: "-",
     case_transform: :lower,
-    word_length_min: 4,
-    word_length_max: 8,
-    padding_type: :none
-  },
+    word_length: 4..8,
+    digits: {0, 0},
+    padding: %{before: 0, after: 0}
+  ),
   # ... more presets
 }
 ```
