@@ -32,12 +32,16 @@ This notebook explores the security aspects of ExkPasswd-generated passwords:
 ExkPasswd provides built-in entropy calculation:
 
 ```elixir
-password = ExkPasswd.generate(:default)
-entropy = ExkPasswd.Entropy.calculate(password)
+config = ExkPasswd.Config.Presets.get(:default)
+password = ExkPasswd.generate(config)
+entropy_result = ExkPasswd.Entropy.calculate(password, config)
 
 IO.puts("Password: #{password}")
-IO.puts("Entropy: #{Float.round(entropy, 2)} bits")
-IO.puts("Possible combinations: 2^#{Float.round(entropy, 2)}")
+IO.puts("Blind Entropy: #{Float.round(entropy_result.blind, 2)} bits")
+IO.puts("Seen Entropy: #{Float.round(entropy_result.seen, 2)} bits")
+IO.puts("Status: #{entropy_result.status}")
+IO.puts("Crack time (blind): #{entropy_result.blind_crack_time}")
+IO.puts("Crack time (seen): #{entropy_result.seen_crack_time}")
 ```
 
 ## Strength Analysis
@@ -45,18 +49,15 @@ IO.puts("Possible combinations: 2^#{Float.round(entropy, 2)}")
 Get a comprehensive strength analysis:
 
 ```elixir
-password = ExkPasswd.generate(:security)
-strength = ExkPasswd.Strength.analyze(password)
+config = ExkPasswd.Config.Presets.get(:security)
+password = ExkPasswd.generate(config)
+strength = ExkPasswd.Strength.analyze(password, config)
 
 IO.puts("Password: #{password}")
 IO.puts("Rating: #{strength.rating}")
-IO.puts("Entropy: #{Float.round(strength.entropy, 2)} bits")
-IO.puts("Length: #{strength.length} characters")
-IO.puts("Crack time: #{strength.crack_time_display}")
-IO.puts("Has lowercase: #{strength.has_lowercase}")
-IO.puts("Has uppercase: #{strength.has_uppercase}")
-IO.puts("Has digits: #{strength.has_digits}")
-IO.puts("Has symbols: #{strength.has_symbols}")
+IO.puts("Score: #{strength.score}/100")
+IO.puts("Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
+IO.puts("Length: #{String.length(password)} characters")
 ```
 
 ## Comparing Presets
@@ -68,26 +69,27 @@ presets = [:xkcd, :web32, :wifi, :security, :appleid, :default]
 
 results =
   for preset <- presets do
-    password = ExkPasswd.generate(preset)
-    strength = ExkPasswd.Strength.analyze(password)
+    config = ExkPasswd.Config.Presets.get(preset)
+    password = ExkPasswd.generate(config)
+    strength = ExkPasswd.Strength.analyze(password, config)
 
     %{
       preset: preset,
       password: password,
-      length: strength.length,
-      entropy: Float.round(strength.entropy, 1),
+      length: String.length(password),
+      entropy: Float.round(strength.entropy_bits, 1),
       rating: strength.rating,
-      crack_time: strength.crack_time_display
+      score: strength.score
     }
   end
 
 # Display as table
-IO.puts("\n| Preset | Length | Entropy | Rating | Crack Time |")
-IO.puts("|--------|--------|---------|--------|------------|")
+IO.puts("\n| Preset | Length | Entropy | Rating | Score |")
+IO.puts("|--------|--------|---------|--------|-------|")
 
 for r <- results do
   IO.puts(
-    "| #{r.preset} | #{r.length} | #{r.entropy} bits | #{r.rating} | #{r.crack_time} |"
+    "| #{r.preset} | #{r.length} | #{r.entropy} bits | #{r.rating} | #{r.score}/100 |"
   )
 end
 
@@ -106,14 +108,14 @@ word_counts = [2, 3, 4, 5, 6]
 IO.puts("\n=== Impact of Word Count on Security ===\n")
 
 for count <- word_counts do
-  config = Config.new(num_words: count, case_transform: :lower, separator_character: "-")
+  config = Config.new!(num_words: count, case_transform: :lower, separator: "-")
   password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password)
+  strength = ExkPasswd.Strength.analyze(password, config)
 
   IO.puts("#{count} words: #{password}")
-  IO.puts("  Entropy: #{Float.round(strength.entropy, 2)} bits")
+  IO.puts("  Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
   IO.puts("  Rating: #{strength.rating}")
-  IO.puts("  Crack time: #{strength.crack_time_display}\n")
+  IO.puts("  Score: #{strength.score}/100\n")
 end
 
 :ok
@@ -136,18 +138,17 @@ IO.puts("\n=== Impact of Word Length on Security ===\n")
 
 for {min, max, label} <- length_configs do
   config =
-    Config.new(
+    Config.new!(
       num_words: 3,
-      word_length_min: min,
-      word_length_max: max,
-      separator_character: "-"
+      word_length: min..max,
+      separator: "-"
     )
 
   password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password)
+  strength = ExkPasswd.Strength.analyze(password, config)
 
   IO.puts("#{label} words (#{min}-#{max} chars): #{password}")
-  IO.puts("  Entropy: #{Float.round(strength.entropy, 2)} bits")
+  IO.puts("  Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
   IO.puts("  Rating: #{strength.rating}\n")
 end
 
@@ -171,12 +172,12 @@ transforms = [
 IO.puts("\n=== Impact of Case Transform on Security ===\n")
 
 for transform <- transforms do
-  config = Config.new(num_words: 3, case_transform: transform, separator_character: "-")
+  config = Config.new!(num_words: 3, case_transform: transform, separator: "-")
   password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password)
+  strength = ExkPasswd.Strength.analyze(password, config)
 
   IO.puts("#{transform}: #{password}")
-  IO.puts("  Entropy: #{Float.round(strength.entropy, 2)} bits")
+  IO.puts("  Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
   IO.puts("  Rating: #{strength.rating}\n")
 end
 
@@ -200,21 +201,17 @@ IO.puts("\n=== Impact of Padding on Security ===\n")
 
 for {db, da, sb, sa, label} <- padding_configs do
   config =
-    Config.new(
+    Config.new!(
       num_words: 3,
-      padding_type: :fixed,
-      padding_digits_before: db,
-      padding_digits_after: da,
-      padding_symbols_before: sb,
-      padding_symbols_after: sa,
-      symbol_alphabet: "!@#$%^&*"
+      digits: {db, da},
+      padding: %{char: "!@#$%^&*", before: sb, after: sa, to_length: 0}
     )
 
   password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password)
+  strength = ExkPasswd.Strength.analyze(password, config)
 
   IO.puts("#{label}: #{password}")
-  IO.puts("  Entropy: #{Float.round(strength.entropy, 2)} bits")
+  IO.puts("  Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
   IO.puts("  Rating: #{strength.rating}\n")
 end
 
@@ -263,13 +260,13 @@ Based on this analysis:
 For basic security (personal accounts, low-risk):
 
 ```elixir
-basic_config = Config.new(num_words: 3, padding_digits_after: 2)
+basic_config = Config.new!(num_words: 3, digits: {0, 2})
 basic_pwd = ExkPasswd.generate(basic_config)
-basic_strength = ExkPasswd.Strength.analyze(basic_pwd)
+basic_strength = ExkPasswd.Strength.analyze(basic_pwd, basic_config)
 
 IO.puts("Basic security config:")
 IO.puts("Password: #{basic_pwd}")
-IO.puts("Entropy: #{Float.round(basic_strength.entropy, 2)} bits (aim for 50+)")
+IO.puts("Entropy: #{Float.round(basic_strength.entropy_bits, 2)} bits (aim for 50+)")
 ```
 
 ### Strong Security
@@ -278,19 +275,18 @@ For important accounts (email, banking, work):
 
 ```elixir
 strong_config =
-  Config.new(
+  Config.new!(
     num_words: 4,
     case_transform: :capitalize,
-    padding_digits_before: 2,
-    padding_digits_after: 2
+    digits: {2, 2}
   )
 
 strong_pwd = ExkPasswd.generate(strong_config)
-strong_strength = ExkPasswd.Strength.analyze(strong_pwd)
+strong_strength = ExkPasswd.Strength.analyze(strong_pwd, strong_config)
 
 IO.puts("Strong security config:")
 IO.puts("Password: #{strong_pwd}")
-IO.puts("Entropy: #{Float.round(strong_strength.entropy, 2)} bits (aim for 70+)")
+IO.puts("Entropy: #{Float.round(strong_strength.entropy_bits, 2)} bits (aim for 70+)")
 ```
 
 ### Maximum Security
@@ -298,12 +294,13 @@ IO.puts("Entropy: #{Float.round(strong_strength.entropy, 2)} bits (aim for 70+)"
 For critical systems (servers, encryption keys, admin accounts):
 
 ```elixir
-max_pwd = ExkPasswd.generate(:security)
-max_strength = ExkPasswd.Strength.analyze(max_pwd)
+max_config = ExkPasswd.Config.Presets.get(:security)
+max_pwd = ExkPasswd.generate(max_config)
+max_strength = ExkPasswd.Strength.analyze(max_pwd, max_config)
 
 IO.puts("Maximum security config:")
 IO.puts("Password: #{max_pwd}")
-IO.puts("Entropy: #{Float.round(max_strength.entropy, 2)} bits (aim for 100+)")
+IO.puts("Entropy: #{Float.round(max_strength.entropy_bits, 2)} bits (aim for 100+)")
 ```
 
 ## Interactive Security Explorer
@@ -318,27 +315,20 @@ my_config =
     word_length_min: 5,
     word_length_max: 8,
     case_transform: :capitalize,
-    separator_character: "-",
-    padding_digits_before: 2,
-    padding_digits_after: 2,
-    padding_symbols_after: 1,
-    symbol_alphabet: "!@#$"
+    separator: "-",
+    digits: {2, 2},
+    padding: %{char: "!@#$", before: 0, after: 1, to_length: 0}
   )
 
 password = ExkPasswd.generate(my_config)
-strength = ExkPasswd.Strength.analyze(password)
+strength = ExkPasswd.Strength.analyze(password, my_config)
 
 IO.puts("Your password: #{password}")
 IO.puts("\n=== Security Analysis ===")
-IO.puts("Length: #{strength.length} characters")
-IO.puts("Entropy: #{Float.round(strength.entropy, 2)} bits")
+IO.puts("Length: #{String.length(password)} characters")
+IO.puts("Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
 IO.puts("Rating: #{strength.rating}")
-IO.puts("Estimated crack time: #{strength.crack_time_display}")
-IO.puts("\n=== Character Types ===")
-IO.puts("Lowercase: #{if strength.has_lowercase, do: "✓", else: "✗"}")
-IO.puts("Uppercase: #{if strength.has_uppercase, do: "✓", else: "✗"}")
-IO.puts("Digits: #{if strength.has_digits, do: "✓", else: "✗"}")
-IO.puts("Symbols: #{if strength.has_symbols, do: "✓", else: "✗"}")
+IO.puts("Score: #{strength.score}/100")
 ```
 
 ## Next Steps

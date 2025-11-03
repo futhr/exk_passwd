@@ -46,27 +46,27 @@ ExkPasswd supports several case transformation strategies:
 
 ```elixir
 # Lowercase: all words lowercase
-config_lower = Config.new!(num_words: 3, case_transform: :lower, separator_character: "-")
+config_lower = Config.new!(num_words: 3, case_transform: :lower, separator: "-")
 IO.puts("Lower: #{ExkPasswd.generate(config_lower)}")
 
 # Uppercase: all words uppercase
-config_upper = Config.new!(num_words: 3, case_transform: :upper, separator_character: "-")
+config_upper = Config.new!(num_words: 3, case_transform: :upper, separator: "-")
 IO.puts("Upper: #{ExkPasswd.generate(config_upper)}")
 
 # Capitalize: first letter of each word capitalized
-config_cap = Config.new!(num_words: 3, case_transform: :capitalize, separator_character: "-")
+config_cap = Config.new!(num_words: 3, case_transform: :capitalize, separator: "-")
 IO.puts("Capitalize: #{ExkPasswd.generate(config_cap)}")
 
 # Alternate: alternate between UPPER and lower
-config_alt = Config.new!(num_words: 4, case_transform: :alternate, separator_character: "-")
+config_alt = Config.new!(num_words: 4, case_transform: :alternate, separator: "-")
 IO.puts("Alternate: #{ExkPasswd.generate(config_alt)}")
 
 # Random: randomly uppercase or lowercase each word
-config_rand = Config.new!(num_words: 3, case_transform: :random, separator_character: "-")
+config_rand = Config.new!(num_words: 3, case_transform: :random, separator: "-")
 IO.puts("Random: #{ExkPasswd.generate(config_rand)}")
 
 # Invert: fIRST LETTER LOWERCASE, rest uppercase
-config_invert = Config.new!(num_words: 3, case_transform: :invert, separator_character: "-")
+config_invert = Config.new!(num_words: 3, case_transform: :invert, separator: "-")
 IO.puts("Invert: #{ExkPasswd.generate(config_invert)}")
 ```
 
@@ -198,7 +198,7 @@ complex_config =
     case_transform: :capitalize,
     digits: {2, 3},
     padding: %{
-      chars: ~s(!@#$%),
+      char: ~s(!@#$%),
       before: 1,
       after: 1
     },

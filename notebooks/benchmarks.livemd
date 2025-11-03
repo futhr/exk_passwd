@@ -112,12 +112,12 @@ Test different case transformations:
 alias ExkPasswd.Config
 
 case_configs = %{
-  "lower" => Config.new(num_words: 4, case_transform: :lower),
-  "upper" => Config.new(num_words: 4, case_transform: :upper),
-  "capitalize" => Config.new(num_words: 4, case_transform: :capitalize),
-  "alternate" => Config.new(num_words: 4, case_transform: :alternate),
-  "random" => Config.new(num_words: 4, case_transform: :random),
-  "invert" => Config.new(num_words: 4, case_transform: :invert)
+  "lower" => Config.new!(num_words: 4, case_transform: :lower),
+  "upper" => Config.new!(num_words: 4, case_transform: :upper),
+  "capitalize" => Config.new!(num_words: 4, case_transform: :capitalize),
+  "alternate" => Config.new!(num_words: 4, case_transform: :alternate),
+  "random" => Config.new!(num_words: 4, case_transform: :random),
+  "invert" => Config.new!(num_words: 4, case_transform: :invert)
 }
 
 scenarios =
@@ -135,7 +135,7 @@ How does the number of words affect performance?
 ```elixir
 word_count_scenarios =
   for count <- 2..6, into: %{} do
-    config = Config.new(num_words: count)
+    config = Config.new!(num_words: count)
     {"#{count} words", fn -> ExkPasswd.generate(config) end}
   end
 
@@ -149,32 +149,20 @@ Test the impact of different padding configurations:
 ```elixir
 padding_scenarios = %{
   "no padding" => fn ->
-    ExkPasswd.generate(Config.new(num_words: 3, padding_type: :none))
+    ExkPasswd.generate(Config.new!(num_words: 3, digits: {0, 0}, padding: %{before: 0, after: 0}))
   end,
   "2 digits" => fn ->
-    ExkPasswd.generate(
-      Config.new(num_words: 3, padding_digits_before: 2, padding_type: :fixed)
-    )
+    ExkPasswd.generate(Config.new!(num_words: 3, digits: {2, 0}))
   end,
   "2+2 digits" => fn ->
-    ExkPasswd.generate(
-      Config.new(
-        num_words: 3,
-        padding_digits_before: 2,
-        padding_digits_after: 2,
-        padding_type: :fixed
-      )
-    )
+    ExkPasswd.generate(Config.new!(num_words: 3, digits: {2, 2}))
   end,
   "digits + symbols" => fn ->
     ExkPasswd.generate(
-      Config.new(
+      Config.new!(
         num_words: 3,
-        padding_digits_before: 2,
-        padding_digits_after: 2,
-        padding_symbols_before: 1,
-        padding_symbols_after: 1,
-        padding_type: :fixed
+        digits: {2, 2},
+        padding: %{char: "!@#$%^&*", before: 1, after: 1, to_length: 0}
       )
     )
   end
@@ -189,29 +177,31 @@ How fast is password strength analysis?
 
 ```elixir
 # Pre-generate passwords
-test_passwords = [
-  ExkPasswd.generate(:xkcd),
-  ExkPasswd.generate(:web32),
-  ExkPasswd.generate(:wifi),
-  ExkPasswd.generate(:security)
+test_configs = [
+  ExkPasswd.Config.Presets.get(:xkcd),
+  ExkPasswd.Config.Presets.get(:web32),
+  ExkPasswd.Config.Presets.get(:wifi),
+  ExkPasswd.Config.Presets.get(:security)
 ]
+
+test_passwords = Enum.map(test_configs, &ExkPasswd.generate/1)
 
 Benchee.run(
   %{
     "Strength.analyze(xkcd)" => fn ->
-      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 0))
+      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 0), Enum.at(test_configs, 0))
     end,
     "Strength.analyze(web32)" => fn ->
-      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 1))
+      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 1), Enum.at(test_configs, 1))
     end,
     "Strength.analyze(wifi)" => fn ->
-      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 2))
+      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 2), Enum.at(test_configs, 2))
     end,
     "Strength.analyze(security)" => fn ->
-      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 3))
+      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 3), Enum.at(test_configs, 3))
     end,
     "Entropy.calculate()" => fn ->
-      ExkPasswd.Entropy.calculate(Enum.at(test_passwords, 0))
+      ExkPasswd.Entropy.calculate(Enum.at(test_passwords, 0), Enum.at(test_configs, 0))
     end
   },
   time: 2,
@@ -225,19 +215,20 @@ Benchee.run(
 Test the impact of character substitutions:
 
 ```elixir
-no_subst = Config.new(num_words: 4, case_transform: :capitalize)
+no_subst = Config.new!(num_words: 4, case_transform: :capitalize)
 
 with_subst =
-  Config.new(
+  Config.new!(
     num_words: 4,
     case_transform: :capitalize,
-    character_substitutions: [
-      {"a", "@"},
-      {"e", "3"},
-      {"i", "1"},
-      {"o", "0"},
-      {"s", "$"}
-    ]
+    meta: %{
+      transforms: [
+        %ExkPasswd.Transform.Substitution{
+          mode: :always,
+          map: %{"a" => "@", "e" => "3", "i" => "1", "o" => "0", "s" => "$"}
+        }
+      ]
+    }
   )
 
 Benchee.run(
