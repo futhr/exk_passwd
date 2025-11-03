@@ -228,14 +228,18 @@ defmodule ExkPasswd.Config.Schema do
       :ok
     else
       graphemes = String.graphemes(string)
-      invalid = Enum.reject(graphemes, fn char -> char in @allowed_symbols end)
+      # Reject letters and digits, but allow all other Unicode characters including symbols
+      invalid =
+        Enum.filter(graphemes, fn char ->
+          String.match?(char, ~r/^[\p{L}\p{N}]$/u)
+        end)
 
       if Enum.empty?(invalid) do
         :ok
       else
         {:error,
-         "#{field_name} contains invalid symbols: #{inspect(invalid)}. " <>
-           "Allowed symbols: #{inspect(@allowed_symbols)}"}
+         "#{field_name} cannot contain letters or numbers, got: #{inspect(invalid)}. " <>
+           "Only symbols and punctuation are allowed (including Unicode symbols)."}
       end
     end
   end

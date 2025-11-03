@@ -30,6 +30,18 @@ defmodule ExkPasswd.Config.SchemaTest do
       assert {:error, msg} = Schema.validate(config)
       assert msg =~ "must be a Range"
     end
+
+    test "rejects word_length with min < 1" do
+      config = %Config{word_length: 0..5}
+      assert {:error, msg} = Schema.validate(config)
+      assert msg =~ "minimum must be at least 1"
+    end
+
+    test "rejects word_length with max > 50" do
+      config = %Config{word_length: 4..100}
+      assert {:error, msg} = Schema.validate(config)
+      assert msg =~ "maximum must be at most 50"
+    end
   end
 
   describe "validate/1 with digits" do
@@ -192,10 +204,21 @@ defmodule ExkPasswd.Config.SchemaTest do
       assert msg =~ "separator must be a string"
     end
 
-    test "rejects separator with invalid symbols" do
-      config = %Config{separator: ">"}
+    test "rejects separator with letters" do
+      config = %Config{separator: "abc"}
       assert {:error, msg} = Schema.validate(config)
-      assert msg =~ "separator contains invalid symbols"
+      assert msg =~ "cannot contain letters or numbers"
+    end
+
+    test "rejects separator with numbers" do
+      config = %Config{separator: "123"}
+      assert {:error, msg} = Schema.validate(config)
+      assert msg =~ "cannot contain letters or numbers"
+    end
+
+    test "accepts Unicode symbols in separator" do
+      config = %Config{separator: "・※→"}
+      assert :ok = Schema.validate(config)
     end
   end
 
