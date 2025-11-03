@@ -310,26 +310,35 @@ defmodule ExkPasswd.SecurityTest do
 
   describe "Memory handling - no leakage" do
     test "password generation doesn't accumulate memory" do
-      # Generate many passwords and check memory doesn't balloon
+      # Warm up the system to eliminate one-time allocations
+      for _ <- 1..100, do: ExkPasswd.generate()
+      :erlang.garbage_collect()
+      Process.sleep(100)
+
+      # Measure baseline memory after warmup
       initial_memory = :erlang.memory(:total)
 
+      # Generate many passwords
       for _ <- 1..10_000 do
         _password = ExkPasswd.generate()
       end
 
-      # Force garbage collection to clean up temporary allocations
+      # Force garbage collection multiple times to ensure cleanup
+      :erlang.garbage_collect()
+      Process.sleep(100)
       :erlang.garbage_collect()
 
       final_memory = :erlang.memory(:total)
       memory_increase = final_memory - initial_memory
 
-      # Allow up to 20MB increase to account for:
-      # - BEAM VM overhead and GC timing variations across OTP versions
-      # - Process dictionary growth during test execution
-      # - Temporary allocations not yet garbage collected
+      # After warmup and proper GC, memory increase should be minimal
+      # Allow up to 10MB increase to account for:
+      # - BEAM VM internal allocations
+      # - Process dictionary growth
+      # - Binary reference counters
       # The key is that memory doesn't grow unbounded with usage
-      assert memory_increase < 20_000_000,
-             "Memory increased by #{div(memory_increase, 1024)}KB - possible leak"
+      assert memory_increase < 10_000_000,
+             "Memory increased by #{div(memory_increase, 1024)}KB after warmup - possible leak"
     end
   end
 

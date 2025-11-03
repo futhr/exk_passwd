@@ -1,4 +1,13 @@
 defmodule ExkPasswd.I18nTest do
+  @moduledoc """
+  Tests for internationalization (i18n) features.
+
+  Covers:
+  - Chinese character support with Pinyin transformation
+  - Japanese character support with Romaji transformation
+  - Custom dictionaries for non-Latin scripts
+  - Word length bounds for logographic writing systems
+  """
   use ExUnit.Case, async: true
 
   alias ExkPasswd.{Config, Dictionary}

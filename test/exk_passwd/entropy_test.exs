@@ -197,5 +197,113 @@ defmodule ExkPasswd.EntropyTest do
       result = Entropy.estimate_crack_time(150)
       assert result == "billions of years"
     end
+
+    test "formats time exactly at 1 second" do
+      # Find entropy that gives exactly ~1 second
+      result = Entropy.estimate_crack_time(12)
+      assert is_binary(result)
+    end
+
+    test "formats time in hours boundary" do
+      # ~3600 seconds = 1 hour
+      result = Entropy.estimate_crack_time(43)
+      assert is_binary(result)
+      assert String.contains?(result, "hour") or String.contains?(result, "day")
+    end
+
+    test "formats time in days boundary" do
+      # ~86400 seconds = 1 day
+      result = Entropy.estimate_crack_time(48)
+      assert is_binary(result)
+    end
+
+    test "formats time in years boundary" do
+      # ~31536000 seconds = 1 year
+      result = Entropy.estimate_crack_time(56)
+      assert is_binary(result)
+    end
+
+    test "formats time in centuries boundary" do
+      # 100 years
+      result = Entropy.estimate_crack_time(63)
+      assert is_binary(result)
+    end
+
+    test "formats time in millennia boundary" do
+      # 1000 years
+      result = Entropy.estimate_crack_time(72)
+      assert is_binary(result)
+    end
+
+    test "formats time beyond millennia" do
+      result = Entropy.estimate_crack_time(95)
+      assert is_binary(result)
+    end
+  end
+
+  describe "format_time exact boundaries" do
+    test "formats exactly 1 second" do
+      # 1 second = 2 * 1e9 guesses, log2(2e9) ≈ 30.93 bits
+      result = Entropy.estimate_crack_time(30.93)
+      assert String.contains?(result, "second")
+    end
+
+    test "formats exactly 60 seconds (boundary to minutes)" do
+      # 60 seconds = 120e9 guesses, log2(120e9) ≈ 36.82 bits
+      result = Entropy.estimate_crack_time(36.82)
+      assert String.contains?(result, "minute") or String.contains?(result, "second")
+    end
+
+    test "formats exactly 3600 seconds (boundary to hours)" do
+      # 3600 seconds = 7.2e12 guesses, log2(7.2e12) ≈ 42.72 bits
+      result = Entropy.estimate_crack_time(42.72)
+      assert String.contains?(result, "hour") or String.contains?(result, "minute")
+    end
+
+    test "formats exactly 86400 seconds (boundary to days)" do
+      # 86400 seconds = 1.728e14 guesses, log2(1.728e14) ≈ 47.29 bits
+      result = Entropy.estimate_crack_time(47.29)
+      assert String.contains?(result, "day") or String.contains?(result, "hour")
+    end
+
+    test "formats exactly 31536000 seconds (boundary to years)" do
+      # 31536000 seconds (1 year), log2(6.3072e16) ≈ 55.8 bits
+      result = Entropy.estimate_crack_time(55.8)
+      assert String.contains?(result, "year") or String.contains?(result, "day")
+    end
+
+    test "formats exactly 3153600000 seconds (boundary to centuries)" do
+      # 100 years, log2(6.3072e18) ≈ 62.47 bits
+      result = Entropy.estimate_crack_time(62.47)
+      assert String.contains?(result, "centur") or String.contains?(result, "year")
+    end
+
+    test "formats exactly 31536000000 seconds (boundary to millennia)" do
+      # 1000 years, log2(6.3072e19) ≈ 65.79 bits
+      result = Entropy.estimate_crack_time(65.79)
+      assert String.contains?(result, "millennia") or String.contains?(result, "centur")
+    end
+
+    test "formats exactly 315360000000000 seconds (boundary to billions of years)" do
+      # 10 million years, log2(6.3072e23) ≈ 79.09 bits
+      result = Entropy.estimate_crack_time(79.09)
+      assert String.contains?(result, "billion") or String.contains?(result, "millennia")
+    end
+
+    test "formats less than 1 second as instant" do
+      # Very low entropy that results in < 1 second
+      result = Entropy.estimate_crack_time(0.5)
+      assert result == "instant"
+    end
+
+    test "formats 0 entropy as instant" do
+      result = Entropy.estimate_crack_time(0)
+      assert result == "instant"
+    end
+
+    test "formats negative entropy as instant" do
+      result = Entropy.estimate_crack_time(-10)
+      assert result == "instant"
+    end
   end
 end

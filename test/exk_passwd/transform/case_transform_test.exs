@@ -1,4 +1,7 @@
 defmodule ExkPasswd.Transform.CaseTransformTest do
+  @moduledoc """
+  Tests for case transformation (upper, lower, capitalize, alternate, random, invert).
+  """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Transform.CaseTransform
 

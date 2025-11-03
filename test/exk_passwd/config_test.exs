@@ -85,10 +85,15 @@ defmodule ExkPasswd.ConfigTest do
       end
     end
 
-    test "raises on invalid separator" do
+    test "raises on invalid separator (letters)" do
       assert_raise ArgumentError, fn ->
-        Config.new!(separator: ">")
+        Config.new!(separator: "abc")
       end
+    end
+
+    test "accepts Unicode symbols in separator" do
+      config = Config.new!(separator: "・※→")
+      assert config.separator == "・※→"
     end
 
     test "raises on invalid digits tuple" do
@@ -97,10 +102,15 @@ defmodule ExkPasswd.ConfigTest do
       end
     end
 
-    test "raises on invalid padding char" do
+    test "raises on invalid padding char (letters)" do
       assert_raise ArgumentError, fn ->
-        Config.new!(padding: %{char: ">", before: 0, after: 0, to_length: 0})
+        Config.new!(padding: %{char: "abc", before: 0, after: 0, to_length: 0})
       end
+    end
+
+    test "accepts Unicode symbols in padding char" do
+      config = Config.new!(padding: %{char: "・※→", before: 1, after: 1, to_length: 0})
+      assert config.padding.char == "・※→"
     end
   end
 

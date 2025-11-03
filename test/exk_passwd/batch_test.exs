@@ -21,6 +21,19 @@ defmodule ExkPasswd.BatchTest do
       assert Enum.all?(passwords, &is_binary/1)
     end
 
+    test "handles 1 password with many workers" do
+      config = Config.new!(num_words: 2)
+      passwords = Batch.generate_parallel(1, config, workers: 50)
+      assert length(passwords) == 1
+      assert is_binary(hd(passwords))
+    end
+
+    test "handles zero passwords edge case" do
+      config = Config.new!(num_words: 2)
+      passwords = Batch.generate_parallel(0, config, workers: 4)
+      assert passwords == []
+    end
+
     test "passwords are unique" do
       config = Config.new!(num_words: 4)
       passwords = Batch.generate_parallel(20, config)
@@ -52,6 +65,22 @@ defmodule ExkPasswd.BatchTest do
         Batch.generate_unique_batch(10000, config, max_attempts: 1)
       end
     end
+
+    test "generates correct number with low entropy config" do
+      config =
+        Config.new!(
+          num_words: 2,
+          word_length: 4..4,
+          separator: "",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          case_transform: :lower
+        )
+
+      passwords = Batch.generate_unique_batch(3, config)
+      assert length(passwords) == 3
+      assert length(Enum.uniq(passwords)) == 3
+    end
   end
 
   describe "generate_batch/3" do
@@ -66,6 +95,22 @@ defmodule ExkPasswd.BatchTest do
       config = Config.new!(num_words: 2)
       passwords = Batch.generate_batch(10, config, buffer_size: 5000)
       assert length(passwords) == 10
+    end
+
+    test "handles default buffer size calculation" do
+      config = Config.new!(num_words: 2)
+      # When count * 100 > 10000, it should use count * 100
+      passwords = Batch.generate_batch(150, config)
+      assert length(passwords) == 150
+      assert Enum.all?(passwords, &is_binary/1)
+    end
+
+    test "uses default buffer size for small batches" do
+      config = Config.new!(num_words: 2)
+      # When count * 100 < 10000, it should use 10000
+      passwords = Batch.generate_batch(5, config)
+      assert length(passwords) == 5
+      assert Enum.all?(passwords, &is_binary/1)
     end
   end
 end

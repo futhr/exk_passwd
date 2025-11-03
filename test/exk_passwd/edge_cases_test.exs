@@ -1,4 +1,9 @@
 defmodule ExkPasswd.EdgeCaseTest do
+  @moduledoc """
+  Tests for edge cases and boundary conditions in ExkPasswd.
+
+  Covers unusual scenarios, custom dictionary edge cases, and error conditions.
+  """
   use ExUnit.Case
 
   describe "Dictionary.random_word_between/4 with custom dictionary" do

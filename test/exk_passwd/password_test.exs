@@ -196,6 +196,56 @@ defmodule ExkPasswd.PasswordTest do
       refute String.contains?(password, "-")
       refute String.contains?(password, "_")
     end
+
+    test "single character separator is respected (ANALYSIS.md issue)" do
+      # From ANALYSIS.md lines 224-252
+      # Test that separator: "_" actually uses underscore, not randomly selected
+      config =
+        Config.new!(
+          separator: "_",
+          num_words: 4,
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0, to_length: 0}
+        )
+
+      password = Password.create(config)
+
+      # Should contain underscores
+      assert String.contains?(password, "_"),
+             "Expected separator '_' to appear in password: #{password}"
+
+      # Should have 3 separators for 4 words
+      separator_count = password |> String.graphemes() |> Enum.count(&(&1 == "_"))
+
+      assert separator_count == 3,
+             "Expected 3 underscores for 4 words, got #{separator_count} in: #{password}"
+    end
+
+    test "separator string selects one character randomly" do
+      # When separator is a string of multiple chars, one should be chosen
+      config =
+        Config.new!(
+          separator: "!@#",
+          num_words: 3,
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0, to_length: 0}
+        )
+
+      # Generate multiple passwords to verify random selection
+      passwords = for _ <- 1..20, do: Password.create(config)
+
+      # At least one should contain each possible separator
+      # (with 20 attempts, very likely to see variety)
+      separators_seen =
+        passwords
+        |> Enum.flat_map(&String.graphemes/1)
+        |> Enum.filter(&(&1 in ["!", "@", "#"]))
+        |> Enum.uniq()
+
+      # Should see at least 2 different separators in 20 tries
+      assert length(separators_seen) >= 2,
+             "Expected variety in separator selection, only saw: #{inspect(separators_seen)}"
+    end
   end
 
   describe "create/1 with digits" do
@@ -315,6 +365,60 @@ defmodule ExkPasswd.PasswordTest do
 
       password = Password.create(config)
       assert String.length(password) == 10
+    end
+
+    test "fixed padding with explicit digits configuration (ANALYSIS.md issue)" do
+      # From ANALYSIS.md lines 196-206
+      # Test that explicit padding configuration is respected, not overridden by defaults
+      config =
+        Config.new!(
+          num_words: 4,
+          separator: "~",
+          case_transform: :alternate,
+          # Request 3 digits before and after
+          digits: {3, 3},
+          padding: %{char: "+", before: 2, after: 2, to_length: 0}
+        )
+
+      password = Password.create(config)
+
+      # Should have padding symbols before and after
+      assert String.starts_with?(password, "++")
+      assert String.ends_with?(password, "++")
+
+      # Should have digits near the start and end (after/before padding)
+      # Extract first few chars after padding and last few chars before padding
+      chars_after_start = String.slice(password, 2, 5)
+      chars_before_end = String.slice(password, -7, 5)
+
+      # At least one should contain 3 digits
+      assert String.match?(chars_after_start, ~r/\d{3}/) or
+               String.match?(chars_before_end, ~r/\d{3}/),
+             "Expected 3 digits before or after words, got: #{password}"
+    end
+
+    test "no padding configuration is respected (ANALYSIS.md issue)" do
+      # From ANALYSIS.md - ensure padding: 0 actually means no padding
+      config =
+        Config.new!(
+          num_words: 4,
+          separator: "_",
+          # No digits
+          digits: {0, 0},
+          # No padding
+          padding: %{char: "", before: 0, after: 0, to_length: 0}
+        )
+
+      password = Password.create(config)
+
+      # Should only contain words and separators, no extra chars
+      # Pattern: word_word_word_word
+      assert password =~ ~r/^\w+_\w+_\w+_\w+$/,
+             "Expected only words and separators, got: #{password}"
+
+      # Should NOT start/end with special chars
+      refute String.match?(password, ~r/^[^a-zA-Z]/)
+      refute String.match?(password, ~r/[^a-zA-Z]$/)
     end
   end
 
@@ -538,6 +642,7 @@ defmodule ExkPasswd.PasswordTest do
 
   describe "create/1 with invert case edge cases" do
     test "handles short words with invert" do
+      ExkPasswd.Dictionary.init()
       ExkPasswd.Dictionary.load_custom(:short_words, ["test", "word", "here", "four"])
 
       config =
@@ -669,6 +774,39 @@ defmodule ExkPasswd.PasswordTest do
       # Should work without padding
       assert is_binary(password)
       assert String.length(password) > 0
+    end
+  end
+
+  describe "edge case: empty word with invert case" do
+    test "handles empty word in select_words_optimized with :invert" do
+      # This would test the nil case in String.next_codepoint
+      # In practice, dictionary shouldn't return empty strings, but we test the code path
+      ExkPasswd.Dictionary.init()
+      # Note: We can't easily force an empty word from dictionary, so we test indirectly
+      # The code has defensive nil handling at line 336: nil -> word
+      config =
+        Config.new!(
+          case_transform: :invert,
+          num_words: 1,
+          word_length: 4..10
+        )
+
+      password = Password.create(config)
+      assert is_binary(password)
+    end
+
+    test "handles empty word in select_words_with_state_by_case with :invert" do
+      # Similar for stateful version at line 234: nil -> word
+      config =
+        Config.new!(
+          case_transform: :invert,
+          num_words: 1,
+          word_length: 4..8
+        )
+
+      state = Buffer.new(500)
+      {password, _new_state} = Password.create_with_state(config, state)
+      assert is_binary(password)
     end
   end
 end

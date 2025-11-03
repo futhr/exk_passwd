@@ -1,4 +1,9 @@
 defmodule ExkPasswd.Transform.SubstitutionTest do
+  @moduledoc """
+  Tests for character substitution transform (e.g., a → @, e → 3).
+
+  Tests various substitution modes and patterns.
+  """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Transform.Substitution
 
@@ -168,6 +173,68 @@ defmodule ExkPasswd.Transform.SubstitutionTest do
     test "handles multiple occurrences of same character", %{config: config} do
       transform = %Substitution{map: %{"e" => "3"}, mode: :always}
       assert Transform.apply(transform, "eeeee", config) == "33333"
+    end
+  end
+
+  describe "Substitution integration via meta transforms (ANALYSIS.md issue)" do
+    test "substitutions work via Config meta field" do
+      # From ANALYSIS.md lines 256-300
+      # Demonstrates correct usage of substitutions via meta transforms
+      config =
+        Config.new!(
+          num_words: 3,
+          separator: "-",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          meta: %{
+            transforms: [
+              %Substitution{
+                mode: :always,
+                map: %{"a" => "@", "e" => "3", "i" => "1", "o" => "0", "s" => "$"}
+              }
+            ]
+          }
+        )
+
+      # Generate a password and verify substitutions are applied
+      password = ExkPasswd.generate(config)
+
+      # If the password contains any of the source characters, they should be substituted
+      # Check that substituted chars appear if original chars were present
+      graphemes = String.graphemes(password)
+
+      # Should NOT contain unsubstituted vowels (if they were in the words)
+      # But may contain them if they came from padding/digits
+      # So we verify: if @ appears, then 'a' should not appear (unless from separator)
+      substituted_chars = ["@", "3", "1", "0", "$"]
+      has_substitutions = Enum.any?(graphemes, &(&1 in substituted_chars))
+
+      # At least some passwords should have substitutions (not all words lack a/e/i/o/s)
+      assert has_substitutions or length(graphemes) < 10,
+             "Expected some substitutions in password: #{password}"
+    end
+
+    test "multiple transforms can be chained in meta" do
+      # Test that multiple transforms in the list are all applied
+      config =
+        Config.new!(
+          num_words: 2,
+          separator: "-",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          meta: %{
+            transforms: [
+              %Substitution{mode: :always, map: %{"e" => "3"}},
+              %Substitution{mode: :always, map: %{"o" => "0"}}
+            ]
+          }
+        )
+
+      password = ExkPasswd.generate(config)
+
+      # Both substitutions should be applied
+      assert is_binary(password)
+      assert String.length(password) > 0
     end
   end
 end

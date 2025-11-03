@@ -577,4 +577,37 @@ defmodule ExkPasswd.DictionaryTest do
       assert result == :ok
     end
   end
+
+  describe "custom dictionary with uncommon range fallback" do
+    setup do
+      # Dictionary with words in unusual length ranges to trigger fallback path
+      Dictionary.load_custom(:uncommon_range_dict, [
+        "ab",
+        "abc",
+        "abcd",
+        "abcdefghij",
+        "abcdefghijk"
+      ])
+
+      :ok
+    end
+
+    test "triggers fallback for custom dictionary uncommon range" do
+      # Range 2..11 is uncommon and should trigger fallback path in count_between_fallback
+      count = Dictionary.count_between(2, 11, :uncommon_range_dict)
+      assert count == 5
+    end
+
+    test "triggers fallback for reversed range in custom dictionary" do
+      # Reversed range should also trigger fallback with reversed iteration
+      count = Dictionary.count_between(11, 2, :uncommon_range_dict)
+      assert count == 5
+    end
+
+    test "random_word_between fallback with custom dictionary" do
+      # Should trigger random_word_between_custom_fallback
+      word = Dictionary.random_word_between(2, 11, :none, :uncommon_range_dict)
+      assert word in ["ab", "abc", "abcd", "abcdefghij", "abcdefghijk"]
+    end
+  end
 end
