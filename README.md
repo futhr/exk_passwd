@@ -487,15 +487,19 @@ ExkPasswd.generate(config)
 
 # Example 1: Japanese Romaji Transform (Built-in)
 # ExkPasswd includes a production-ready Modified Hepburn romanization transform
+# with full support for modern Japanese including Katakana loanwords
 
-# Load Japanese dictionary
-ExkPasswd.Dictionary.load_custom(:japanese, ["さくら", "やま", "うみ", "そら", "おちゃ", "きょうと"])
+# Load Japanese dictionary (Hiragana and Katakana)
+ExkPasswd.Dictionary.load_custom(:japanese, [
+  "さくら", "やま", "うみ", "そら", "おちゃ", "きょうと",  # Traditional Hiragana
+  "コーヒー", "ファイル", "ウィンドウ", "パーティー"      # Modern Katakana loanwords
+])
 
 config = ExkPasswd.Config.new!(
   num_words: 3,
   dictionary: :japanese,
-  word_length: 2..4,
-  word_length_bounds: 1..10,
+  word_length: 2..8,
+  word_length_bounds: 1..15,
   separator: "-",
   meta: %{
     transforms: [%ExkPasswd.Transform.Romaji{}]
@@ -503,13 +507,15 @@ config = ExkPasswd.Config.new!(
 )
 
 ExkPasswd.generate(config)
-#=> "45-sakura-ocha-yama-89"  # さくら, おちゃ, やま romanized
+#=> "45-sakura-koohii-fairu-89"  # さくら, コーヒー, ファイル romanized
 # Features:
-# - Modified Hepburn romanization (きょうと → kyouto, おちゃ → ocha)
-# - Sokuon gemination (がっこう → gakkou)
-# - Palatalization (しゃしん → shashin)
-# - N before labials (さんぽ → sampo)
-# - Full Unicode support for hiragana and katakana
+# - Modified Hepburn with Wāpuro IME conventions (きょうと → kyouto, おちゃ → ocha)
+# - Sokuon gemination (がっこう → gakkou, まっちゃ → matcha)
+# - Palatalization (しゃしん → shashin, ちゃ → cha)
+# - N before labials (さんぽ → sampo, しんぶん → shimbun)
+# - Long vowel markers (コーヒー → koohii, ラーメン → raamen)
+# - Extended Katakana (ファイル → fairu, ウィンドウ → windou, ヴァイオリン → vaiorin)
+# - Full Unicode support for Hiragana, Katakana, and extended sounds
 
 # Example 2: NATO Phonetic Alphabet Transform
 defmodule MyApp.PhoneticTransform do

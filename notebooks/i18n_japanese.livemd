@@ -170,15 +170,19 @@ for {hiragana, expected} <- hiragana_tests do
   IO.puts("#{match} #{hiragana} → #{result} (expected: #{expected})")
 end
 
-# Test Katakana
+# Test Katakana (including modern loanword features)
 IO.puts("\n=== Katakana → Romaji ===\n")
 
 katakana_tests = [
   {"サクラ", "sakura"},
   {"ヤマ", "yama"},
   {"ウミ", "umi"},
-  {"コーヒー", "kohi"},
-  {"ラーメン", "ramen"}
+  {"コーヒー", "koohii"},  # Long vowel marker now properly handled
+  {"ラーメン", "raamen"},   # Long vowel marker
+  {"ファイル", "fairu"},   # Modern loanword: file
+  {"パーティー", "paatii"}, # Modern loanword: party
+  {"ウィンドウ", "windou"}, # Modern loanword: window
+  {"チェック", "chekku"}   # Modern loanword: check
 ]
 
 for {katakana, expected} <- katakana_tests do
@@ -188,6 +192,49 @@ for {katakana, expected} <- katakana_tests do
 end
 ```
 
+## Modern Japanese Loanwords
+
+ExkPasswd now supports **extended Katakana** for foreign words! This is great for tech-savvy Japanese users:
+
+```elixir
+# Dictionary with modern Katakana loanwords
+loanword_dictionary = [
+  "ファイル",     # File
+  "フォルダ",     # Folder
+  "コンピューター", # Computer
+  "パーティー",   # Party
+  "コーヒー",     # Coffee
+  "ウィンドウ",   # Window
+  "チェック",     # Check
+  "シェア",       # Share
+  "ディスク",     # Disk
+  "ヴァイオリン"  # Violin (v-sound)
+]
+
+ExkPasswd.Dictionary.load_custom(:japanese_loanwords, loanword_dictionary)
+
+loanword_config = ExkPasswd.Config.new!(
+  dictionary: :japanese_loanwords,
+  word_length: 2..8,
+  word_length_bounds: 1..15,
+  num_words: 3,
+  separator: "-",
+  digits: {2, 2},
+  padding: %{char: "", before: 0, after: 0, to_length: 0},
+  case_transform: :none,
+  meta: %{transforms: [%ExkPasswd.Transform.Romaji{}]}
+)
+
+IO.puts("\n=== Modern Loanword Passwords ===\n")
+
+for i <- 1..5 do
+  password = ExkPasswd.generate(loanword_config)
+  IO.puts("#{i}. #{password}")
+end
+
+IO.puts("\n💡 These passwords use modern Japanese vocabulary that tech users will find familiar!")
+```
+
 ## Mixed Script Support
 
 ExkPasswd handles both Hiragana and Katakana seamlessly:
@@ -195,14 +242,16 @@ ExkPasswd handles both Hiragana and Katakana seamlessly:
 ```elixir
 # Dictionary with mixed scripts
 mixed_words = [
-  "さくら",     # Hiragana
+  "さくら",     # Hiragana - Cherry blossom
   "サクラ",     # Katakana (same word)
-  "やま",       # Hiragana
+  "やま",       # Hiragana - Mountain
   "ヤマ",       # Katakana
-  "コーヒー",   # Katakana (coffee)
-  "ラーメン",   # Katakana (ramen)
-  "おちゃ",     # Hiragana (tea)
-  "すし"        # Hiragana (sushi)
+  "コーヒー",   # Katakana - Coffee (loanword)
+  "ラーメン",   # Katakana - Ramen
+  "おちゃ",     # Hiragana - Tea
+  "すし",       # Hiragana - Sushi
+  "ファイル",   # Katakana - File (modern loanword)
+  "ウェブ"      # Katakana - Web (modern loanword)
 ]
 
 ExkPasswd.Dictionary.load_custom(:japanese_mixed, mixed_words)
@@ -288,6 +337,8 @@ IO.puts(ExkPasswd.generate(config_short))
 
 For those learning Japanese, here's how Romaji maps to pronunciation:
 
+### Basic Characters
+
 | Hiragana | Katakana | Romaji | Sound |
 |----------|----------|--------|-------|
 | あ | ア | a | "ah" |
@@ -299,6 +350,30 @@ For those learning Japanese, here's how Romaji maps to pronunciation:
 
 **Example:** `さくら` (sakura) = "sah-koo-rah"
 
+### Modern Extensions (Loanwords)
+
+| Katakana | Romaji | Use | Example Word |
+|----------|--------|-----|--------------|
+| ファ | fa | F-sounds | ファイル (file) |
+| フィ | fi | F-sounds | フィルム (film) |
+| ウィ | wi | W-sounds | ウィキ (wiki) |
+| ウェ | we | W-sounds | ウェブ (web) |
+| ヴァ | va | V-sounds | ヴァイオリン (violin) |
+| ティ | ti | T-sounds | ティー (tea) |
+| ディ | di | D-sounds | ディスク (disk) |
+| チェ | che | CH-sounds | チェック (check) |
+| シェ | she | SH-sounds | シェア (share) |
+
+### Long Vowels
+
+The long vowel marker **ー** duplicates the previous vowel:
+
+- コーヒー → **koohii** (coffee) - "o" is doubled
+- ラーメン → **raamen** (ramen) - "a" is doubled
+- ビール → **biiru** (beer) - "i" is doubled
+
+This ASCII-friendly approach ensures the passwords work on any keyboard!
+
 ## Key Takeaways
 
 1. **Most systems require ASCII** - Even Japanese banks use ASCII-only passwords
@@ -306,11 +381,64 @@ For those learning Japanese, here's how Romaji maps to pronunciation:
 3. **Cryptographically secure** - Random selection, not predictable
 4. **Works everywhere** - Any keyboard, any system, any country
 5. **Mixed scripts supported** - Hiragana and Katakana both work
+6. **✨ NEW: Modern loanword support** - ファイル→fairu, ヴァイオリン→vaiorin
+7. **✨ NEW: Proper long vowels** - コーヒー→koohii (not kohi)
+
+## Advanced Features
+
+### Kanji Detection
+
+Want to check if your dictionary contains Kanji? Use the built-in detection:
+
+```elixir
+transform = %ExkPasswd.Transform.Romaji{}
+
+IO.puts("\n=== Kanji Detection ===\n")
+
+test_words = [
+  {"さくら", "Hiragana only"},
+  {"サクラ", "Katakana only"},
+  {"桜", "Kanji (cannot convert)"},
+  {"日本語", "Mixed Kanji"},
+  {"ファイル", "Modern Katakana"}
+]
+
+for {word, description} <- test_words do
+  has_kanji = ExkPasswd.Transform.Romaji.contains_kanji?(word)
+  status = if has_kanji, do: "⚠️ Contains Kanji", else: "✓ OK"
+  IO.puts("#{status} - #{word} (#{description})")
+end
+
+IO.puts("\n💡 Tip: Convert Kanji to Hiragana/Katakana before using in your dictionary!")
+```
 
 ## Next Steps
 
 - Add more Japanese words to your dictionary for higher entropy
+- Use modern Katakana loanwords for tech-themed passwords
 - Try Chinese with Pinyin: See `notebooks/i18n_chinese.livemd`
-- Mix Hiragana, Katakana, and Kanji readings
+- Check your dictionaries for Kanji using `contains_kanji?/1`
 - Build custom transforms for other languages
 - Integrate into your password manager workflow
+
+## Technical Notes
+
+### Romanization Style
+
+ExkPasswd uses **Modified Hepburn with Wāpuro conventions** - the same style used by Japanese IMEs (Input Method Editors). This means:
+
+- Output matches what Japanese speakers would type on QWERTY keyboards
+- Long vowels use doubled letters (koohii) not macrons (kōhī)
+- Special combinations for foreign sounds (fa, wi, va, ti, etc.)
+- Sokuon (っ) properly doubles consonants (がっこう → gakkou)
+
+### Supported Features
+
+✅ All Hiragana characters
+✅ All Katakana characters
+✅ Extended Katakana (ファ, ウィ, ヴァ, ティ, etc.)
+✅ Long vowel marker (ー)
+✅ Sokuon/gemination (っ/ッ)
+✅ Palatalization (きゃ/しゃ/ちゃ)
+✅ N-before-labials rule (さんぽ → sampo)
+❌ Kanji conversion (requires morphological analysis - use kana-only dictionaries)
