@@ -6,11 +6,11 @@
 
 [![Test Suite](https://github.com/futhr/exk_passwd/workflows/Test%20Suite/badge.svg)](https://github.com/futhr/exk_passwd/actions)
 [![Coverage](https://img.shields.io/badge/coverage-96.2%25-brightgreen.svg)](https://github.com/futhr/exk_passwd)
+[![Doc Coverage](https://img.shields.io/badge/doc%20coverage-98.5%25-brightgreen.svg)](https://github.com/futhr/exk_passwd)
 [![Hex.pm](https://img.shields.io/hexpm/v/exk_passwd.svg)](https://hex.pm/packages/exk_passwd)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-purple.svg)](https://hexdocs.pm/exk_passwd)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.18-blueviolet.svg)](https://elixir-lang.org)
-[![Zero Dependencies](https://img.shields.io/badge/dependencies-0-success.svg)](https://hex.pm/packages/exk_passwd)
 
 ---
 
@@ -20,12 +20,12 @@ Explore ExkPasswd with interactive Livebook notebooks:
 
 [![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Ffuthr%2Fexk_passwd%2Fblob%2Fmain%2Fnotebooks%2Fquickstart.livemd)
 
-* **[Quick Start](notebooks/quickstart.livemd)** - Basic usage and examples
-* **[Advanced Usage](notebooks/advanced.livemd)** - Custom configurations and transformations
-* **[Security Analysis](notebooks/security.livemd)** - Entropy, strength, and cryptographic properties
-* **[Benchmarks](notebooks/benchmarks.livemd)** - Performance metrics and comparisons
-* **[Chinese i18n](notebooks/i18n_chinese.livemd)** - 中文密码生成 (Chinese password generation with Pinyin)
-* **[Japanese i18n](notebooks/i18n_japanese.livemd)** - 日本語パスワード生成 (Japanese password generation with Romaji)
+* **[Quick Start](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Ffuthr%2Fexk_passwd%2Fblob%2Fmain%2Fnotebooks%2Fquickstart.livemd)** - Basic usage and examples
+* **[Advanced Usage](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Ffuthr%2Fexk_passwd%2Fblob%2Fmain%2Fnotebooks%2Fadvanced.livemd)** - Custom configurations and transformations
+* **[Security Analysis](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Ffuthr%2Fexk_passwd%2Fblob%2Fmain%2Fnotebooks%2Fsecurity.livemd)** - Entropy, strength, and cryptographic properties
+* **[Benchmarks](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Ffuthr%2Fexk_passwd%2Fblob%2Fmain%2Fnotebooks%2Fbenchmarks.livemd)** - Performance metrics and comparisons
+* **[Chinese i18n](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Ffuthr%2Fexk_passwd%2Fblob%2Fmain%2Fnotebooks%2Fi18n_chinese.livemd)** - 中文密码生成 (Chinese password generation with Pinyin)
+* **[Japanese i18n](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2Ffuthr%2Fexk_passwd%2Fblob%2Fmain%2Fnotebooks%2Fi18n_japanese.livemd)** - 日本語パスワード生成 (Japanese password generation with Romaji)
 
 ---
 
