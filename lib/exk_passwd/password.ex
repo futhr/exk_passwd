@@ -24,12 +24,12 @@ defmodule ExkPasswd.Password do
   ## Examples
 
       iex> password = ExkPasswd.Password.create()
-      iex> is_binary(password) and String.length(password) > 0
+      ...> is_binary(password) and String.length(password) > 0
       true
 
       iex> config = ExkPasswd.Config.new!(num_words: 2, separator: "-")
-      iex> password = ExkPasswd.Password.create(config)
-      iex> String.contains?(password, "-")
+      ...> password = ExkPasswd.Password.create(config)
+      ...> String.contains?(password, "-")
       true
   """
 
@@ -52,12 +52,12 @@ defmodule ExkPasswd.Password do
   ## Examples
 
       iex> password = ExkPasswd.Password.create()
-      iex> is_binary(password) and String.length(password) > 0
+      ...> is_binary(password) and String.length(password) > 0
       true
 
       iex> config = ExkPasswd.Config.new!(num_words: 2, separator: "-")
-      iex> password = ExkPasswd.Password.create(config)
-      iex> String.contains?(password, "-")
+      ...> password = ExkPasswd.Password.create(config)
+      ...> String.contains?(password, "-")
       true
   """
   @spec create(Config.t()) :: String.t()
@@ -95,8 +95,11 @@ defmodule ExkPasswd.Password do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new(1000)
-      iex> {password, _new_state} = ExkPasswd.Password.create_with_state(ExkPasswd.Config.new!(), state)
-      iex> is_binary(password) and String.length(password) > 0
+      ...>
+      ...> {password, _new_state} =
+      ...>   ExkPasswd.Password.create_with_state(ExkPasswd.Config.new!(), state)
+      ...>
+      ...> is_binary(password) and String.length(password) > 0
       true
   """
   @spec create_with_state(Config.t(), Buffer.t()) :: {String.t(), Buffer.t()}

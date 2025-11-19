@@ -196,6 +196,7 @@ defmodule ExkPasswd.Config.Presets do
 
   This is typically called by the application supervisor.
   """
+  @spec start_link(term()) :: {:ok, pid()} | {:error, term()}
   def start_link(_opts) do
     Agent.start_link(fn -> %{} end, name: __MODULE__)
   end

@@ -7,6 +7,14 @@ defmodule ExkPasswd.Config.Schema do
 
   alias ExkPasswd.Config
 
+  # Validation bounds constants
+  @min_num_words 1
+  @max_num_words 10
+  @min_digit_count 0
+  @max_digit_count 5
+  @min_padding 0
+  @max_padding 5
+
   @allowed_symbols ~w(- _ ~ + * = @ ! # & $ % ? . , : ; ^ | / ' " ) ++ [" "]
 
   @doc """
@@ -37,12 +45,14 @@ defmodule ExkPasswd.Config.Schema do
   end
 
   # Validate num_words field
-  defp validate_num_words(%{num_words: n}) when is_integer(n) and n >= 1 and n <= 10 do
+  defp validate_num_words(%{num_words: n})
+       when is_integer(n) and n >= @min_num_words and n <= @max_num_words do
     :ok
   end
 
   defp validate_num_words(%{num_words: n}) do
-    {:error, "num_words must be between 1 and 10, got: #{inspect(n)}"}
+    {:error,
+     "num_words must be between #{@min_num_words} and #{@max_num_words}, got: #{inspect(n)}"}
   end
 
   # Validate word_length field (should be a Range)
@@ -114,14 +124,16 @@ defmodule ExkPasswd.Config.Schema do
 
   # Validate digits field (should be a tuple {before, after})
   defp validate_digits(%{digits: {before, after_d}})
-       when is_integer(before) and is_integer(after_d) and before >= 0 and before <= 5 and
-              after_d >= 0 and after_d <= 5 do
+       when is_integer(before) and is_integer(after_d) and
+              before >= @min_digit_count and before <= @max_digit_count and
+              after_d >= @min_digit_count and after_d <= @max_digit_count do
     :ok
   end
 
   defp validate_digits(%{digits: {before, after_d}})
        when is_integer(before) and is_integer(after_d) do
-    {:error, "digits tuple values must be between 0 and 5, got: {#{before}, #{after_d}}"}
+    {:error,
+     "digits tuple values must be between #{@min_digit_count} and #{@max_digit_count}, got: {#{before}, #{after_d}}"}
   end
 
   defp validate_digits(%{digits: other}) do
@@ -152,15 +164,16 @@ defmodule ExkPasswd.Config.Schema do
   defp validate_padding_char(_), do: {:error, "padding map must have a :char key"}
 
   defp validate_padding_amounts(%{before: before, after: after_p})
-       when is_integer(before) and is_integer(after_p) and before >= 0 and before <= 5 and
-              after_p >= 0 and after_p <= 5 do
+       when is_integer(before) and is_integer(after_p) and
+              before >= @min_padding and before <= @max_padding and
+              after_p >= @min_padding and after_p <= @max_padding do
     :ok
   end
 
   defp validate_padding_amounts(%{before: before, after: after_p})
        when is_integer(before) and is_integer(after_p) do
     {:error,
-     "padding.before and padding.after must be between 0 and 5, got: before=#{before}, after=#{after_p}"}
+     "padding.before and padding.after must be between #{@min_padding} and #{@max_padding}, got: before=#{before}, after=#{after_p}"}
   end
 
   defp validate_padding_amounts(_) do
@@ -250,7 +263,7 @@ defmodule ExkPasswd.Config.Schema do
   ## Examples
 
       iex> symbols = ExkPasswd.Config.Schema.allowed_symbols()
-      iex> Enum.member?(symbols, "-")
+      ...> Enum.member?(symbols, "-")
       true
   """
   @spec allowed_symbols() :: [String.t()]

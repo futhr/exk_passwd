@@ -19,11 +19,11 @@ defmodule ExkPasswd.Random do
   ## Examples
 
       iex> value = ExkPasswd.Random.select([1, 2, 3, 4, 5])
-      iex> value in [1, 2, 3, 4, 5]
+      ...> value in [1, 2, 3, 4, 5]
       true
 
       iex> n = ExkPasswd.Random.integer(100)
-      iex> n >= 0 and n < 100
+      ...> n >= 0 and n < 100
       true
 
       iex> is_boolean(ExkPasswd.Random.boolean())
@@ -55,11 +55,11 @@ defmodule ExkPasswd.Random do
   ## Examples
 
       iex> n = ExkPasswd.Random.integer(10)
-      iex> n >= 0 and n < 10
+      ...> n >= 0 and n < 10
       true
 
       iex> n = ExkPasswd.Random.integer(1)
-      iex> n
+      ...> n
       0
   """
   @spec integer(pos_integer()) :: non_neg_integer()
@@ -104,28 +104,23 @@ defmodule ExkPasswd.Random do
   ## Examples
 
       iex> value = ExkPasswd.Random.select([1, 2, 3])
-      iex> value in [1, 2, 3]
+      ...> value in [1, 2, 3]
       true
 
       iex> ExkPasswd.Random.select([])
       nil
 
       iex> value = ExkPasswd.Random.select(1..5)
-      iex> value in 1..5
+      ...> value in 1..5
       true
   """
   @spec select(Enum.t()) :: any() | nil
   def select(enumerable) do
     list = Enum.to_list(enumerable)
-    count = length(list)
 
-    cond do
-      count == 0 ->
-        nil
-
-      true ->
-        index = integer(count)
-        Enum.at(list, index)
+    case length(list) do
+      0 -> nil
+      count -> Enum.at(list, integer(count))
     end
   end
 
@@ -161,7 +156,7 @@ defmodule ExkPasswd.Random do
   ## Examples
 
       iex> n = ExkPasswd.Random.integer_between(5, 10)
-      iex> n >= 5 and n <= 10
+      ...> n >= 5 and n <= 10
       true
 
       iex> ExkPasswd.Random.integer_between(7, 7)

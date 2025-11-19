@@ -20,21 +20,23 @@ defmodule ExkPasswd.Buffer do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new(1000)
-      iex> {value, new_state} = ExkPasswd.Buffer.random_integer(state, 100)
-      iex> is_integer(value)
+      ...> {value, new_state} = ExkPasswd.Buffer.random_integer(state, 100)
+      ...> is_integer(value)
       true
       iex> is_struct(new_state, ExkPasswd.Buffer)
       true
 
       iex> state = ExkPasswd.Buffer.new(1000)
-      iex> {index, new_state} = ExkPasswd.Buffer.random_index(state, 10)
-      iex> is_integer(index)
+      ...> {index, new_state} = ExkPasswd.Buffer.random_index(state, 10)
+      ...> is_integer(index)
       true
       iex> is_struct(new_state, ExkPasswd.Buffer)
       true
   """
 
+  # 10KB buffer reduces crypto syscalls by ~100x for typical batch sizes
   @default_buffer_size 10_000
+  # 4 bytes = 32-bit unsigned integer, provides sufficient entropy for common use cases
   @bytes_per_int 4
 
   @type t :: %__MODULE__{
@@ -59,11 +61,11 @@ defmodule ExkPasswd.Buffer do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new()
-      iex> is_struct(state, ExkPasswd.Buffer)
+      ...> is_struct(state, ExkPasswd.Buffer)
       true
 
       iex> state = ExkPasswd.Buffer.new(5000)
-      iex> state.buffer_size
+      ...> state.buffer_size
       5000
   """
   @spec new(pos_integer()) :: t()
@@ -92,14 +94,18 @@ defmodule ExkPasswd.Buffer do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new()
-      iex> {value, new_state} = ExkPasswd.Buffer.random_integer(state, 100)
-      iex> is_integer(value)
+      ...> {value, new_state} = ExkPasswd.Buffer.random_integer(state, 100)
+      ...> is_integer(value)
       true
       iex> is_struct(new_state, ExkPasswd.Buffer)
       true
   """
   @spec random_integer(t(), pos_integer()) :: {non_neg_integer(), t()}
-  def random_integer(state, max) when max > 0 do
+  def random_integer(_state, max) when is_integer(max) and max <= 0 do
+    raise ArgumentError, "max must be a positive integer, got: #{max}"
+  end
+
+  def random_integer(state, max) when is_integer(max) and max > 0 do
     {bytes, new_state} = consume_bytes(state, @bytes_per_int)
 
     value =
@@ -127,8 +133,8 @@ defmodule ExkPasswd.Buffer do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new()
-      iex> {index, new_state} = ExkPasswd.Buffer.random_index(state, 10)
-      iex> is_integer(index)
+      ...> {index, new_state} = ExkPasswd.Buffer.random_index(state, 10)
+      ...> is_integer(index)
       true
       iex> is_struct(new_state, ExkPasswd.Buffer)
       true
@@ -154,8 +160,8 @@ defmodule ExkPasswd.Buffer do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new()
-      iex> {value, _new_state} = ExkPasswd.Buffer.random_boolean(state)
-      iex> is_boolean(value)
+      ...> {value, _new_state} = ExkPasswd.Buffer.random_boolean(state)
+      ...> is_boolean(value)
       true
   """
   @spec random_boolean(t()) :: {boolean(), t()}
@@ -190,8 +196,8 @@ defmodule ExkPasswd.Buffer do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new()
-      iex> {digit, new_state} = ExkPasswd.Buffer.random_digit(state)
-      iex> is_integer(digit)
+      ...> {digit, new_state} = ExkPasswd.Buffer.random_digit(state)
+      ...> is_integer(digit)
       true
       iex> is_struct(new_state, ExkPasswd.Buffer)
       true
@@ -218,8 +224,8 @@ defmodule ExkPasswd.Buffer do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new()
-      iex> {elem, _new_state} = ExkPasswd.Buffer.random_element(state, [1, 2, 3])
-      iex> elem in [1, 2, 3]
+      ...> {elem, _new_state} = ExkPasswd.Buffer.random_element(state, [1, 2, 3])
+      ...> elem in [1, 2, 3]
       true
   """
   @spec random_element(t(), nonempty_list(term())) :: {term(), t()}

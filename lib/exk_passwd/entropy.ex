@@ -29,15 +29,15 @@ defmodule ExkPasswd.Entropy do
   ## Examples
 
       iex> config = ExkPasswd.Config.new!(num_words: 3)
-      iex> password = ExkPasswd.generate(config)
-      iex> result = ExkPasswd.Entropy.calculate(password, config)
-      iex> result.blind > 40
+      ...> password = ExkPasswd.generate(config)
+      ...> result = ExkPasswd.Entropy.calculate(password, config)
+      ...> result.blind > 40
       true
       iex> result.seen > 50
       true
 
       iex> ExkPasswd.Entropy.calculate_seen(ExkPasswd.Config.new!(num_words: 6))
-      iex> # Returns entropy in bits (float)
+      ...> # Returns entropy in bits (float)
   """
 
   alias ExkPasswd.{Config, Dictionary}
@@ -83,9 +83,9 @@ defmodule ExkPasswd.Entropy do
   ## Examples
 
       iex> config = ExkPasswd.Config.new!(num_words: 4)
-      iex> password = "12-HAPPY-forest-DANCE-bird-56"
-      iex> result = ExkPasswd.Entropy.calculate(password, config)
-      iex> is_float(result.blind) and is_float(result.seen)
+      ...> password = "12-HAPPY-forest-DANCE-bird-56"
+      ...> result = ExkPasswd.Entropy.calculate(password, config)
+      ...> is_float(result.blind) and is_float(result.seen)
       true
   """
   @spec calculate(String.t(), Config.t()) :: entropy_result()
@@ -125,10 +125,10 @@ defmodule ExkPasswd.Entropy do
   ## Examples
 
       iex> ExkPasswd.Entropy.calculate_blind("aB3!")
-      iex> # ~26.3 bits for 4-char with mixed types
+      ...> # ~26.3 bits for 4-char with mixed types
 
       iex> blind = ExkPasswd.Entropy.calculate_blind("correcthorsebatterystaple")
-      iex> blind > 100
+      ...> blind > 100
       true
   """
   @spec calculate_blind(String.t()) :: float()
@@ -160,8 +160,8 @@ defmodule ExkPasswd.Entropy do
   ## Examples
 
       iex> config = ExkPasswd.Config.new!(num_words: 3)
-      iex> seen = ExkPasswd.Entropy.calculate_seen(config)
-      iex> seen > 40
+      ...> seen = ExkPasswd.Entropy.calculate_seen(config)
+      ...> seen > 40
       true
   """
   @spec calculate_seen(Config.t()) :: float()
@@ -185,8 +185,8 @@ defmodule ExkPasswd.Entropy do
   ## Examples
 
       iex> config = ExkPasswd.Config.new!(num_words: 3)
-      iex> result = ExkPasswd.Entropy.calculate_seen_detailed(config)
-      iex> is_float(result.total)
+      ...> result = ExkPasswd.Entropy.calculate_seen_detailed(config)
+      ...> is_float(result.total)
       true
   """
   @spec calculate_seen_detailed(Config.t()) :: map()
@@ -199,8 +199,15 @@ defmodule ExkPasswd.Entropy do
     substitution_entropy = calculate_substitution_entropy(settings)
 
     total =
-      word_entropy + separator_entropy + padding_entropy + digit_entropy + case_entropy +
+      [
+        word_entropy,
+        separator_entropy,
+        padding_entropy,
+        digit_entropy,
+        case_entropy,
         substitution_entropy
+      ]
+      |> Enum.sum()
 
     %{
       total: total,
@@ -212,6 +219,31 @@ defmodule ExkPasswd.Entropy do
       substitution_entropy: substitution_entropy
     }
   end
+
+  @doc """
+  Calculate effective entropy from blind and seen values.
+
+  Uses the lower of the two as the limiting factor for security assessment.
+
+  ## Parameters
+
+  - `blind` - Blind entropy in bits
+  - `seen` - Seen entropy in bits
+
+  ## Returns
+
+  Effective entropy in bits (float)
+
+  ## Examples
+
+      iex> ExkPasswd.Entropy.effective_entropy(80.0, 65.0)
+      65.0
+
+      iex> ExkPasswd.Entropy.effective_entropy(50.0, 70.0)
+      50.0
+  """
+  @spec effective_entropy(float(), float()) :: float()
+  def effective_entropy(blind, seen), do: min(blind, seen)
 
   @doc """
   Determine strength status based on entropy values.
@@ -235,13 +267,12 @@ defmodule ExkPasswd.Entropy do
   """
   @spec determine_status(float(), float()) :: :excellent | :good | :fair | :weak
   def determine_status(blind, seen) do
-    # Use the lower of the two as the limiting factor
-    effective_entropy = min(blind, seen)
+    eff = effective_entropy(blind, seen)
 
     cond do
-      effective_entropy >= @entropy_min_excellent -> :excellent
-      effective_entropy >= @entropy_min_good -> :good
-      effective_entropy >= @entropy_min_fair -> :fair
+      eff >= @entropy_min_excellent -> :excellent
+      eff >= @entropy_min_good -> :good
+      eff >= @entropy_min_fair -> :fair
       true -> :weak
     end
   end
@@ -262,11 +293,11 @@ defmodule ExkPasswd.Entropy do
   ## Examples
 
       iex> time = ExkPasswd.Entropy.estimate_crack_time(40)
-      iex> String.contains?(time, "minute") or String.contains?(time, "second")
+      ...> String.contains?(time, "minute") or String.contains?(time, "second")
       true
 
       iex> time = ExkPasswd.Entropy.estimate_crack_time(80)
-      iex> String.contains?(time, "year") or String.contains?(time, "centur")
+      ...> String.contains?(time, "year") or String.contains?(time, "centur")
       true
   """
   @spec estimate_crack_time(float()) :: String.t()

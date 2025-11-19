@@ -18,20 +18,20 @@ defmodule ExkPasswd.Token do
   ## Examples
 
       iex> word = ExkPasswd.Token.get_word(4)
-      iex> String.length(word)
+      ...> String.length(word)
       4
 
       iex> word = ExkPasswd.Token.get_word_between(4, 8)
-      iex> len = String.length(word)
-      iex> len >= 4 and len <= 8
+      ...> len = String.length(word)
+      ...> len >= 4 and len <= 8
       true
 
       iex> num = ExkPasswd.Token.get_number(3)
-      iex> String.length(num)
+      ...> String.length(num)
       3
 
       iex> token = ExkPasswd.Token.get_token("!@#$")
-      iex> String.contains?("!@#$", token)
+      ...> String.contains?("!@#$", token)
       true
   """
 
@@ -56,7 +56,7 @@ defmodule ExkPasswd.Token do
   ## Examples
 
       iex> word = ExkPasswd.Token.get_word(4)
-      iex> String.length(word)
+      ...> String.length(word)
       4
 
       iex> ExkPasswd.Token.get_word(-1)
@@ -93,13 +93,13 @@ defmodule ExkPasswd.Token do
   ## Examples
 
       iex> word = ExkPasswd.Token.get_word_between(5, 7)
-      iex> len = String.length(word)
-      iex> len >= 5 and len <= 7
+      ...> len = String.length(word)
+      ...> len >= 5 and len <= 7
       true
 
       iex> word = ExkPasswd.Token.get_word_between(8, 4)
-      iex> len = String.length(word)
-      iex> len >= 4 and len <= 8
+      ...> len = String.length(word)
+      ...> len >= 4 and len <= 8
       true
 
       iex> ExkPasswd.Token.get_word_between(-10, 3)
@@ -139,7 +139,7 @@ defmodule ExkPasswd.Token do
   ## Examples
 
       iex> num = ExkPasswd.Token.get_number(2)
-      iex> String.length(num)
+      ...> String.length(num)
       2
       iex> String.to_integer(num) >= 0
       true
@@ -147,7 +147,7 @@ defmodule ExkPasswd.Token do
       true
 
       iex> num = ExkPasswd.Token.get_number(5)
-      iex> String.length(num)
+      ...> String.length(num)
       5
 
       iex> ExkPasswd.Token.get_number(-1)
@@ -187,7 +187,7 @@ defmodule ExkPasswd.Token do
   ## Examples
 
       iex> token = ExkPasswd.Token.get_token("-")
-      iex> token
+      ...> token
       "-"
 
       iex> ExkPasswd.Token.get_token([])
@@ -197,11 +197,11 @@ defmodule ExkPasswd.Token do
       ""
 
       iex> token = ExkPasswd.Token.get_token("!@#$%")
-      iex> String.contains?("!@#$%", token)
+      ...> String.contains?("!@#$%", token)
       true
 
       iex> token = ExkPasswd.Token.get_token(~w[! @ # $ %])
-      iex> Enum.member?(~w[! @ # $ %], token)
+      ...> Enum.member?(~w[! @ # $ %], token)
       true
   """
   @spec get_token(String.t() | list()) :: String.t()
@@ -232,7 +232,7 @@ defmodule ExkPasswd.Token do
   ## Examples
 
       iex> padding = ExkPasswd.Token.get_n_of("!@#", 3)
-      iex> String.length(padding)
+      ...> String.length(padding)
       3
       iex> String.at(padding, 0) == String.at(padding, 1)
       true
@@ -240,7 +240,7 @@ defmodule ExkPasswd.Token do
       true
 
       iex> result = ExkPasswd.Token.get_n_of(~w[! @ #], 5)
-      iex> String.length(result)
+      ...> String.length(result)
       5
 
       iex> ExkPasswd.Token.get_n_of("!@#", 0)
@@ -281,8 +281,8 @@ defmodule ExkPasswd.Token do
   ## Examples
 
       iex> state = ExkPasswd.Buffer.new(1000)
-      iex> {num, _new_state} = ExkPasswd.Token.get_number_with_state(3, state)
-      iex> String.length(num)
+      ...> {num, _new_state} = ExkPasswd.Token.get_number_with_state(3, state)
+      ...> String.length(num)
       3
       iex> String.match?(num, ~r/^\\d{3}$/)
       true

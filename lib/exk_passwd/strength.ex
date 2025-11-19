@@ -8,9 +8,9 @@ defmodule ExkPasswd.Strength do
   ## Examples
 
       iex> config = ExkPasswd.Config.new!(num_words: 3)
-      iex> password = ExkPasswd.generate(config)
-      iex> result = ExkPasswd.Strength.analyze(password, config)
-      iex> result.rating in [:excellent, :good, :fair, :weak]
+      ...> password = ExkPasswd.generate(config)
+      ...> result = ExkPasswd.Strength.analyze(password, config)
+      ...> result.rating in [:excellent, :good, :fair, :weak]
       true
       iex> result.score >= 0 and result.score <= 100
       true
@@ -47,9 +47,9 @@ defmodule ExkPasswd.Strength do
   ## Examples
 
       iex> config = ExkPasswd.Config.new!(num_words: 4)
-      iex> password = "test-PASS-word-HERE"
-      iex> result = ExkPasswd.Strength.analyze(password, config)
-      iex> is_map(result)
+      ...> password = "test-PASS-word-HERE"
+      ...> result = ExkPasswd.Strength.analyze(password, config)
+      ...> is_map(result)
       true
       iex> Map.keys(result) |> Enum.sort()
       [:entropy_bits, :rating, :score]
@@ -59,12 +59,12 @@ defmodule ExkPasswd.Strength do
     entropy_result = Entropy.calculate(password, settings)
 
     # Use the more conservative (lower) of blind and seen entropy
-    effective_entropy = min(entropy_result.blind, entropy_result.seen)
+    eff_entropy = Entropy.effective_entropy(entropy_result.blind, entropy_result.seen)
 
     %{
-      rating: entropy_to_rating(effective_entropy),
-      score: entropy_to_score(effective_entropy),
-      entropy_bits: effective_entropy
+      rating: entropy_to_rating(eff_entropy),
+      score: entropy_to_score(eff_entropy),
+      entropy_bits: eff_entropy
     }
   end
 
@@ -86,9 +86,9 @@ defmodule ExkPasswd.Strength do
   ## Examples
 
       iex> config = ExkPasswd.Config.new!(num_words: 6)
-      iex> password = ExkPasswd.generate(config)
-      iex> rating = ExkPasswd.Strength.rating(password, config)
-      iex> rating in [:excellent, :good, :fair, :weak]
+      ...> password = ExkPasswd.generate(config)
+      ...> rating = ExkPasswd.Strength.rating(password, config)
+      ...> rating in [:excellent, :good, :fair, :weak]
       true
   """
   @spec rating(String.t(), Config.t()) :: rating()

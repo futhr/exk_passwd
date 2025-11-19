@@ -16,14 +16,14 @@ defmodule ExkPasswd.Batch do
   ## Examples
 
       iex> passwords = ExkPasswd.Batch.generate_batch(10)
-      iex> length(passwords)
+      ...> length(passwords)
       10
       iex> Enum.all?(passwords, &is_binary/1)
       true
 
       iex> config = ExkPasswd.Config.new!(num_words: 4)
-      iex> passwords = ExkPasswd.Batch.generate_batch(5, config)
-      iex> length(passwords)
+      ...> passwords = ExkPasswd.Batch.generate_batch(5, config)
+      ...> length(passwords)
       5
   """
 
@@ -52,12 +52,12 @@ defmodule ExkPasswd.Batch do
   ## Examples
 
       iex> passwords = ExkPasswd.Batch.generate_batch(10)
-      iex> length(passwords)
+      ...> length(passwords)
       10
 
       iex> config = ExkPasswd.Config.new!(num_words: 4)
-      iex> passwords = ExkPasswd.Batch.generate_batch(5, config)
-      iex> length(Enum.uniq(passwords))
+      ...> passwords = ExkPasswd.Batch.generate_batch(5, config)
+      ...> length(Enum.uniq(passwords))
       5
   """
   @spec generate_batch(pos_integer(), Config.t(), keyword()) :: [String.t()]
@@ -97,9 +97,9 @@ defmodule ExkPasswd.Batch do
   ## Examples
 
       iex> alias ExkPasswd.Config
-      iex> config = Config.new!(num_words: 4)
-      iex> passwords = ExkPasswd.Batch.generate_unique_batch(10, config)
-      iex> length(passwords)
+      ...> config = Config.new!(num_words: 4)
+      ...> passwords = ExkPasswd.Batch.generate_unique_batch(10, config)
+      ...> length(passwords)
       10
       iex> length(Enum.uniq(passwords))
       10
@@ -133,7 +133,7 @@ defmodule ExkPasswd.Batch do
   ## Examples
 
       iex> passwords = ExkPasswd.Batch.generate_parallel(100)
-      iex> length(passwords)
+      ...> length(passwords)
       100
   """
   @spec generate_parallel(pos_integer(), Config.t(), keyword()) :: [String.t()]

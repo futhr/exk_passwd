@@ -43,13 +43,13 @@ defmodule ExkPasswd.Dictionary do
       7826
 
       iex> word = ExkPasswd.Dictionary.random_word_between(4, 8)
-      iex> len = String.length(word)
-      iex> len >= 4 and len <= 8
+      ...> len = String.length(word)
+      ...> len >= 4 and len <= 8
       true
 
       iex> word = ExkPasswd.Dictionary.random_word_between(5, 7, :capitalize)
-      iex> len = String.length(word)
-      iex> len >= 5 and len <= 7
+      ...> len = String.length(word)
+      ...> len >= 5 and len <= 7
       true
       iex> String.first(word) == String.upcase(String.first(word))
       true
@@ -92,63 +92,36 @@ defmodule ExkPasswd.Dictionary do
 
   # Convert all word lists to tuples for O(1) access
   # Store as {tuple, count} for efficient random selection
-  @words_by_length_tuples_original (for {len, words} <- @words_by_length_original, into: %{} do
-                                      {len, {List.to_tuple(words), length(words)}}
-                                    end)
+  # Using anonymous function to reduce code duplication
+  @to_length_tuples fn words_by_length ->
+    for {len, words} <- words_by_length, into: %{} do
+      {len, {List.to_tuple(words), length(words)}}
+    end
+  end
 
-  @words_by_length_tuples_lower (for {len, words} <- @words_by_length_lower, into: %{} do
-                                   {len, {List.to_tuple(words), length(words)}}
-                                 end)
+  @words_by_length_tuples_original @to_length_tuples.(@words_by_length_original)
+  @words_by_length_tuples_lower @to_length_tuples.(@words_by_length_lower)
+  @words_by_length_tuples_upper @to_length_tuples.(@words_by_length_upper)
+  @words_by_length_tuples_capital @to_length_tuples.(@words_by_length_capital)
 
-  @words_by_length_tuples_upper (for {len, words} <- @words_by_length_upper, into: %{} do
-                                   {len, {List.to_tuple(words), length(words)}}
-                                 end)
-
-  @words_by_length_tuples_capital (for {len, words} <- @words_by_length_capital, into: %{} do
-                                     {len, {List.to_tuple(words), length(words)}}
-                                   end)
-
-  # Pre-compute common word ranges (4-10 min/max combinations) as tuples
+  # Pre-compute common word ranges (3-10 min/max combinations) as tuples
   # This provides O(1) access for the most common use cases
-  @range_tuples_original (for min <- 3..10, max <- 3..10, min <= max, into: %{} do
-                            words =
-                              min..max
-                              |> Enum.flat_map(fn len ->
-                                Map.get(@words_by_length_original, len, [])
-                              end)
+  @to_range_tuples fn words_by_length ->
+    for min <- 3..10, max <- 3..10, min <= max, into: %{} do
+      words =
+        min..max
+        |> Enum.flat_map(fn len ->
+          Map.get(words_by_length, len, [])
+        end)
 
-                            {{min, max}, {List.to_tuple(words), length(words)}}
-                          end)
+      {{min, max}, {List.to_tuple(words), length(words)}}
+    end
+  end
 
-  @range_tuples_lower (for min <- 3..10, max <- 3..10, min <= max, into: %{} do
-                         words =
-                           min..max
-                           |> Enum.flat_map(fn len ->
-                             Map.get(@words_by_length_lower, len, [])
-                           end)
-
-                         {{min, max}, {List.to_tuple(words), length(words)}}
-                       end)
-
-  @range_tuples_upper (for min <- 3..10, max <- 3..10, min <= max, into: %{} do
-                         words =
-                           min..max
-                           |> Enum.flat_map(fn len ->
-                             Map.get(@words_by_length_upper, len, [])
-                           end)
-
-                         {{min, max}, {List.to_tuple(words), length(words)}}
-                       end)
-
-  @range_tuples_capital (for min <- 3..10, max <- 3..10, min <= max, into: %{} do
-                           words =
-                             min..max
-                             |> Enum.flat_map(fn len ->
-                               Map.get(@words_by_length_capital, len, [])
-                             end)
-
-                           {{min, max}, {List.to_tuple(words), length(words)}}
-                         end)
+  @range_tuples_original @to_range_tuples.(@words_by_length_original)
+  @range_tuples_lower @to_range_tuples.(@words_by_length_lower)
+  @range_tuples_upper @to_range_tuples.(@words_by_length_upper)
+  @range_tuples_capital @to_range_tuples.(@words_by_length_capital)
 
   # ETS table name for custom dictionaries
   @ets_table :exk_passwd_custom_dicts
@@ -182,7 +155,7 @@ defmodule ExkPasswd.Dictionary do
   ## Examples
 
       iex> words = ["casa", "perro", "gato", "libro"]
-      iex> ExkPasswd.Dictionary.load_custom(:spanish, words)
+      ...> ExkPasswd.Dictionary.load_custom(:spanish, words)
       :ok
   """
   @spec load_custom(atom(), [String.t()]) :: :ok
@@ -254,7 +227,7 @@ defmodule ExkPasswd.Dictionary do
   ## Examples
 
       iex> words = ExkPasswd.Dictionary.all()
-      iex> is_list(words)
+      ...> is_list(words)
       true
       iex> length(words) > 0
       true
@@ -309,7 +282,7 @@ defmodule ExkPasswd.Dictionary do
   ## Examples
 
       iex> count = ExkPasswd.Dictionary.count_between(4, 8)
-      iex> is_integer(count) and count > 0
+      ...> is_integer(count) and count > 0
       true
   """
   @spec count_between(pos_integer(), pos_integer(), atom()) :: non_neg_integer()
@@ -376,12 +349,12 @@ defmodule ExkPasswd.Dictionary do
   ## Examples
 
       iex> word = ExkPasswd.Dictionary.random_word_between(4, 8)
-      iex> len = String.length(word)
-      iex> len >= 4 and len <= 8
+      ...> len = String.length(word)
+      ...> len >= 4 and len <= 8
       true
 
       iex> word = ExkPasswd.Dictionary.random_word_between(5, 7, :upper)
-      iex> word == String.upcase(word)
+      ...> word == String.upcase(word)
       true
   """
   @spec random_word_between(pos_integer(), pos_integer(), atom(), atom()) :: String.t() | nil
@@ -565,10 +538,13 @@ defmodule ExkPasswd.Dictionary do
   ## Examples
 
       iex> alias ExkPasswd.Buffer
-      iex> state = Buffer.new(1_000)
-      iex> {word, _new_state} = ExkPasswd.Dictionary.random_word_between_with_state(4, 8, :none, :eff, state)
-      iex> len = String.length(word)
-      iex> len >= 4 and len <= 8
+      ...> state = Buffer.new(1_000)
+      ...>
+      ...> {word, _new_state} =
+      ...>   ExkPasswd.Dictionary.random_word_between_with_state(4, 8, :none, :eff, state)
+      ...>
+      ...> len = String.length(word)
+      ...> len >= 4 and len <= 8
       true
   """
   @spec random_word_between_with_state(
@@ -658,7 +634,7 @@ defmodule ExkPasswd.Dictionary do
             {word, new_state}
 
           nil ->
-            word = random_word_between_custom_fallback(min, max, case_transform, data)
+            word = random_word_between_custom_fallback(min, max, case_key, data)
             {word, random_state}
         end
 

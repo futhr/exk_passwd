@@ -54,7 +54,7 @@ defmodule ExkPasswd.Transform.Substitution do
   ## Examples
 
       iex> subs = ExkPasswd.Transform.Substitution.default_substitutions()
-      iex> Map.get(subs, "e")
+      ...> Map.get(subs, "e")
       "3"
   """
   @spec default_substitutions() :: map()
@@ -118,7 +118,11 @@ defmodule ExkPasswd.Transform.Substitution do
 
   ## Examples
 
-      iex> ExkPasswd.Transform.Substitution.count_substitutable("hello", %{"e" => "3", "l" => "1", "o" => "0"})
+      iex> ExkPasswd.Transform.Substitution.count_substitutable("hello", %{
+      ...>   "e" => "3",
+      ...>   "l" => "1",
+      ...>   "o" => "0"
+      ...> })
       4
   """
   @spec count_substitutable(String.t(), map()) :: non_neg_integer()
