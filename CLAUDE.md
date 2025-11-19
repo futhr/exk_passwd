@@ -513,18 +513,31 @@ Keep dependencies minimal:
 - Don't add external dependencies without strong justification
 - Use Elixir stdlib and :crypto for all core functionality
 
-## Release Checklist
+## Releasing
 
-Before releasing a new version:
+This project uses `git_ops` for automated releases.
 
-1. Update version in mix.exs
-2. Update CHANGELOG.md
-3. Run full test suite: `mix test`
-4. Run dialyzer: `mix dialyzer`
-5. Generate docs: `mix docs` and review
-6. Build escript: `mix escript.build` and test
-7. Create git tag: `git tag v0.x.x`
-8. Publish to Hex: `mix hex.publish`
+### Commands
+
+```bash
+# First release
+mix git_ops.release --initial
+
+# Subsequent releases
+mix git_ops.release --dry-run  # Preview changes
+mix git_ops.release            # Create release
+
+# Publish
+mix hex.publish
+```
+
+### Pre-release Checklist
+
+1. Ensure all tests pass: `mix test`
+2. Run dialyzer: `mix dialyzer`
+3. Generate and review docs: `mix docs`
+
+git_ops handles version bumping, CHANGELOG generation, and git tagging based on conventional commits.
 
 ## Error Messages
 
