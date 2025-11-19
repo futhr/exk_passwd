@@ -28,7 +28,7 @@ defmodule ExkPasswd.MixProject do
       docs: docs(),
       test_coverage: [tool: ExCoveralls, minimum_coverage: 95.0],
       preferred_cli_env: [
-        check: :test,
+        check: :dev,
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
@@ -61,19 +61,18 @@ defmodule ExkPasswd.MixProject do
 
   defp deps do
     [
-      # Development
+      {:statistex, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:doctest_formatter, "~> 0.4", runtime: false},
       {:ex_check, "~> 0.16", only: [:dev], runtime: false},
       {:doctor, "~> 0.21", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.3", only: :dev, runtime: false},
-
-      # Test
       {:excoveralls, "~> 0.18", only: :test},
       {:mix_test_watch, "~> 1.2", only: [:dev, :test], runtime: false},
-      {:statistex, "~> 1.0", only: [:dev, :test], runtime: false}
+      {:git_ops, "~> 2.6", only: [:dev]}
     ]
   end
 
@@ -82,15 +81,7 @@ defmodule ExkPasswd.MixProject do
       # Setup
       setup: ["deps.get", "deps.compile", "compile"],
 
-      # Formatting
-      format: ["format"],
-
-      # Quality checks
-      check: ["format --check-formatted", "credo --strict", "test"],
-      "check.all": ["check", "dialyzer"],
-
       # Testing
-      test: ["test --cover --stale"],
       "test.watch": ["test.watch --stale"],
 
       # Benchmarks
