@@ -686,6 +686,33 @@ We welcome contributions!
 
 ---
 
+## Releasing
+
+This project uses [git_ops](https://hex.pm/packages/git_ops) for release automation.
+
+### Releases
+
+```bash
+# Check what would happen
+mix git_ops.release --dry-run
+
+# Create release (bumps version, updates CHANGELOG, creates tag)
+mix git_ops.release
+
+# Publish to Hex
+mix hex.publish
+```
+
+The release process:
+1. Analyzes conventional commits (feat:, fix:, docs:, etc.)
+2. Determines version bump (major/minor/patch)
+3. Updates version in `mix.exs`
+4. Generates CHANGELOG entries
+5. Creates git tag
+6. Optionally publishes to Hex
+
+---
+
 ## License
 
 BSD-2-Clause License - see [LICENSE](LICENSE.md) file for details.
