@@ -20,8 +20,13 @@ Most password systems worldwide (including in China) require ASCII-only password
 ### The Solution
 
 1. **Dictionary**: Chinese words (memorable for Chinese speakers)
-2. **Transform**: Pinyin romanization (ASCII output)
+2. **Transform**: Pinyin romanization (ASCII output, 500+ characters supported)
 3. **Result**: Typeable on any keyboard, memorable in Chinese
+
+**Features:**
+- Covers 500+ most frequent Chinese characters (Jun Da frequency list)
+- IME-compatible ü/v mapping (`lv`, `nv` but `ju`, `xu`, `yu`)
+- Helper functions: `contains_hanzi?/1`, `hanzi?/1`
 
 ---
 
@@ -150,14 +155,20 @@ IO.puts("Recommendation: Add more words to dictionary for higher security")
 Test the Pinyin transform directly:
 
 ```elixir
-transform = %ExkPasswd.Transform.Pinyin{}
+alias ExkPasswd.Transform.Pinyin
+
+transform = %Pinyin{}
 
 test_words = [
   {"中国", "zhongguo"},
   {"世界", "shijie"},
   {"你好", "nihao"},
   {"朋友", "pengyou"},
-  {"春天", "chuntian"}
+  {"春天", "chuntian"},
+  {"女人", "nvren"},      # ü after n → v
+  {"旅行", "lvxing"},     # ü after l → v
+  {"学习", "xuexi"},      # ü after x → u
+  {"音乐", "yinyue"}      # ü after y → u
 ]
 
 IO.puts("\n=== Pinyin Transform Test ===\n")
@@ -167,6 +178,30 @@ for {chinese, expected} <- test_words do
   match = if result == expected, do: "✓", else: "✗"
   IO.puts("#{match} #{chinese} → #{result} (expected: #{expected})")
 end
+```
+
+## Hanzi Detection Helpers
+
+The Pinyin module provides helper functions for detecting Chinese characters:
+
+```elixir
+alias ExkPasswd.Transform.Pinyin
+
+IO.puts("\n=== Hanzi Detection ===\n")
+
+# Check if text contains Chinese characters
+IO.puts("contains_hanzi?(\"Hello世界\") = #{Pinyin.contains_hanzi?("Hello世界")}")
+IO.puts("contains_hanzi?(\"Hello World\") = #{Pinyin.contains_hanzi?("Hello World")}")
+
+# Check if a single character is Hanzi
+IO.puts("\nhanzi?(\"中\") = #{Pinyin.hanzi?("中")}")
+IO.puts("hanzi?(\"A\") = #{Pinyin.hanzi?("A")}")
+IO.puts("hanzi?(\"あ\") = #{Pinyin.hanzi?("あ")}  # Hiragana")
+
+# Character coverage
+map_size = map_size(Pinyin.pinyin_map())
+IO.puts("\nPinyin map contains #{map_size} characters")
+IO.puts("Covers top 500 most frequent Chinese characters")
 ```
 
 ## Customization Examples
