@@ -30,10 +30,8 @@ defmodule ExkPasswd.MixProject do
       preferred_cli_env: [
         check: :dev,
         coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
         "coveralls.html": :test,
-        "coveralls.github": :test,
+        "coveralls.json": :test,
         "test.watch": :test
       ],
       dialyzer: [
