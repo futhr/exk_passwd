@@ -158,6 +158,55 @@ defmodule ExkPasswd.BufferTest do
     end
   end
 
+  describe "random_boolean/1" do
+    test "returns boolean and new state" do
+      state = Buffer.new(100)
+      {value, new_state} = Buffer.random_boolean(state)
+
+      assert is_boolean(value)
+      assert %Buffer{} = new_state
+    end
+
+    test "produces both true and false" do
+      state = Buffer.new(1000)
+
+      {values, _final_state} =
+        Enum.reduce(1..50, {[], state}, fn _, {acc, st} ->
+          {value, new_st} = Buffer.random_boolean(st)
+          {[value | acc], new_st}
+        end)
+
+      # Should have both true and false in 50 samples
+      assert true in values
+      assert false in values
+    end
+  end
+
+  describe "random_digit/1" do
+    test "returns digit and new state" do
+      state = Buffer.new(100)
+      {digit, new_state} = Buffer.random_digit(state)
+
+      assert is_integer(digit)
+      assert digit >= 0 and digit <= 9
+      assert %Buffer{} = new_state
+    end
+
+    test "produces various digits" do
+      state = Buffer.new(1000)
+
+      {digits, _final_state} =
+        Enum.reduce(1..100, {[], state}, fn _, {acc, st} ->
+          {digit, new_st} = Buffer.random_digit(st)
+          {[digit | acc], new_st}
+        end)
+
+      # Should have variety in 100 samples
+      unique_count = Enum.uniq(digits) |> length()
+      assert unique_count >= 5
+    end
+  end
+
   describe "edge cases" do
     test "handles large max_value" do
       state = Buffer.new(100)
@@ -173,6 +222,18 @@ defmodule ExkPasswd.BufferTest do
       {element, _} = Buffer.random_element(state, large_list)
 
       assert element in large_list
+    end
+
+    test "raises ArgumentError for non-positive max" do
+      state = Buffer.new(100)
+
+      assert_raise ArgumentError, "max must be a positive integer, got: 0", fn ->
+        Buffer.random_integer(state, 0)
+      end
+
+      assert_raise ArgumentError, "max must be a positive integer, got: -5", fn ->
+        Buffer.random_integer(state, -5)
+      end
     end
   end
 end

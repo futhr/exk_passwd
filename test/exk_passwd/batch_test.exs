@@ -40,6 +40,28 @@ defmodule ExkPasswd.BatchTest do
       unique = Enum.uniq(passwords)
       assert length(unique) == length(passwords)
     end
+
+    test "handles workers with zero batch_size due to division" do
+      config = Config.new!(num_words: 2)
+      # 3 passwords with 10 workers: workers 0-2 get 1 each, workers 3-9 get 0
+      # This triggers the batch_size == 0 else branch
+      passwords = Batch.generate_parallel(3, config, workers: 10)
+      assert length(passwords) == 3
+      assert Enum.all?(passwords, &is_binary/1)
+    end
+
+    test "distributes work correctly with remainder" do
+      config = Config.new!(num_words: 2)
+      # 7 passwords with 3 workers: workers get [3, 3, 1] or [3, 2, 2]
+      passwords = Batch.generate_parallel(7, config, workers: 3)
+      assert length(passwords) == 7
+    end
+
+    test "uses default workers count" do
+      config = Config.new!(num_words: 2)
+      passwords = Batch.generate_parallel(5, config)
+      assert length(passwords) == 5
+    end
   end
 
   describe "generate_unique_batch/3" do

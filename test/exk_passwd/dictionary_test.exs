@@ -609,5 +609,15 @@ defmodule ExkPasswd.DictionaryTest do
       word = Dictionary.random_word_between(2, 11, :none, :uncommon_range_dict)
       assert word in ["ab", "abc", "abcd", "abcdefghij", "abcdefghijk"]
     end
+
+    test "random_word_between_with_state fallback for custom dictionary uncommon range" do
+      state = Buffer.new(100)
+      # Range 1..15 triggers fallback path
+      {word, new_state} =
+        Dictionary.random_word_between_with_state(1, 15, :none, :uncommon_range_dict, state)
+
+      assert word in ["ab", "abc", "abcd", "abcdefghij", "abcdefghijk"]
+      assert %Buffer{} = new_state
+    end
   end
 end

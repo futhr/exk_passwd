@@ -188,13 +188,22 @@ defmodule ExkPasswd.PasswordTest do
           separator: "",
           num_words: 3,
           digits: {0, 0},
-          padding: %{char: "", before: 0, after: 0, to_length: 0}
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          case_transform: :none
         )
 
       password = Password.create(config)
-      # With empty separator, no digits, and no padding, password should just be words
-      refute String.contains?(password, "-")
-      refute String.contains?(password, "_")
+      # With empty separator, no digits, no padding, and no case transform,
+      # password should just be 3 concatenated words
+      # We can't assert specific characters are absent since dictionary words
+      # like "yo-yo" contain hyphens naturally
+      assert is_binary(password)
+      assert String.length(password) > 0
+
+      # Verify no extra separators were added by checking that the password
+      # only contains characters that could come from dictionary words
+      # (letters, and potentially hyphens/apostrophes that are in some words)
+      assert String.match?(password, ~r/^[a-z'-]+$/i)
     end
 
     test "single character separator is respected (ANALYSIS.md issue)" do
@@ -428,7 +437,7 @@ defmodule ExkPasswd.PasswordTest do
         Config.new!(
           word_length: 5..5,
           num_words: 3,
-          separator: "-",
+          separator: "|",
           digits: {0, 0},
           padding: %{char: "", before: 0, after: 0, to_length: 0},
           case_transform: :lower
@@ -437,7 +446,8 @@ defmodule ExkPasswd.PasswordTest do
       # Run multiple times to ensure consistency
       for _ <- 1..10 do
         password = Password.create(config)
-        words = String.split(password, "-", trim: true)
+        # Use | as separator to avoid conflicts with words like "yo-yo"
+        words = String.split(password, "|", trim: true)
 
         # Verify we got the right number of words
         assert length(words) == 3,
@@ -454,7 +464,7 @@ defmodule ExkPasswd.PasswordTest do
         Config.new!(
           word_length: 4..8,
           num_words: 3,
-          separator: "-",
+          separator: "|",
           digits: {0, 0},
           padding: %{char: "", before: 0, after: 0, to_length: 0},
           case_transform: :lower
@@ -463,7 +473,8 @@ defmodule ExkPasswd.PasswordTest do
       # Run multiple times to ensure consistency
       for _ <- 1..10 do
         password = Password.create(config)
-        words = String.split(password, "-", trim: true)
+        # Use | as separator to avoid conflicts with words like "yo-yo"
+        words = String.split(password, "|", trim: true)
 
         # Verify we got the right number of words
         assert length(words) == 3,

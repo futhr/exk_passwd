@@ -301,4 +301,43 @@ defmodule ExkPasswd.Config.SchemaTest do
       assert "@" in symbols
     end
   end
+
+  describe "validate/1 with word_length_bounds" do
+    test "validates word_length within custom bounds" do
+      config = %Config{word_length: 2..4, word_length_bounds: 1..10}
+      assert :ok = Schema.validate(config)
+    end
+
+    test "rejects word_length exceeding custom bounds" do
+      config = %Config{word_length: 2..12, word_length_bounds: 1..10}
+      assert {:error, msg} = Schema.validate(config)
+      assert msg =~ "exceeds custom bounds"
+    end
+
+    test "rejects word_length below custom bounds" do
+      config = %Config{word_length: 1..5, word_length_bounds: 3..10}
+      assert {:error, msg} = Schema.validate(config)
+      assert msg =~ "exceeds custom bounds"
+    end
+  end
+
+  describe "validate/1 with substitutions edge cases" do
+    test "rejects substitutions when not a map" do
+      config = %Config{substitutions: "not a map"}
+      assert {:error, msg} = Schema.validate(config)
+      assert msg =~ "substitutions must be a map"
+    end
+
+    test "rejects substitutions with empty string key" do
+      config = %Config{substitutions: %{"" => "a"}}
+      assert {:error, msg} = Schema.validate(config)
+      assert msg =~ "single-character"
+    end
+
+    test "rejects substitutions with empty string value" do
+      config = %Config{substitutions: %{"a" => ""}}
+      assert {:error, msg} = Schema.validate(config)
+      assert msg =~ "single-character"
+    end
+  end
 end
