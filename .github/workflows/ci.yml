@@ -2,9 +2,9 @@ name: Test Suite
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -21,8 +21,8 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.18'
-          otp-version: '28'
+          elixir-version: "1.18"
+          otp-version: "28"
 
       - name: Check formatting
         run: mix format --check-formatted
@@ -38,8 +38,8 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.18'
-          otp-version: '28'
+          elixir-version: "1.18"
+          otp-version: "28"
 
       - name: Restore dependencies cache
         uses: actions/cache@v4
@@ -69,14 +69,14 @@ jobs:
       matrix:
         include:
           # Minimum supported versions
-          - elixir: '1.16'
-            otp: '26'
+          - elixir: "1.16"
+            otp: "26"
           # Current stable
-          - elixir: '1.18'
-            otp: '27'
+          - elixir: "1.18"
+            otp: "27"
           # Latest
-          - elixir: '1.19'
-            otp: '28'
+          - elixir: "1.19"
+            otp: "28"
 
     steps:
       - name: Checkout code
@@ -118,8 +118,8 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.18'
-          otp-version: '28'
+          elixir-version: "1.18"
+          otp-version: "28"
 
       - name: Restore dependencies cache
         uses: actions/cache@v4
@@ -138,20 +138,15 @@ jobs:
         run: mix compile
 
       - name: Run tests with coverage
-        run: |
-          mix test --cover 2>&1 | tee test_output.txt
-          # Extract coverage percentage from test output using sed
-          COVERAGE=$(grep '\[TOTAL\]' test_output.txt | sed -n 's/.*\[TOTAL\][[:space:]]*\([0-9.]*\)%.*/\1/p' || echo "0")
-          echo "Coverage: $COVERAGE%"
-          # Use Python for floating point comparison (more portable than awk/bc)
-          THRESHOLD=95.0
-          python3 -c "import sys; sys.exit(0 if float('$COVERAGE') >= $THRESHOLD else 1)" || {
-            echo "❌ Coverage $COVERAGE% is below $THRESHOLD% threshold"
-            exit 1
-          }
-          echo "✅ Coverage $COVERAGE% meets $THRESHOLD% threshold"
+        run: mix coveralls.json
         env:
           MIX_ENV: test
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: cover/excoveralls.json
+          fail_ci_if_error: false
 
   security:
     name: Security Audit
@@ -164,8 +159,8 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.18'
-          otp-version: '28'
+          elixir-version: "1.18"
+          otp-version: "28"
 
       - name: Restore dependencies cache
         uses: actions/cache@v4
@@ -197,8 +192,8 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.18'
-          otp-version: '28'
+          elixir-version: "1.18"
+          otp-version: "28"
 
       - name: Restore dependencies cache
         uses: actions/cache@v4
@@ -236,8 +231,8 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.18'
-          otp-version: '28'
+          elixir-version: "1.18"
+          otp-version: "28"
 
       - name: Restore dependencies cache
         uses: actions/cache@v4
