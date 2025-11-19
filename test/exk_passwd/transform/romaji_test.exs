@@ -402,6 +402,18 @@ defmodule ExkPasswd.Transform.RomajiTest do
       assert Romaji.kanji?("1") == false
       assert Romaji.kanji?("") == false
     end
+
+    test "kanji? handles CJK Extension ranges" do
+      # CJK Extension A (U+3400 to U+4DBF)
+      # 㐀 is U+3400
+      assert Romaji.kanji?(<<0xE3, 0x90, 0x80>>) == true
+
+      # Test boundary cases
+      # U+4E00 (start of main CJK)
+      assert Romaji.kanji?("一") == true
+      # U+9FA5 (within main CJK)
+      assert Romaji.kanji?("龥") == true
+    end
   end
 
   describe "mixed hiragana and katakana" do
@@ -631,24 +643,33 @@ defmodule ExkPasswd.Transform.RomajiTest do
 
     test "regression: ensure all combine_with_small_vowel branches are hit" do
       # Test all the pattern matching branches
-      # Hiragana version
+      # Hiragana versions
       assert ExkPasswd.Transform.apply(@transform, "ふぁ", nil) == "fa"
-      # Hiragana version
       assert ExkPasswd.Transform.apply(@transform, "うぃ", nil) == "wi"
-      # Hiragana version
       assert ExkPasswd.Transform.apply(@transform, "てぃ", nil) == "ti"
-      # Hiragana version
       assert ExkPasswd.Transform.apply(@transform, "でぃ", nil) == "di"
-      # Hiragana version
       assert ExkPasswd.Transform.apply(@transform, "とぅ", nil) == "tu"
-      # Hiragana version
       assert ExkPasswd.Transform.apply(@transform, "どぅ", nil) == "du"
-      # Hiragana version
       assert ExkPasswd.Transform.apply(@transform, "しぇ", nil) == "she"
-      # Hiragana version
       assert ExkPasswd.Transform.apply(@transform, "ちぇ", nil) == "che"
-      # Hiragana version
       assert ExkPasswd.Transform.apply(@transform, "じぇ", nil) == "je"
+
+      # Katakana versions (ensure both scripts are covered)
+      assert ExkPasswd.Transform.apply(@transform, "ファ", nil) == "fa"
+      assert ExkPasswd.Transform.apply(@transform, "ウィ", nil) == "wi"
+      assert ExkPasswd.Transform.apply(@transform, "ティ", nil) == "ti"
+      assert ExkPasswd.Transform.apply(@transform, "ディ", nil) == "di"
+      assert ExkPasswd.Transform.apply(@transform, "トゥ", nil) == "tu"
+      assert ExkPasswd.Transform.apply(@transform, "ドゥ", nil) == "du"
+      assert ExkPasswd.Transform.apply(@transform, "シェ", nil) == "she"
+      assert ExkPasswd.Transform.apply(@transform, "チェ", nil) == "che"
+      assert ExkPasswd.Transform.apply(@transform, "ジェ", nil) == "je"
+
+      # ヴ (vu) combinations
+      assert ExkPasswd.Transform.apply(@transform, "ヴァ", nil) == "va"
+      assert ExkPasswd.Transform.apply(@transform, "ヴィ", nil) == "vi"
+      assert ExkPasswd.Transform.apply(@transform, "ヴェ", nil) == "ve"
+      assert ExkPasswd.Transform.apply(@transform, "ヴォ", nil) == "vo"
     end
 
     test "regression: default case for combine_with_small_vowel" do
@@ -776,6 +797,47 @@ defmodule ExkPasswd.Transform.RomajiTest do
         assert result == expected,
                "Failed: #{input} → #{result} (expected: #{expected})"
       end)
+    end
+  end
+
+  describe "get_small_vowel_value/1" do
+    test "returns vowel for hiragana small vowels" do
+      assert Romaji.get_small_vowel_value("ぁ") == "a"
+      assert Romaji.get_small_vowel_value("ぃ") == "i"
+      assert Romaji.get_small_vowel_value("ぅ") == "u"
+      assert Romaji.get_small_vowel_value("ぇ") == "e"
+      assert Romaji.get_small_vowel_value("ぉ") == "o"
+    end
+
+    test "returns vowel for katakana small vowels" do
+      assert Romaji.get_small_vowel_value("ァ") == "a"
+      assert Romaji.get_small_vowel_value("ィ") == "i"
+      assert Romaji.get_small_vowel_value("ゥ") == "u"
+      assert Romaji.get_small_vowel_value("ェ") == "e"
+      assert Romaji.get_small_vowel_value("ォ") == "o"
+    end
+
+    test "returns empty string for non-small-vowel characters" do
+      assert Romaji.get_small_vowel_value("あ") == ""
+      assert Romaji.get_small_vowel_value("ア") == ""
+      assert Romaji.get_small_vowel_value("k") == ""
+      assert Romaji.get_small_vowel_value("") == ""
+    end
+  end
+
+  describe "small_vowel?/1" do
+    test "returns true for small vowels" do
+      assert Romaji.small_vowel?("ぁ") == true
+      assert Romaji.small_vowel?("ィ") == true
+      assert Romaji.small_vowel?("ぅ") == true
+      assert Romaji.small_vowel?("ェ") == true
+      assert Romaji.small_vowel?("ぉ") == true
+    end
+
+    test "returns false for regular characters" do
+      assert Romaji.small_vowel?("あ") == false
+      assert Romaji.small_vowel?("ア") == false
+      assert Romaji.small_vowel?("か") == false
     end
   end
 end

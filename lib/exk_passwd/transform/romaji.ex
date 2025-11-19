@@ -327,6 +327,31 @@ defmodule ExkPasswd.Transform.Romaji do
   @small_vowels_katakana ["ァ", "ィ", "ゥ", "ェ", "ォ"]
   @small_vowels @small_vowels_hiragana ++ @small_vowels_katakana
 
+  @doc """
+  Returns the Romaji romanization mapping.
+
+  This function provides access to the internal mapping of Hiragana and Katakana
+  characters to their Romaji romanization equivalents.
+
+  ## Returns
+
+  A map of Japanese kana characters to Romaji strings.
+
+  ## Examples
+
+      iex> map = ExkPasswd.Transform.Romaji.romaji_map()
+      ...> map["あ"]
+      "a"
+
+      iex> map = ExkPasswd.Transform.Romaji.romaji_map()
+      ...> map["さ"]
+      "sa"
+
+      iex> map = ExkPasswd.Transform.Romaji.romaji_map()
+      ...> map["サ"]
+      "sa"
+  """
+  @spec romaji_map() :: %{String.t() => String.t()}
   def romaji_map, do: @romaji_map_data
 
   @doc """
@@ -412,19 +437,12 @@ defmodule ExkPasswd.Transform.Romaji do
 
   def kanji?(char) do
     # Get the Unicode codepoint of the first character
-    case String.to_charlist(char) do
-      [codepoint | _] ->
-        # Check if codepoint is in Kanji ranges
-        (codepoint >= 0x4E00 and codepoint <= 0x9FFF) or
-          (codepoint >= 0x3400 and codepoint <= 0x4DBF) or
-          (codepoint >= 0x20000 and codepoint <= 0x2EBEF)
+    [codepoint | _] = String.to_charlist(char)
 
-      [] ->
-        false
-    end
-  rescue
-    # If we can't decode the character, assume it's not Kanji
-    _ -> false
+    # Check if codepoint is in Kanji ranges
+    (codepoint >= 0x4E00 and codepoint <= 0x9FFF) or
+      (codepoint >= 0x3400 and codepoint <= 0x4DBF) or
+      (codepoint >= 0x20000 and codepoint <= 0x2EBEF)
   end
 
   defimpl ExkPasswd.Transform do
