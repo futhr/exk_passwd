@@ -117,6 +117,15 @@ defmodule ExkPasswd do
 
   @version Mix.Project.config()[:version]
 
+  @doc """
+  Returns the current version of ExkPasswd.
+
+  ## Examples
+
+      iex> ExkPasswd.version() =~ ~r/^\\d+\\.\\d+\\.\\d+/
+      true
+  """
+  @spec version() :: String.t()
   def version, do: @version
 
   @doc """
