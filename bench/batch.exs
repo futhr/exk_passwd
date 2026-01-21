@@ -11,6 +11,9 @@ alias ExkPasswd.{Batch, Config}
 # Ensure compiled
 Mix.Task.run("compile")
 
+# Ensure output directory exists
+File.mkdir_p!("bench/output")
+
 # CI mode: fast verification (benchmarks compile and run)
 # Local mode: full benchmarks for accurate performance measurement
 {time, warmup, memory_time, counts} =
@@ -46,7 +49,8 @@ Benchee.run(
   memory_time: memory_time,
   warmup: warmup,
   formatters: [
-    Benchee.Formatters.Console
+    Benchee.Formatters.Console,
+    {Benchee.Formatters.Markdown, file: "bench/output/batch.md"}
   ],
   print: [
     benchmarking: true,
