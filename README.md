@@ -659,15 +659,19 @@ open doc/index.html    # ..then open in browser
 mix bench              # Run all benchmarks
 mix bench.password     # Password generation benchmarks
 mix bench.dict         # Dictionary operations benchmarks
+mix bench.batch        # Batch generation benchmarks
 ```
 
 Benchmarks measure:
 - Password generation performance across different presets
 - Dictionary lookup performance (constant-time tuple indexing)
 - Case transformation overhead
-- Token generation speed
+- Batch vs individual generation performance
 
-Open the HTML files in your browser for interactive charts and detailed statistics.
+**Benchmark Results:**
+- [Password Generation Benchmarks](bench/output/password_generation.md)
+- [Dictionary Benchmarks](bench/output/dictionary.md)
+- [Batch Generation Benchmarks](bench/output/batch.md)
 
 ---
 
