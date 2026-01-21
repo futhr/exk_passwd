@@ -73,6 +73,7 @@ defmodule ExkPasswd.MixProject do
       {:doctor, "~> 0.21", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.3", only: :dev, runtime: false},
+      {:benchee_markdown, "~> 0.3", only: :dev, runtime: false},
       {:excoveralls, "~> 0.18", only: :test},
       {:mix_test_watch, "~> 1.2", only: [:dev, :test], runtime: false},
       {:git_ops, "~> 2.6", only: [:dev]}
@@ -158,6 +159,9 @@ defmodule ExkPasswd.MixProject do
         "notebooks/i18n_chinese.livemd": [title: "Chinese i18n (Pinyin)"],
         "notebooks/i18n_japanese.livemd": [title: "Japanese i18n (Romaji)"],
         "notebooks/contributing.livemd": [title: "Contributing Guide (Interactive)"],
+        "bench/output/password_generation.md": [title: "Password Generation Benchmarks"],
+        "bench/output/dictionary.md": [title: "Dictionary Benchmarks"],
+        "bench/output/batch.md": [title: "Batch Generation Benchmarks"],
         "CHANGELOG.md": [title: "Changelog"],
         "docs/CONTRIBUTING.md": [title: "Contributing"],
         "LICENSE.md": [title: "License"]
@@ -195,6 +199,7 @@ defmodule ExkPasswd.MixProject do
       groups_for_extras: [
         "Getting Started": ~r/README|docs\/SECURITY|docs\/LIVEBOOK_SETUP/,
         "Interactive Tutorials": ~r/notebooks\//,
+        "Benchmark Results": ~r/bench\/output\//,
         Reference: ~r/CHANGELOG|docs\/CONTRIBUTING|LICENSE/
       ],
       source_ref: "v#{@version}",
