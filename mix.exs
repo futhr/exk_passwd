@@ -27,13 +27,6 @@ defmodule ExkPasswd.MixProject do
       homepage_url: @source_url,
       docs: docs(),
       test_coverage: [tool: ExCoveralls, minimum_coverage: 95.0],
-      preferred_cli_env: [
-        check: :dev,
-        coveralls: :test,
-        "coveralls.html": :test,
-        "coveralls.json": :test,
-        "test.watch": :test
-      ],
       dialyzer: [
         # Store PLT in priv to avoid rebuilding
         plt_core_path: "priv/plts",
@@ -51,6 +44,18 @@ defmodule ExkPasswd.MixProject do
   def application do
     [
       extra_applications: [:logger, :crypto]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
+        check: :dev,
+        coveralls: :test,
+        "coveralls.html": :test,
+        "coveralls.json": :test,
+        "test.watch": :test
+      ]
     ]
   end
 
