@@ -20,8 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinyin transform with 500+ characters (Jun Da frequency list)
 - Romaji transform with IME-grade Modified Hepburn romanization
 - Helper functions: `contains_hanzi?/1`, `hanzi?/1`, `contains_kanji?/1`, `kanji?/1`
+- `Validator.run_all/2` function for testable validation pipeline
 - Comprehensive documentation and Livebook notebooks
-- 98% test coverage
+- 100% test coverage
 - Zero runtime dependencies
+
+### Changed
+- Simplified dictionary `build_range_tuples/1` by removing unreachable tuple handling
+- Simplified password case inversion by removing defensive nil checks
+- Simplified romaji `extract_vowel/1` by removing unreachable fallback clause
+
+### Fixed
+- Duplicate test runs in `mix check` (disabled default `:ex_unit` tool)
 
 [Unreleased]: https://github.com/futhr/exk_passwd/compare/main...HEAD
