@@ -29,7 +29,7 @@ defmodule ExkPasswd.Validator do
 
   ## Using Validators
 
-  Pass validators to `Config.new!/1` via the `:validators` option:
+  Pass validators to `ExkPasswd.Config.new!/1` via the `:validators` option:
 
       config = ExkPasswd.Config.new!(
         num_words: 4,
