@@ -131,6 +131,7 @@ defmodule ExkPasswd.Dictionary do
 
   Called automatically when the application starts.
   """
+  @spec init() :: :ok
   def init do
     case :ets.whereis(@ets_table) do
       :undefined ->
@@ -360,49 +361,18 @@ defmodule ExkPasswd.Dictionary do
   @spec random_word_between(pos_integer(), pos_integer(), atom(), atom()) :: String.t() | nil
   def random_word_between(min, max, case_transform \\ :none, dict \\ :eff)
 
-  # Fast path for default dictionary with common ranges
-  def random_word_between(min, max, :none, :eff) when min <= max do
-    case Map.get(@range_tuples_original, {min, max}) do
+  # Fast path for default dictionary with common ranges (all case variants)
+  def random_word_between(min, max, case_transform, :eff)
+      when min <= max and case_transform in [:none, :lower, :upper, :capitalize] do
+    range_tuples = get_range_tuples(case_transform)
+
+    case Map.get(range_tuples, {min, max}) do
       {tuple, count} ->
         index = Random.integer(count)
         :erlang.element(index + 1, tuple)
 
       nil ->
-        # Fallback for uncommon ranges
-        random_word_between_fallback(min, max, :none, :eff)
-    end
-  end
-
-  def random_word_between(min, max, :lower, :eff) when min <= max do
-    case Map.get(@range_tuples_lower, {min, max}) do
-      {tuple, count} ->
-        index = Random.integer(count)
-        :erlang.element(index + 1, tuple)
-
-      nil ->
-        random_word_between_fallback(min, max, :lower, :eff)
-    end
-  end
-
-  def random_word_between(min, max, :upper, :eff) when min <= max do
-    case Map.get(@range_tuples_upper, {min, max}) do
-      {tuple, count} ->
-        index = Random.integer(count)
-        :erlang.element(index + 1, tuple)
-
-      nil ->
-        random_word_between_fallback(min, max, :upper, :eff)
-    end
-  end
-
-  def random_word_between(min, max, :capitalize, :eff) when min <= max do
-    case Map.get(@range_tuples_capital, {min, max}) do
-      {tuple, count} ->
-        index = Random.integer(count)
-        :erlang.element(index + 1, tuple)
-
-      nil ->
-        random_word_between_fallback(min, max, :capitalize, :eff)
+        random_word_between_fallback(min, max, case_transform, :eff)
     end
   end
 
@@ -458,6 +428,11 @@ defmodule ExkPasswd.Dictionary do
   defp get_tuples_map(:upper), do: @words_by_length_tuples_upper
   defp get_tuples_map(:capitalize), do: @words_by_length_tuples_capital
 
+  defp get_range_tuples(:none), do: @range_tuples_original
+  defp get_range_tuples(:lower), do: @range_tuples_lower
+  defp get_range_tuples(:upper), do: @range_tuples_upper
+  defp get_range_tuples(:capitalize), do: @range_tuples_capital
+
   defp case_transform_to_key(:none), do: :original
   defp case_transform_to_key(:lower), do: :lower
   defp case_transform_to_key(:upper), do: :upper
@@ -502,13 +477,8 @@ defmodule ExkPasswd.Dictionary do
         words =
           min..max
           |> Enum.flat_map(fn len ->
-            case Map.get(words_by_length, len) do
-              # Handle {tuple, count} format (from indexed words)
-              {tuple, _count} when is_tuple(tuple) -> Tuple.to_list(tuple)
-              # Handle plain list format (from fresh word lists)
-              list when is_list(list) -> list
-              nil -> []
-            end
+            # words_by_length contains lists from Enum.group_by
+            Map.get(words_by_length, len, [])
           end)
 
         {{min, max}, {List.to_tuple(words), length(words)}}
@@ -562,55 +532,19 @@ defmodule ExkPasswd.Dictionary do
         random_state
       )
 
-  def random_word_between_with_state(min, max, :none, :eff, random_state) when min <= max do
-    case Map.get(@range_tuples_original, {min, max}) do
+  # Fast path for default dictionary with common ranges (all case variants)
+  def random_word_between_with_state(min, max, case_transform, :eff, random_state)
+      when min <= max and case_transform in [:none, :lower, :upper, :capitalize] do
+    range_tuples = get_range_tuples(case_transform)
+
+    case Map.get(range_tuples, {min, max}) do
       {tuple, count} ->
         {index, new_state} = ExkPasswd.Buffer.random_integer(random_state, count)
         word = :erlang.element(index + 1, tuple)
         {word, new_state}
 
       nil ->
-        # Fallback: Use regular method (less optimal but still works)
-        word = random_word_between_fallback(min, max, :none, :eff)
-        {word, random_state}
-    end
-  end
-
-  def random_word_between_with_state(min, max, :lower, :eff, random_state) when min <= max do
-    case Map.get(@range_tuples_lower, {min, max}) do
-      {tuple, count} ->
-        {index, new_state} = ExkPasswd.Buffer.random_integer(random_state, count)
-        word = :erlang.element(index + 1, tuple)
-        {word, new_state}
-
-      nil ->
-        word = random_word_between_fallback(min, max, :lower, :eff)
-        {word, random_state}
-    end
-  end
-
-  def random_word_between_with_state(min, max, :upper, :eff, random_state) when min <= max do
-    case Map.get(@range_tuples_upper, {min, max}) do
-      {tuple, count} ->
-        {index, new_state} = ExkPasswd.Buffer.random_integer(random_state, count)
-        word = :erlang.element(index + 1, tuple)
-        {word, new_state}
-
-      nil ->
-        word = random_word_between_fallback(min, max, :upper, :eff)
-        {word, random_state}
-    end
-  end
-
-  def random_word_between_with_state(min, max, :capitalize, :eff, random_state) when min <= max do
-    case Map.get(@range_tuples_capital, {min, max}) do
-      {tuple, count} ->
-        {index, new_state} = ExkPasswd.Buffer.random_integer(random_state, count)
-        word = :erlang.element(index + 1, tuple)
-        {word, new_state}
-
-      nil ->
-        word = random_word_between_fallback(min, max, :capitalize, :eff)
+        word = random_word_between_fallback(min, max, case_transform, :eff)
         {word, random_state}
     end
   end

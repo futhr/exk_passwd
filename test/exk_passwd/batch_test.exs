@@ -1,8 +1,38 @@
 defmodule ExkPasswd.BatchTest do
   @moduledoc """
-  Tests for ExkPasswd.Batch parallel password generation.
+  Tests for ExkPasswd.Batch - optimized batch password generation.
+
+  ## Test Strategy
+
+  This suite validates the three batch generation strategies:
+
+  1. **`generate_batch/3`**: Sequential generation with buffered random state
+     - Reduces `:crypto.strong_rand_bytes/1` syscalls via pre-allocated buffer
+     - Best for moderate batch sizes (10-1000 passwords)
+
+  2. **`generate_unique_batch/3`**: Guaranteed unique passwords
+     - Uses MapSet tracking to detect and regenerate duplicates
+     - Fails fast when entropy is too low to generate unique passwords
+
+  3. **`generate_parallel/3`**: Multi-process generation
+     - Distributes work across `System.schedulers_online()` workers
+     - Best for large batches (1000+) on multi-core systems
+
+  ## Performance Characteristics
+
+  - Buffered generation: ~2-3x faster than individual `Password.create/1` calls
+  - Parallel generation: Scales linearly with available CPU cores
+  - Unique generation: O(n) best case, O(n * max_attempts) worst case
+
+  ## Concurrency Model
+
+  Tests use `async: true` because batch operations are stateless:
+  - Each batch creates its own Buffer state
+  - No shared mutable state between tests
+  - Parallel generation uses isolated Task processes
   """
   use ExUnit.Case, async: true
+  doctest ExkPasswd.Batch
 
   alias ExkPasswd.{Batch, Config}
 
@@ -102,6 +132,31 @@ defmodule ExkPasswd.BatchTest do
       passwords = Batch.generate_unique_batch(3, config)
       assert length(passwords) == 3
       assert length(Enum.uniq(passwords)) == 3
+    end
+
+    test "handles collisions during unique generation" do
+      # Use single-word dictionary to guarantee collisions
+      # Only 1 possible password means every attempt after first is collision
+      ExkPasswd.Dictionary.init()
+      ExkPasswd.Dictionary.load_custom(:single_word, ["test"])
+
+      config =
+        Config.new!(
+          num_words: 1,
+          word_length: 4..4,
+          word_length_bounds: 1..10,
+          separator: "",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          case_transform: :lower,
+          dictionary: :single_word
+        )
+
+      # Request 2 unique from only 1 possible - guaranteed to hit collision branch
+      # Will exhaust max_attempts and raise since only 1 unique is possible
+      assert_raise RuntimeError, ~r/Failed to generate 2 unique passwords/, fn ->
+        Batch.generate_unique_batch(2, config, max_attempts: 5)
+      end
     end
   end
 

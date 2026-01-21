@@ -52,6 +52,7 @@ defmodule ExkPasswd.DictionaryTest do
   - ETS lookup overhead: < 1μs per operation
   """
   use ExUnit.Case, async: false
+  doctest ExkPasswd.Dictionary
 
   alias ExkPasswd.{Buffer, Dictionary}
 
@@ -617,6 +618,70 @@ defmodule ExkPasswd.DictionaryTest do
         Dictionary.random_word_between_with_state(1, 15, :none, :uncommon_range_dict, state)
 
       assert word in ["ab", "abc", "abcd", "abcdefghij", "abcdefghijk"]
+      assert %Buffer{} = new_state
+    end
+  end
+
+  describe "count_between_fallback nil branch" do
+    setup do
+      # Dictionary with wide gaps in word lengths (>10 apart) to trigger fallback path
+      # Range {2,15} won't be precomputed since max-min > 10
+      Dictionary.load_custom(:wide_sparse_dict, [
+        "aa",
+        "bbbbb",
+        String.duplicate("c", 15)
+      ])
+
+      :ok
+    end
+
+    test "handles gaps in word lengths via fallback path" do
+      # Range 2..15 is NOT precomputed (max-min=13 > 10), triggers count_between_fallback
+      # The fallback iterates through lengths 2-15, hitting nil for most lengths
+      count = Dictionary.count_between(2, 15, :wide_sparse_dict)
+      # Only lengths 2, 5, and 15 have words
+      assert count == 3
+    end
+
+    test "handles gaps with reversed range" do
+      # Also test reversed range fallback
+      count = Dictionary.count_between(15, 2, :wide_sparse_dict)
+      assert count == 3
+    end
+  end
+
+  describe "random_word_between_with_state default arguments" do
+    test "uses all defaults (3 args)" do
+      state = Buffer.new(100)
+      # Call with only min, max, and state to use defaults for case_transform and dict
+      {word, new_state} = Dictionary.random_word_between_with_state(4, 6, state)
+
+      assert is_binary(word)
+      len = String.length(word)
+      assert len >= 4 and len <= 6
+      assert %Buffer{} = new_state
+    end
+
+    test "uses default dictionary (4 args)" do
+      state = Buffer.new(100)
+      # Call with case_transform but default dict
+      {word, new_state} = Dictionary.random_word_between_with_state(4, 6, :lower, state)
+
+      assert is_binary(word)
+      assert word == String.downcase(word)
+      len = String.length(word)
+      assert len >= 4 and len <= 6
+      assert %Buffer{} = new_state
+    end
+
+    test "uses explicit arguments (5 args)" do
+      state = Buffer.new(100)
+      {word, new_state} = Dictionary.random_word_between_with_state(4, 6, :upper, :eff, state)
+
+      assert is_binary(word)
+      assert word == String.upcase(word)
+      len = String.length(word)
+      assert len >= 4 and len <= 6
       assert %Buffer{} = new_state
     end
   end

@@ -181,47 +181,7 @@ defmodule ExkPasswd.Password do
     select_words_with_state_by_case(:random, config, random_state, remaining - 1, [word | acc])
   end
 
-  defp select_words_with_state_by_case(:capitalize, config, random_state, remaining, acc) do
-    {word, random_state} =
-      Dictionary.random_word_between_with_state(
-        config.word_length.first,
-        config.word_length.last,
-        :capitalize,
-        config.dictionary,
-        random_state
-      )
-
-    select_words_with_state_by_case(:capitalize, config, random_state, remaining - 1, [
-      word | acc
-    ])
-  end
-
-  defp select_words_with_state_by_case(:upper, config, random_state, remaining, acc) do
-    {word, random_state} =
-      Dictionary.random_word_between_with_state(
-        config.word_length.first,
-        config.word_length.last,
-        :upper,
-        config.dictionary,
-        random_state
-      )
-
-    select_words_with_state_by_case(:upper, config, random_state, remaining - 1, [word | acc])
-  end
-
-  defp select_words_with_state_by_case(:lower, config, random_state, remaining, acc) do
-    {word, random_state} =
-      Dictionary.random_word_between_with_state(
-        config.word_length.first,
-        config.word_length.last,
-        :lower,
-        config.dictionary,
-        random_state
-      )
-
-    select_words_with_state_by_case(:lower, config, random_state, remaining - 1, [word | acc])
-  end
-
+  # Handle :invert case separately as it requires post-processing
   defp select_words_with_state_by_case(:invert, config, random_state, remaining, acc) do
     {word, random_state} =
       Dictionary.random_word_between_with_state(
@@ -232,28 +192,31 @@ defmodule ExkPasswd.Password do
         random_state
       )
 
-    inverted_word =
-      case String.next_codepoint(word) do
-        {head, rest} -> String.downcase(head) <> String.upcase(rest)
-        nil -> word
-      end
+    # Invert case: first letter lowercase, rest uppercase
+    # Dictionary words are guaranteed non-empty, so next_codepoint always succeeds
+    {head, rest} = String.next_codepoint(word)
+    inverted_word = String.downcase(head) <> String.upcase(rest)
 
     select_words_with_state_by_case(:invert, config, random_state, remaining - 1, [
       inverted_word | acc
     ])
   end
 
-  defp select_words_with_state_by_case(:none, config, random_state, remaining, acc) do
+  # Consolidated handler for simple case transforms that map directly to dictionary variants
+  defp select_words_with_state_by_case(case_transform, config, random_state, remaining, acc)
+       when case_transform in [:capitalize, :upper, :lower, :none] do
     {word, random_state} =
       Dictionary.random_word_between_with_state(
         config.word_length.first,
         config.word_length.last,
-        :none,
+        case_transform,
         config.dictionary,
         random_state
       )
 
-    select_words_with_state_by_case(:none, config, random_state, remaining - 1, [word | acc])
+    select_words_with_state_by_case(case_transform, config, random_state, remaining - 1, [
+      word | acc
+    ])
   end
 
   # Optimized word selection using pre-transformed dictionaries
@@ -286,45 +249,8 @@ defmodule ExkPasswd.Password do
     end
   end
 
-  defp select_words_optimized(%Config{case_transform: :capitalize} = config) do
-    # All words capitalized - select from pre-capitalized dictionary
-    for _ <- 1..config.num_words do
-      Dictionary.random_word_between(
-        config.word_length.first,
-        config.word_length.last,
-        :capitalize,
-        config.dictionary
-      )
-    end
-  end
-
-  defp select_words_optimized(%Config{case_transform: :upper} = config) do
-    # All words uppercase - select from pre-uppercase dictionary
-    for _ <- 1..config.num_words do
-      Dictionary.random_word_between(
-        config.word_length.first,
-        config.word_length.last,
-        :upper,
-        config.dictionary
-      )
-    end
-  end
-
-  defp select_words_optimized(%Config{case_transform: :lower} = config) do
-    # All words lowercase - select from pre-lowercase dictionary
-    for _ <- 1..config.num_words do
-      Dictionary.random_word_between(
-        config.word_length.first,
-        config.word_length.last,
-        :lower,
-        config.dictionary
-      )
-    end
-  end
-
+  # Handle :invert case separately as it requires post-processing
   defp select_words_optimized(%Config{case_transform: :invert} = config) do
-    # Invert case: first letter lowercase, rest uppercase
-    # Select lowercase words then transform
     for _ <- 1..config.num_words do
       word =
         Dictionary.random_word_between(
@@ -334,20 +260,21 @@ defmodule ExkPasswd.Password do
           config.dictionary
         )
 
-      case String.next_codepoint(word) do
-        {head, rest} -> String.downcase(head) <> String.upcase(rest)
-        nil -> word
-      end
+      # Invert case: first letter lowercase, rest uppercase
+      # Dictionary words are guaranteed non-empty, so next_codepoint always succeeds
+      {head, rest} = String.next_codepoint(word)
+      String.downcase(head) <> String.upcase(rest)
     end
   end
 
-  defp select_words_optimized(%Config{case_transform: :none} = config) do
-    # No case transformation - select from original dictionary
+  # Consolidated handler for simple case transforms that map directly to dictionary variants
+  defp select_words_optimized(%Config{case_transform: case_transform} = config)
+       when case_transform in [:capitalize, :upper, :lower, :none] do
     for _ <- 1..config.num_words do
       Dictionary.random_word_between(
         config.word_length.first,
         config.word_length.last,
-        :none,
+        case_transform,
         config.dictionary
       )
     end

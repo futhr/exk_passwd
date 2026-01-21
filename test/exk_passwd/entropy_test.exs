@@ -1,6 +1,60 @@
 defmodule ExkPasswd.EntropyTest do
   @moduledoc """
   Tests for ExkPasswd.Entropy calculations.
+
+  ## Overview
+
+  The Entropy module calculates password strength using Shannon entropy,
+  providing both "blind" (brute-force) and "seen" (knowledge-aware) estimates.
+
+  ## Test Strategy
+
+  This suite validates:
+
+  1. **Blind Entropy (`calculate_blind/1`)**: Measures entropy assuming an
+     attacker knows nothing about the password structure. Based on character
+     class detection (lowercase, uppercase, digits, symbols) and password length.
+
+  2. **Seen Entropy (`calculate_seen/1`)**: Measures entropy when the attacker
+     knows the generation algorithm. Accounts for dictionary size, separator
+     choices, digit placement, padding options, and case transformation.
+
+  3. **Detailed Breakdown (`calculate_seen_detailed/1`)**: Returns granular
+     entropy contributions from each password component:
+     - `word_entropy`: From dictionary word selection
+     - `separator_entropy`: From separator character choices
+     - `digit_entropy`: From numeric digit positions
+     - `padding_entropy`: From padding character selection
+     - `case_entropy`: From random case transformations
+     - `substitution_entropy`: From random character substitutions
+
+  4. **Crack Time Estimation (`estimate_crack_time/1`)**: Converts entropy bits
+     to human-readable time estimates at 2 billion guesses/second (modern GPU).
+
+  5. **Status Determination (`determine_status/2`)**: Maps entropy to strength
+     ratings: `:weak`, `:fair`, `:good`, `:excellent`.
+
+  ## Entropy Thresholds
+
+  The module uses industry-standard thresholds:
+  - Weak: < 35 bits (instant to minutes to crack)
+  - Fair: 35-50 bits (hours to days)
+  - Good: 50-70 bits (years to centuries)
+  - Excellent: > 70 bits (computationally infeasible)
+
+  ## Edge Cases Covered
+
+  - Empty passwords (0 entropy)
+  - Single character passwords
+  - Custom dictionaries with varying word counts
+  - Substitution modes (`:none`, `:always`, `:random`)
+  - All case transform modes
+  - Padding with `to_length` vs fixed before/after
+
+  ## Time Format Boundaries
+
+  Extensive tests cover all time unit transitions:
+  - instant → seconds → minutes → hours → days → years → centuries → millennia → billions of years
   """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Entropy
@@ -67,8 +121,15 @@ defmodule ExkPasswd.EntropyTest do
       assert result.separator_entropy == 0.0
     end
 
-    test "padding entropy is 0 with no padding" do
+    test "padding entropy is 0 with empty padding char" do
       config = Config.new!(padding: %{char: "", before: 0, after: 0, to_length: 0})
+      result = Entropy.calculate_seen_detailed(config)
+      assert result.padding_entropy == 0.0
+    end
+
+    test "padding entropy is 0 with non-empty char but zero padding amounts" do
+      # Non-empty padding char but all padding amounts are 0 (no padding applied)
+      config = Config.new!(padding: %{char: "!@#", before: 0, after: 0, to_length: 0})
       result = Entropy.calculate_seen_detailed(config)
       assert result.padding_entropy == 0.0
     end
@@ -429,7 +490,8 @@ defmodule ExkPasswd.EntropyTest do
     end
 
     test "handles config with custom dictionary atom" do
-      # First load a custom dictionary
+      # Initialize ETS table and load a custom dictionary
+      ExkPasswd.Dictionary.init()
       words = ["alpha", "bravo", "charlie", "delta", "echo"]
       ExkPasswd.Dictionary.load_custom(:test_entropy_dict, words)
 

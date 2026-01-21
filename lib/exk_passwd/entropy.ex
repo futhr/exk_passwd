@@ -311,6 +311,12 @@ defmodule ExkPasswd.Entropy do
     format_time(seconds)
   end
 
+  # Character class sizes for alphabet detection
+  @lowercase_size 26
+  @uppercase_size 26
+  @digits_size 10
+  @symbols_size 33
+
   defp detect_alphabet_size(password) do
     graphemes = String.graphemes(password)
 
@@ -319,37 +325,24 @@ defmodule ExkPasswd.Entropy do
     has_digits = Enum.any?(graphemes, &(&1 =~ ~r/[0-9]/))
     has_symbols = Enum.any?(graphemes, &(&1 =~ ~r/[^a-zA-Z0-9]/))
 
-    alphabet_size = 0
-    alphabet_size = if has_lowercase, do: alphabet_size + 26, else: alphabet_size
-    alphabet_size = if has_uppercase, do: alphabet_size + 26, else: alphabet_size
-    alphabet_size = if has_digits, do: alphabet_size + 10, else: alphabet_size
-    # Approximate symbol count (common symbols)
-    alphabet_size = if has_symbols, do: alphabet_size + 33, else: alphabet_size
-
-    max(alphabet_size, 1)
+    [
+      {has_lowercase, @lowercase_size},
+      {has_uppercase, @uppercase_size},
+      {has_digits, @digits_size},
+      {has_symbols, @symbols_size}
+    ]
+    |> Enum.reduce(0, fn {present?, size}, acc ->
+      if present?, do: acc + size, else: acc
+    end)
+    |> max(1)
   end
 
-  defp calculate_word_entropy(%Config{dictionary: dictionary} = config)
-       when is_atom(dictionary) do
+  defp calculate_word_entropy(%Config{dictionary: dictionary} = config) do
     word_count =
       Dictionary.count_between(
         config.word_length.first,
         config.word_length.last,
         dictionary
-      )
-
-    if word_count == 0 do
-      0.0
-    else
-      :math.log2(:math.pow(word_count, config.num_words))
-    end
-  end
-
-  defp calculate_word_entropy(config) do
-    word_count =
-      Dictionary.count_between(
-        config.word_length.first,
-        config.word_length.last
       )
 
     if word_count == 0 do

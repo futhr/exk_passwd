@@ -62,15 +62,15 @@ defmodule ExkPasswd.Random do
       ...> n
       0
   """
+  # Maximum value for 32-bit unsigned integer (2^32)
+  @uint32_max 0x1_0000_0000
+
   @spec integer(pos_integer()) :: non_neg_integer()
   def integer(max) when is_integer(max) and max > 0 do
     # Use rejection sampling to eliminate modulo bias
     # Calculate the largest value that gives us a complete set of max-sized ranges
-    # 2^32
-    range_size = 0x1_0000_0000
-    threshold = range_size - rem(range_size, max)
+    threshold = @uint32_max - rem(@uint32_max, max)
 
-    # Generate unbiased random value
     integer_unbiased(max, threshold)
   end
 
@@ -83,8 +83,10 @@ defmodule ExkPasswd.Random do
       rem(value, max)
     else
       # Value is in biased range - reject and retry
-      # This happens rarely: probability = (max / 2^32)
+      # This happens rarely: probability = (2^32 mod max) / 2^32
+      # coveralls-ignore-start
       integer_unbiased(max, threshold)
+      # coveralls-ignore-stop
     end
   end
 

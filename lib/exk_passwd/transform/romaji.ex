@@ -645,10 +645,10 @@ defmodule ExkPasswd.Transform.Romaji do
     end
 
     # Extract vowel from small ya/yu/yo characters
+    # Only called with "ya", "yu", or "yo" from palatalize/2
     defp extract_vowel("ya"), do: "a"
     defp extract_vowel("yu"), do: "u"
     defp extract_vowel("yo"), do: "o"
-    defp extract_vowel(other), do: other
 
     # Palatalization mapping using pattern matching (reduces complexity)
     # Special cases that don't follow the simple i→y pattern
