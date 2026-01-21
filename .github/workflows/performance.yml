@@ -2,9 +2,9 @@ name: Performance Regression Testing
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: write
@@ -17,16 +17,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: '1.18'
-          otp-version: '28'
+          elixir-version: "1.18"
+          otp-version: "28"
 
       - name: Restore dependencies cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
@@ -56,7 +56,7 @@ jobs:
           mix run bench/batch.exs >> bench_results.txt
 
       - name: Upload benchmark results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-results
           path: bench_results.txt
