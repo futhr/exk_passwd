@@ -2,7 +2,92 @@ defmodule ExkPasswd.Config.Schema do
   @moduledoc """
   Schema validation for Config structs.
 
-  This module provides declarative schema-based validation with clear error messages.
+  ## Overview
+
+  This module provides comprehensive validation for all `ExkPasswd.Config` fields,
+  ensuring configurations are valid before password generation begins. Invalid
+  configurations fail fast with descriptive error messages.
+
+  ## Validation Rules
+
+  ### num_words
+  - Type: Integer
+  - Range: 1-10
+  - Purpose: Controls password length and entropy
+
+  ### word_length
+  - Type: Range (e.g., `4..8`)
+  - Default bounds: 4-10 (English/Latin scripts)
+  - Custom bounds: Set `word_length_bounds` for other scripts
+  - Constraints: `min >= 1`, `max <= 50`, `min <= max`
+
+  ### case_transform
+  - Type: Atom
+  - Valid: `:none`, `:alternate`, `:capitalize`, `:invert`, `:lower`, `:upper`, `:random`
+  - Purpose: Controls word casing in output
+
+  ### separator
+  - Type: String
+  - Allowed: Symbols and punctuation only (no letters/numbers)
+  - Empty string: Disables word separation
+  - Unicode: Full Unicode symbol support
+
+  ### digits
+  - Type: Tuple `{before, after}`
+  - Range: 0-5 for each position
+  - Purpose: Adds numeric padding for complexity
+
+  ### padding
+  - Type: Map with keys `:char`, `:before`, `:after`, `:to_length`
+  - `:char`: Symbol string (same rules as separator)
+  - `:before`/`:after`: 0-5 repetitions
+  - `:to_length`: 0 (disabled) or 8-999 (minimum password length)
+
+  ### substitutions
+  - Type: Map of single-char strings
+  - Example: `%{"a" => "@", "e" => "3"}`
+  - Purpose: Leetspeak-style character replacement
+
+  ### substitution_mode
+  - Type: Atom
+  - Valid: `:none`, `:always`, `:random`
+  - Purpose: Controls when substitutions apply
+
+  ### dictionary
+  - Type: Atom
+  - Default: `:eff` (EFF word list)
+  - Custom: Any atom registered via `Dictionary.load_custom/2`
+
+  ### word_length_bounds
+  - Type: Range or nil
+  - Purpose: Override default 4-10 bounds for non-Latin scripts
+  - Example: `1..4` for Chinese, `1..50` for German compounds
+
+  ## Error Messages
+
+  All validation errors include:
+  - The field name that failed
+  - The invalid value received
+  - The valid range or options
+  - Suggestions for common mistakes
+
+  ## Examples
+
+      iex> alias ExkPasswd.Config.Schema
+      ...> Schema.validate(%ExkPasswd.Config{num_words: 3})
+      :ok
+
+      iex> alias ExkPasswd.Config.Schema
+      ...> {:error, msg} = Schema.validate(%ExkPasswd.Config{num_words: 0})
+      ...> msg =~ "num_words must be between"
+      true
+
+  ## Symbol Validation
+
+  Separators and padding characters are restricted to prevent confusion:
+  - Letters and numbers are rejected (could be mistaken for password content)
+  - All Unicode symbols and punctuation are allowed
+  - Empty strings disable the feature
   """
 
   alias ExkPasswd.Config

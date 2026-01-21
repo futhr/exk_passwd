@@ -130,9 +130,7 @@ defmodule ExkPasswd.Config do
   end
 
   def new(opts, []) when is_map(opts) do
-    opts
-    |> Map.to_list()
-    |> new()
+    new(Map.to_list(opts))
   end
 
   @doc """

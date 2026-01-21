@@ -129,13 +129,22 @@ defmodule ExkPasswd do
   def version, do: @version
 
   @doc """
-  Generate a password using default settings, a preset, keyword options, or a Config struct.
+  Generate a password using default settings.
+
+  This is equivalent to calling `generate(:default)`.
 
   ## Examples
 
-      # With default settings
       ExkPasswd.generate()
       #=> "28?heavy?SOUND?later?94"
+  """
+  @spec generate() :: String.t()
+  def generate(), do: generate(:default)
+
+  @doc """
+  Generate a password using a preset, keyword options, or a Config struct.
+
+  ## Examples
 
       # With a preset atom
       ExkPasswd.generate(:xkcd)
@@ -150,8 +159,6 @@ defmodule ExkPasswd do
       ExkPasswd.generate(config)
       #=> "45_HAPPY_forest_23"
   """
-  @spec generate() :: String.t()
-  def generate(), do: generate(:default)
 
   @spec generate(atom() | keyword() | Config.t()) :: String.t()
   def generate(preset) when is_atom(preset) do

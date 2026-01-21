@@ -1,8 +1,68 @@
 defmodule ExkPasswd.Config.SchemaTest do
   @moduledoc """
   Tests for ExkPasswd.Config.Schema validation functions.
+
+  ## Overview
+
+  The Schema module provides comprehensive validation for Config structs,
+  ensuring all fields contain valid values before password generation.
+
+  ## Test Strategy
+
+  This suite validates every Config field with both valid and invalid inputs:
+
+  1. **word_length**: Must be a Range within bounds (default 4..10)
+     - Rejects non-Range types
+     - Rejects min > max
+     - Rejects values outside `word_length_bounds`
+
+  2. **digits**: Tuple `{before, after}` with values 0-5
+     - Rejects negative values
+     - Rejects values > 5
+     - Rejects non-tuple types
+
+  3. **padding**: Map with `:char`, `:before`, `:after`, `:to_length` keys
+     - Validates character type (string)
+     - Validates count ranges (0-5)
+     - Validates `to_length` (0 or 8-999)
+     - Rejects missing required keys
+
+  4. **substitutions**: Map of single-char to single-char
+     - Rejects multi-character keys/values
+     - Rejects non-string types
+     - Allows empty map
+
+  5. **case_transform**: One of predefined atoms
+     - Valid: `:none`, `:alternate`, `:capitalize`, `:invert`, `:lower`, `:upper`, `:random`
+     - Rejects unknown atoms
+
+  6. **separator**: String without alphanumeric characters
+     - Allows empty string
+     - Allows Unicode symbols
+     - Rejects letters and numbers
+
+  7. **num_words**: Integer 1-10
+     - Rejects non-integers
+     - Rejects out-of-range values
+
+  8. **substitution_mode**: `:none`, `:always`, or `:random`
+     - Rejects unknown modes
+
+  9. **dictionary**: Atom reference to loaded dictionary
+     - Rejects non-atom types
+
+  10. **word_length_bounds**: Custom bounds for word_length validation
+      - Enables dictionaries with non-standard word lengths
+
+  ## Error Message Quality
+
+  Tests verify that error messages are:
+  - Specific about which field failed
+  - Clear about what values are acceptable
+  - Helpful for debugging configuration issues
   """
   use ExUnit.Case, async: true
+  doctest ExkPasswd.Config.Schema
 
   alias ExkPasswd.Config
   alias ExkPasswd.Config.Schema
