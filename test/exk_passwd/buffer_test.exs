@@ -1,6 +1,50 @@
 defmodule ExkPasswd.BufferTest do
   @moduledoc """
   Tests for ExkPasswd.Buffer - buffered random byte generation.
+
+  ## Overview
+
+  The Buffer module provides a stateful wrapper around `:crypto.strong_rand_bytes/1`
+  that pre-allocates random bytes to reduce syscall overhead during batch operations.
+
+  ## Test Strategy
+
+  This suite validates:
+
+  1. **Buffer Creation (`new/1`)**: Verifies correct initialization with default
+     and custom sizes, ensuring the underlying binary has the expected byte count.
+
+  2. **Random Integer Generation (`random_integer/2`)**: Tests bounded random number
+     generation with uniform distribution. Validates that results respect the
+     max_value constraint and that the buffer state advances correctly.
+
+  3. **Random Element Selection (`random_element/2`)**: Confirms uniform selection
+     from lists, including edge cases like single-element lists and large collections.
+
+  4. **Buffer Refresh Behavior**: Critical tests ensuring the buffer correctly
+     refills itself when exhausted, maintaining continuous operation without
+     user intervention.
+
+  5. **Boolean and Digit Generation**: Validates convenience functions that
+     wrap the core random integer logic.
+
+  ## Implementation Details
+
+  - Buffer uses a binary + offset model: reads 4 bytes at a time, advances offset
+  - When offset reaches buffer end, the entire buffer is regenerated
+  - All randomness ultimately derives from `:crypto.strong_rand_bytes/1`
+  - State is immutable; each operation returns a new Buffer struct
+
+  ## Security Considerations
+
+  Tests verify that the Buffer correctly propagates cryptographic randomness:
+  - No use of `:rand` module or `Enum.random/1`
+  - Uniform distribution within specified ranges
+  - No observable patterns in sequential generations
+
+  ## Concurrency
+
+  Tests run with `async: true` because each test creates isolated Buffer state.
   """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Buffer

@@ -1,6 +1,59 @@
 defmodule ExkPasswd.Transform.CaseTransformTest do
   @moduledoc """
   Tests for case transformation (upper, lower, capitalize, alternate, random, invert).
+
+  ## Overview
+
+  The CaseTransform struct implements the Transform protocol to modify word casing.
+  This is one of the most commonly used transforms in password generation.
+
+  ## Test Strategy
+
+  This suite validates all six case transformation modes:
+
+  1. **`:upper`**: Converts entire word to uppercase
+     - "hello" → "HELLO"
+     - Deterministic, adds no entropy
+
+  2. **`:lower`**: Converts entire word to lowercase
+     - "HELLO" → "hello"
+     - Deterministic, adds no entropy
+
+  3. **`:capitalize`**: Capitalizes first letter, lowercases rest
+     - "hello" → "Hello", "WORLD" → "World"
+     - Deterministic, adds no entropy
+
+  4. **`:none`**: Returns word unchanged
+     - Preserves original casing from dictionary
+     - Deterministic, adds no entropy
+
+  5. **`:invert`**: Inverts case of first character only
+     - "Hello" → "hello", "test" → "Test"
+     - Deterministic, adds no entropy
+
+  6. **`:random`**: Randomly chooses upper or lower for entire word
+     - 50/50 chance of "HELLO" or "hello"
+     - Adds 1 bit of entropy per word
+
+  ## Transform Protocol
+
+  CaseTransform implements two callbacks:
+
+  - `apply/3`: Transforms the word string
+  - `entropy_bits/2`: Returns entropy contribution (0.0 for deterministic, n*1.0 for random)
+
+  ## Edge Cases Covered
+
+  - Empty strings
+  - Single character words
+  - Unicode characters (café → CAFÉ)
+  - Numbers and symbols (unchanged by case operations)
+  - Mixed case inputs
+
+  ## Entropy Calculation
+
+  Only `:random` mode adds entropy because it introduces unpredictability.
+  With 3 words, `:random` adds 3.0 bits (2^3 = 8 possible case combinations).
   """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Transform.CaseTransform

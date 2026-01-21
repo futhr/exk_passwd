@@ -1,6 +1,52 @@
 defmodule ExkPasswd.StrengthTest do
   @moduledoc """
   Tests for ExkPasswd.Strength password strength analysis.
+
+  ## Overview
+
+  The Strength module provides user-friendly password strength analysis,
+  combining entropy calculations with intuitive ratings and scores.
+
+  ## Test Strategy
+
+  This suite validates:
+
+  1. **Analysis Function (`analyze/2`)**: Returns comprehensive strength data:
+     - `score`: 0-100 integer for progress bars/meters
+     - `rating`: `:weak`, `:fair`, `:good`, `:excellent`
+     - `entropy_bits`: Effective entropy (min of blind/seen)
+
+  2. **Rating Function (`rating/2`)**: Quick access to just the strength rating
+     without full analysis overhead.
+
+  3. **Threshold Boundaries**: Verifies correct rating at entropy boundaries:
+     - < 40 bits → `:weak`
+     - 40-52 bits → `:fair`
+     - 52-78 bits → `:good`
+     - >= 78 bits → `:excellent`
+
+  4. **Conservative Estimates**: Confirms that the module uses the minimum
+     of blind and seen entropy, following security best practices.
+
+  ## Score Calculation
+
+  The 0-100 score is derived from entropy:
+  - Maps entropy bits to a normalized scale
+  - Clamps to [0, 100] range
+  - Provides intuitive feedback for UI components
+
+  ## Use Cases
+
+  - Password strength meters in web applications
+  - CLI tools displaying password quality
+  - Automated validation of generated passwords
+  - User feedback during password configuration
+
+  ## Relationship to Entropy Module
+
+  Strength wraps Entropy calculations with user-friendly presentation:
+  - Entropy provides raw mathematical analysis
+  - Strength provides actionable ratings and scores
   """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Strength

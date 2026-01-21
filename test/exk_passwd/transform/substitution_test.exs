@@ -2,7 +2,62 @@ defmodule ExkPasswd.Transform.SubstitutionTest do
   @moduledoc """
   Tests for character substitution transform (e.g., a → @, e → 3).
 
-  Tests various substitution modes and patterns.
+  ## Overview
+
+  The Substitution struct implements the Transform protocol to replace characters
+  with their "leetspeak" or symbolic equivalents. This increases password complexity
+  while maintaining some readability.
+
+  ## Test Strategy
+
+  This suite validates all three substitution modes:
+
+  1. **`:none`**: Returns word unchanged
+     - No substitutions applied regardless of map
+     - Deterministic, adds no entropy
+
+  2. **`:always`**: Applies all matching substitutions
+     - Every instance of mapped characters is replaced
+     - "hello" with {e→3, o→0} → "h3ll0"
+     - Deterministic, adds no entropy
+
+  3. **`:random`**: Randomly applies or skips substitution per word
+     - 50/50 chance of applying substitutions to each word
+     - Adds 1 bit of entropy per word
+
+  ## Default Substitution Map
+
+  The module provides a standard leetspeak map:
+  - `e → 3`, `a → @`, `o → 0`, `s → $`, `i → !`, `l → 1`, `t → 7`
+
+  Users can provide custom maps for domain-specific needs.
+
+  ## Transform Protocol
+
+  Substitution implements:
+
+  - `apply/3`: Performs character replacements based on mode
+  - `entropy_bits/2`: Returns entropy (0.0 for none/always, n*1.0 for random)
+
+  ## Helper Function
+
+  `count_substitutable/2` counts how many characters in a word match the
+  substitution map. Useful for analyzing password complexity.
+
+  ## Integration Tests
+
+  Tests verify substitution works correctly when configured via:
+  - Direct struct usage
+  - Config meta transforms field
+
+  ## Edge Cases
+
+  - Empty substitution map (no-op)
+  - Empty word (returns empty)
+  - No matching characters (returns unchanged)
+  - Multiple occurrences of same character
+  - Unicode characters (only ASCII vowels mapped by default)
+  - Case sensitivity (only lowercase matches by default)
   """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Transform.Substitution

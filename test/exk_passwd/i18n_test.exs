@@ -2,11 +2,62 @@ defmodule ExkPasswd.I18nTest do
   @moduledoc """
   Tests for internationalization (i18n) features.
 
-  Covers:
-  - Chinese character support with Pinyin transformation
-  - Japanese character support with Romaji transformation
-  - Custom dictionaries for non-Latin scripts
-  - Word length bounds for logographic writing systems
+  ## Overview
+
+  This suite validates ExkPasswd's support for non-Latin writing systems,
+  enabling secure password generation from Chinese, Japanese, and other
+  language dictionaries while producing ASCII-compatible output.
+
+  ## Key Features Tested
+
+  ### 1. Word Length Bounds Configuration
+  Latin scripts typically use 4-10 character words, but logographic scripts
+  (Chinese, Japanese Kanji) use 1-4 character words. The `word_length_bounds`
+  option allows customizing valid ranges per dictionary.
+
+  - **Default bounds**: 4-10 (enforced for backwards compatibility)
+  - **Custom bounds**: 1-50 (enables short CJK words or long German compounds)
+  - **Validation**: Rejects `word_length` outside specified bounds
+
+  ### 2. Pinyin Transform (Chinese → ASCII)
+  Converts Chinese characters to their Romanized pronunciation:
+  - 中国 → "zhongguo"
+  - 你好 → "nihao"
+
+  Enables Chinese word lists while producing ASCII-safe passwords.
+
+  ### 3. Romaji Transform (Japanese → ASCII)
+  Converts Hiragana and Katakana to Roman letters:
+  - さくら → "sakura" (Hiragana)
+  - サクラ → "sakura" (Katakana)
+
+  Both scripts produce identical Romaji output.
+
+  ### 4. Custom Dictionary Loading
+  Tests verify `Dictionary.load_custom/2` works with:
+  - Very short words (1-2 chars for logographic scripts)
+  - Very long words (11-14 chars for German compounds)
+  - Mixed script dictionaries (Hiragana + Katakana)
+
+  ## Transform Protocol Integration
+
+  Both Pinyin and Romaji implement the `Transform` protocol:
+  - `apply/3`: Performs character-by-character conversion
+  - `entropy_bits/2`: Returns 0.0 (deterministic, no entropy contribution)
+
+  Unknown characters pass through unchanged, allowing mixed-script input.
+
+  ## End-to-End Validation
+
+  Integration tests verify complete password generation:
+  - Chinese source → Pinyin output → ASCII password with digits
+  - Japanese source → Romaji output → ASCII password with separator
+
+  ## Use Cases
+
+  - Multilingual applications with ASCII password requirements
+  - Memory techniques using native language words
+  - Compliance with systems requiring ASCII-only passwords
   """
   use ExUnit.Case, async: true
 

@@ -2,8 +2,72 @@ defmodule ExkPasswd.AdversarialTest do
   @moduledoc """
   Adversarial security testing using statistical analysis.
 
-  Tests defend against real-world attack vectors including frequency analysis,
-  state prediction, collision attacks, and pattern recognition.
+  ## Overview
+
+  This suite simulates sophisticated attack scenarios that a determined adversary
+  might employ against password generation systems. Unlike basic security tests,
+  these tests use statistical methods to detect subtle biases that could be
+  exploited in real-world attacks.
+
+  ## Attack Vectors Tested
+
+  ### 1. Modulo Bias Exploitation
+  Tests use chi-square statistical analysis to detect non-uniform distribution
+  in random number generation. Modulo bias occurs when `rand % max` doesn't
+  produce uniform results because `2^32` isn't evenly divisible by `max`.
+
+  - **Word selection uniformity**: Validates all dictionary words are equally likely
+  - **Prime modulo testing**: Uses prime numbers (worst case for modulo bias)
+
+  ### 2. State Prediction Attacks
+  Attempts to predict future outputs by analyzing patterns in consecutive
+  generations. A compromised PRNG would show correlation between outputs.
+
+  - **Consecutive password analysis**: Detects word overlap between sequential passwords
+  - **Sequential digit detection**: Identifies predictable numeric sequences
+
+  ### 3. Dictionary Coverage Analysis
+  Verifies the entire dictionary is reachable and word length distribution
+  matches the source dictionary (no length-based bias).
+
+  ### 4. Configuration Fingerprinting
+  Documents that preset configurations are distinguishable by structure.
+  This is inherent to the design, not a vulnerability.
+
+  ### 5. Birthday Collision Attacks
+  Tests collision resistance against birthday paradox expectations.
+  With N bits of entropy, expect collisions around `sqrt(2^N)` samples.
+
+  ### 6. Parallel Generation Independence
+  Verifies concurrent password generation from multiple processes shows
+  no correlation (each process has independent random state).
+
+  ### 7. ML Pattern Recognition Simulation
+  Extracts password features (length, character counts, first/last chars)
+  and measures Shannon entropy to detect predictable patterns that
+  machine learning models could exploit.
+
+  ## Statistical Methods
+
+  - **Chi-Square Test**: Measures deviation from expected uniform distribution.
+    Uses 99.9% confidence level (critical value = df + 3.29 * sqrt(2*df)).
+  - **Shannon Entropy**: Measures information content in character distributions.
+  - **Collision Rate Analysis**: Compares observed collisions to theoretical bounds.
+
+  ## Sample Sizes
+
+  Tests use large samples for statistical significance:
+  - `@large_sample`: 100,000 iterations for distribution tests
+  - `@attack_sample`: 50,000 iterations for pattern detection
+
+  ## Performance Notes
+
+  These tests are computationally intensive (tagged with `timeout: 300_000`).
+  Run with `--only slow` to execute ML pattern tests separately.
+
+  ## Concurrency
+
+  Uses `async: false` because some tests measure global state (memory, ETS).
   """
   use ExUnit.Case, async: false
 

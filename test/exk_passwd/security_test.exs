@@ -2,12 +2,80 @@ defmodule ExkPasswd.SecurityTest do
   @moduledoc """
   Statistical and cryptographic security tests for ExkPasswd.
 
-  These tests verify:
-  - Randomness quality and uniform distribution
-  - Collision resistance
-  - Entropy calculations
-  - No weak patterns or biases
-  - Cryptographic properties of generated passwords
+  ## Overview
+
+  This suite provides comprehensive security validation for the password
+  generation system, ensuring cryptographic properties are maintained
+  across all operations.
+
+  ## Test Categories
+
+  ### 1. Random Distribution Quality
+  Validates that `Random.integer/1` and `Random.select/1` produce
+  statistically uniform distributions using chi-square tests.
+
+  - **Chi-square analysis**: Compares observed vs expected frequencies
+  - **Modulo bias detection**: Tests small ranges where bias is most visible
+  - **Correlation analysis**: Verifies consecutive values are independent
+
+  ### 2. Boolean Fairness
+  Ensures `Random.boolean/0` produces 50/50 true/false distribution
+  within acceptable statistical variance (±5%).
+
+  ### 3. Collision Resistance
+  Tests that generated passwords are unique with high probability:
+  - Single config: < 0.1% collision rate over 5,000 passwords
+  - Cross-preset: Zero collisions between different presets
+  - Batch generation: 100% uniqueness for 1,000 passwords
+
+  ### 4. Pattern Detection
+  Scans generated passwords for weak patterns:
+  - Forbidden sequences: "12345", "qwerty", "111111", etc.
+  - Character variety: Minimum 40% unique characters per password
+
+  ### 5. Dictionary Selection Randomness
+  Validates word selection shows no positional bias and respects
+  length constraints uniformly.
+
+  ### 6. Entropy Calculations
+  Verifies entropy formulas are correct:
+  - Entropy increases with more words
+  - Entropy increases with longer word ranges
+  - Entropy increases with digit padding
+  - Default config meets NIST 70+ bit recommendation
+
+  ### 7. Memory Safety
+  Tests that password generation doesn't leak memory:
+  - Generates 10,000 passwords after warmup
+  - Forces garbage collection
+  - Verifies memory increase < 20MB
+
+  ### 8. Integration Scenarios
+  Real-world validation combining multiple features:
+  - Batch uniqueness
+  - Shannon entropy per password
+  - NIST guideline compliance
+
+  ## Statistical Parameters
+
+  - `@sample_size`: 10,000 (distribution tests)
+  - `@collision_test_size`: 5,000 (uniqueness tests)
+  - Chi-square critical values at 99.9% confidence
+
+  ## Timing Attack Note
+
+  Timing tests are intentionally excluded. The BEAM VM's garbage collection,
+  scheduler, and JIT make timing measurements unreliable. For timing analysis:
+  - Use Benchee for statistical timing
+  - Review code for constant-time operations
+  - Use dedicated side-channel analysis tools
+
+  ## Security Properties Guaranteed
+
+  All randomness derives from `:crypto.strong_rand_bytes/1` which:
+  - Uses OS entropy sources (urandom/CryptGenRandom)
+  - Is cryptographically secure
+  - Provides constant-time operations
   """
   use ExUnit.Case, async: true
 

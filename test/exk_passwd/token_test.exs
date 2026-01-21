@@ -1,6 +1,59 @@
 defmodule ExkPasswd.TokenTest do
   @moduledoc """
   Tests for ExkPasswd.Token - random token generation functions.
+
+  ## Overview
+
+  The Token module provides low-level building blocks for password generation,
+  generating individual components like words, numbers, and symbols using
+  cryptographically secure randomness.
+
+  ## Test Strategy
+
+  This suite validates:
+
+  1. **Word Generation (`get_word/1`, `get_word_between/2`)**:
+     - Fixed-length word retrieval from dictionary
+     - Variable-length word selection within bounds
+     - Graceful handling of invalid inputs (negative, too long, non-integer)
+
+  2. **Number Generation (`get_number/1`, `get_number_with_state/2`)**:
+     - Zero-padded numeric strings of exact length
+     - Stateful generation for batch operations
+     - Edge cases: zero/negative digits return empty string
+
+  3. **Token Selection (`get_token/1`)**:
+     - Single character selection from string
+     - Element selection from list
+     - Empty input handling
+
+  4. **Repeated Tokens (`get_n_of/2`)**:
+     - Generates n copies of a randomly selected token
+     - Used for padding characters
+
+  ## Stateful vs Stateless APIs
+
+  The module offers two patterns:
+
+  - **Stateless** (e.g., `get_word/1`): Each call generates fresh random bytes
+  - **Stateful** (e.g., `get_number_with_state/2`): Uses Buffer for efficiency
+
+  Stateful operations are preferred in batch generation to reduce syscalls.
+
+  ## Input Validation
+
+  Tests verify defensive handling of invalid inputs:
+  - Non-integer lengths → empty string
+  - Negative lengths → empty string
+  - Empty collections → empty string
+  - Out-of-range word lengths → empty string (no words exist)
+
+  ## Randomness Quality
+
+  Distribution tests verify that:
+  - Different words are selected across multiple calls
+  - Different numbers are generated (not just zeros)
+  - Token selection covers the full character set
   """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Token

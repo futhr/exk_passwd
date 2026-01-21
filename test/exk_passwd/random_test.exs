@@ -1,6 +1,52 @@
 defmodule ExkPasswd.RandomTest do
   @moduledoc """
   Tests for ExkPasswd.Random cryptographic random utilities.
+
+  ## Overview
+
+  The Random module provides cryptographically secure random number generation
+  using `:crypto.strong_rand_bytes/1`. This is critical for password security
+  as predictable randomness would make passwords guessable.
+
+  ## Test Strategy
+
+  This suite validates:
+
+  1. **Integer Generation (`integer/1`)**: Generates uniformly distributed
+     integers in `0..(max-1)`. Uses rejection sampling to eliminate modulo bias
+     when max doesn't evenly divide 2^32.
+
+  2. **Element Selection (`select/1`)**: Uniformly selects elements from lists
+     or ranges. Returns `nil` for empty collections.
+
+  3. **Boolean Generation (`boolean/0`)**: Returns `true` or `false` with
+     equal probability (50/50 distribution).
+
+  4. **Range Generation (`integer_between/2`)**: Generates integers within
+     inclusive bounds `[min, max]`. Handles reversed arguments gracefully.
+
+  ## Security Properties Verified
+
+  - **No `:rand` Usage**: All randomness from `:crypto` module
+  - **No `Enum.random/1`**: Which uses the insecure `:rand` module
+  - **Uniform Distribution**: Statistical tests for balance
+  - **Full Range Coverage**: Edge values appear in samples
+
+  ## Bias Elimination
+
+  The `integer/1` function implements unbiased sampling:
+  ```
+  threshold = 2^32 - (2^32 mod max)
+  ```
+  Values >= threshold are rejected and resampled, ensuring uniformity.
+
+  ## Edge Cases
+
+  - `integer(1)` always returns 0
+  - `integer(2)` returns 0 or 1 with equal probability
+  - Very large max values (near 2^32) trigger rejection sampling
+  - `select([])` returns nil, not an error
+  - `integer_between(10, 5)` normalizes to `integer_between(5, 10)`
   """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Random

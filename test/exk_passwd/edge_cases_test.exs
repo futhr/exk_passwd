@@ -2,7 +2,56 @@ defmodule ExkPasswd.EdgeCaseTest do
   @moduledoc """
   Tests for edge cases and boundary conditions in ExkPasswd.
 
-  Covers unusual scenarios, custom dictionary edge cases, and error conditions.
+  ## Overview
+
+  This suite captures unusual scenarios, boundary conditions, and error paths
+  that may not be covered by the main module test suites. These tests ensure
+  robustness when the library encounters unexpected inputs or states.
+
+  ## Test Categories
+
+  1. **Custom Dictionary Edge Cases**:
+     - Dictionaries with no words in requested length range
+     - Empty custom dictionaries
+     - Range requests that fall outside available word lengths
+
+  2. **Entropy Calculation Extremes**:
+     - Very high entropy passwords (10+ words)
+     - Configurations that push entropy calculation limits
+
+  3. **ETS Initialization Idempotency**:
+     - Repeated `Dictionary.init/0` calls are safe
+     - Handles "table already exists" gracefully
+
+  4. **Buffer Exhaustion**:
+     - Small buffers that exhaust within single operations
+     - Multiple operations forcing buffer refresh cycles
+
+  5. **Random Module Edge Cases**:
+     - `Random.integer(1)` always returns 0
+     - Boundary conditions for modulo operations
+
+  6. **Batch Generation Edge Cases**:
+     - Single-password batch (count = 1)
+     - Validates minimum batch functionality
+
+  7. **Schema Validation Edge Cases**:
+     - Type validation (Range expected, integer provided)
+     - Boundary value rejections
+
+  ## Why These Tests Exist
+
+  Edge case tests serve as regression guards. Many represent bugs found during
+  development or unusual usage patterns reported by users. They ensure:
+
+  - Library doesn't crash on boundary inputs
+  - Error messages are helpful and accurate
+  - State management handles edge conditions
+
+  ## Concurrency Note
+
+  This suite uses `async: false` because some tests involve shared ETS state
+  (Dictionary initialization). Running async could cause race conditions.
   """
   use ExUnit.Case
 

@@ -57,6 +57,7 @@ defmodule ExkPasswd.PasswordTest do
   The Buffer passed to create_with_state/2 is explicitly threaded through, avoiding race conditions.
   """
   use ExUnit.Case, async: true
+  doctest ExkPasswd.Password
 
   alias ExkPasswd.{Buffer, Config, Password}
 
