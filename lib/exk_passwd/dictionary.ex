@@ -133,12 +133,11 @@ defmodule ExkPasswd.Dictionary do
   """
   @spec init() :: :ok
   def init do
-    case :ets.whereis(@ets_table) do
-      :undefined ->
-        :ets.new(@ets_table, [:set, :public, :named_table, read_concurrency: true])
-
-      _table ->
-        :ok
+    try do
+      :ets.new(@ets_table, [:set, :public, :named_table, read_concurrency: true])
+      :ok
+    rescue
+      ArgumentError -> :ok
     end
   end
 
