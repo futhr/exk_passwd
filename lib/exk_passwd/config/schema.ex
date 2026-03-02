@@ -100,6 +100,7 @@ defmodule ExkPasswd.Config.Schema do
   @min_padding 0
   @max_padding 5
 
+  # credo:disable-for-next-line Credo.Check.Refactor.AppendSingleItem
   @allowed_symbols ~w(- _ ~ + * = @ ! # & $ % ? . , : ; ^ | / ' " ) ++ [" "]
 
   @doc """

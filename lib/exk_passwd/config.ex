@@ -237,6 +237,7 @@ defmodule ExkPasswd.Config do
   """
   @spec add_validator(t(), module()) :: t()
   def add_validator(%__MODULE__{validators: validators} = config, validator_module) do
+    # credo:disable-for-next-line Credo.Check.Refactor.AppendSingleItem
     %{config | validators: validators ++ [validator_module]}
   end
 
