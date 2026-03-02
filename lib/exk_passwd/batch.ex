@@ -148,22 +148,19 @@ defmodule ExkPasswd.Batch do
     tasks =
       for i <- 0..(workers - 1) do
         batch_size = if i < remainder, do: per_worker + 1, else: per_worker
-
-        Task.async(fn ->
-          if batch_size > 0 do
-            for _ <- 1..batch_size do
-              Password.create(config)
-            end
-          else
-            []
-          end
-        end)
+        Task.async(fn -> create_passwords(batch_size, config) end)
       end
 
     # Collect results
     tasks
     |> Task.await_many(:infinity)
     |> List.flatten()
+  end
+
+  defp create_passwords(0, _config), do: []
+
+  defp create_passwords(batch_size, config) do
+    for _ <- 1..batch_size, do: Password.create(config)
   end
 
   @spec generate_with_buffer(non_neg_integer(), Config.t(), Buffer.t(), [String.t()]) ::
