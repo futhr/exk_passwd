@@ -62,8 +62,8 @@ defmodule ExkPasswd.Transform.SubstitutionTest do
   use ExUnit.Case, async: true
   doctest ExkPasswd.Transform.Substitution
 
-  alias ExkPasswd.Transform.Substitution
   alias ExkPasswd.{Config, Transform}
+  alias ExkPasswd.Transform.Substitution
 
   setup do
     config = Config.new!(num_words: 3)

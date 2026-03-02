@@ -71,7 +71,7 @@ defmodule ExkPasswd.AdversarialTest do
   """
   use ExUnit.Case, async: false
 
-  alias ExkPasswd.{Config, Random, Dictionary, Batch}
+  alias ExkPasswd.{Batch, Config, Dictionary, Random}
 
   @large_sample 100_000
   @attack_sample 50_000

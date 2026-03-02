@@ -79,7 +79,7 @@ defmodule ExkPasswd.SecurityTest do
   """
   use ExUnit.Case, async: true
 
-  alias ExkPasswd.{Config, Random, Dictionary}
+  alias ExkPasswd.{Config, Dictionary, Random}
 
   @sample_size 10_000
   @collision_test_size 5_000

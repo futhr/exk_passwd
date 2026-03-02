@@ -58,7 +58,7 @@ defmodule ExkPasswd.ValidatorTest do
   defmodule TestValidator do
     @behaviour Validator
 
-    @impl true
+    @impl Validator
     def validate(config) do
       if config.num_words >= 4 do
         :ok
@@ -71,7 +71,7 @@ defmodule ExkPasswd.ValidatorTest do
   defmodule TestValidator2 do
     @behaviour Validator
 
-    @impl true
+    @impl Validator
     def validate(config) do
       if config.separator != "~" do
         :ok

@@ -58,8 +58,8 @@ defmodule ExkPasswd.Transform.CaseTransformTest do
   use ExUnit.Case, async: true
   doctest ExkPasswd.Transform.CaseTransform
 
-  alias ExkPasswd.Transform.CaseTransform
   alias ExkPasswd.{Config, Transform}
+  alias ExkPasswd.Transform.CaseTransform
 
   setup do
     config = Config.new!(num_words: 3)
