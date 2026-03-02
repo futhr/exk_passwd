@@ -30,6 +30,8 @@ defmodule ExkPasswd.Transform.CaseTransform do
         }
 
   defimpl ExkPasswd.Transform do
+    @spec apply(ExkPasswd.Transform.CaseTransform.t(), String.t(), ExkPasswd.Config.t()) ::
+            String.t()
     def apply(%{mode: :upper}, word, _config), do: String.upcase(word)
     def apply(%{mode: :lower}, word, _config), do: String.downcase(word)
     def apply(%{mode: :capitalize}, word, _config), do: String.capitalize(word)
@@ -50,7 +52,7 @@ defmodule ExkPasswd.Transform.CaseTransform do
       end
     end
 
-    # Entropy calculation
+    @spec entropy_bits(ExkPasswd.Transform.CaseTransform.t(), ExkPasswd.Config.t()) :: float()
     def entropy_bits(%{mode: :random}, config) do
       # Each word adds 1 bit of entropy (upper or lower)
       config.num_words * 1.0

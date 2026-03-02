@@ -446,6 +446,8 @@ defmodule ExkPasswd.Transform.Romaji do
   end
 
   defimpl ExkPasswd.Transform do
+    @spec apply(ExkPasswd.Transform.Romaji.t(), String.t(), ExkPasswd.Config.t() | nil) ::
+            String.t()
     @doc """
     Apply Romaji conversion to a Japanese word.
 
@@ -757,6 +759,7 @@ defmodule ExkPasswd.Transform.Romaji do
 
     `0.0` (no additional entropy)
     """
+    @spec entropy_bits(ExkPasswd.Transform.Romaji.t(), ExkPasswd.Config.t() | nil) :: float()
     def entropy_bits(_transform, _config) do
       0.0
     end
