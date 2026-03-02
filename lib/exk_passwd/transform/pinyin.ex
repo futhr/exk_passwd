@@ -877,6 +877,8 @@ defmodule ExkPasswd.Transform.Pinyin do
   end
 
   defimpl ExkPasswd.Transform do
+    @spec apply(ExkPasswd.Transform.Pinyin.t(), String.t(), ExkPasswd.Config.t() | nil) ::
+            String.t()
     @doc """
     Apply Pinyin romanization to a Chinese word.
 
@@ -909,8 +911,7 @@ defmodule ExkPasswd.Transform.Pinyin do
 
       word
       |> String.graphemes()
-      |> Enum.map(fn char -> Map.get(pinyin_map, char, char) end)
-      |> Enum.join()
+      |> Enum.map_join(fn char -> Map.get(pinyin_map, char, char) end)
     end
 
     @doc """
@@ -928,6 +929,7 @@ defmodule ExkPasswd.Transform.Pinyin do
 
     `0.0` (no additional entropy)
     """
+    @spec entropy_bits(ExkPasswd.Transform.Pinyin.t(), ExkPasswd.Config.t() | nil) :: float()
     def entropy_bits(_transform, _config) do
       0.0
     end

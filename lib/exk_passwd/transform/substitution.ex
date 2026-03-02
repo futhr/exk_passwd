@@ -61,6 +61,8 @@ defmodule ExkPasswd.Transform.Substitution do
   def default_substitutions, do: @default_substitutions
 
   defimpl ExkPasswd.Transform do
+    @spec apply(ExkPasswd.Transform.Substitution.t(), String.t(), ExkPasswd.Config.t()) ::
+            String.t()
     def apply(%{mode: :none}, word, _config), do: word
 
     def apply(%{map: subs, mode: :always}, word, _config) do
@@ -75,7 +77,7 @@ defmodule ExkPasswd.Transform.Substitution do
       end
     end
 
-    # Entropy calculation
+    @spec entropy_bits(ExkPasswd.Transform.Substitution.t(), ExkPasswd.Config.t()) :: float()
     def entropy_bits(%{mode: :random}, config) do
       # Each word adds 1 bit (substituted or not)
       config.num_words * 1.0
@@ -90,7 +92,7 @@ defmodule ExkPasswd.Transform.Substitution do
     defp substitute_characters(word, substitutions) do
       word
       |> String.graphemes()
-      |> Enum.map(fn char ->
+      |> Enum.map_join(fn char ->
         lowercase_char = String.downcase(char)
 
         case Map.get(substitutions, lowercase_char) do
@@ -98,7 +100,6 @@ defmodule ExkPasswd.Transform.Substitution do
           replacement -> replacement
         end
       end)
-      |> Enum.join()
     end
   end
 
