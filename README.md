@@ -7,8 +7,8 @@
 [![Test Suite](https://github.com/futhr/exk_passwd/workflows/Test%20Suite/badge.svg)](https://github.com/futhr/exk_passwd/actions)
 [![codecov](https://codecov.io/gh/futhr/exk_passwd/graph/badge.svg?token=HXDYFULIMN)](https://codecov.io/gh/futhr/exk_passwd)
 [![Doc Coverage](https://img.shields.io/badge/doc%20coverage-100%25-brightgreen.svg)](https://github.com/futhr/exk_passwd)
-[![Hex.pm](https://img.shields.io/hexpm/v/exk_passwd.svg)](https://hex.pm/packages/exk_passwd)
-[![Documentation](https://img.shields.io/badge/docs-hexdocs-purple.svg)](https://hexdocs.pm/exk_passwd)
+[![Hex.pm](https://img.shields.io/badge/hex-not%20yet%20published-lightgrey.svg)](https://hex.pm/packages/exk_passwd)
+[![Documentation](https://img.shields.io/badge/docs-GitHub-purple.svg)](https://github.com/futhr/exk_passwd)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.18-blueviolet.svg)](https://elixir-lang.org)
 
@@ -83,12 +83,14 @@ Word-based passwords like `correct-horse-battery-staple` offer:
 
 ## Installation
 
-Add `exk_passwd` to your list of dependencies in `mix.exs`:
+_Note: This project is currently in production evaluation and has not yet been released to Hex. Documentation is available on [GitHub](https://github.com/futhr/exk_passwd)._
+
+Add `exk_passwd` to your dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:exk_passwd, "~> 0.1.0"}
+    {:exk_passwd, github: "futhr/exk_passwd"}
   ]
 end
 ```
@@ -725,7 +727,7 @@ BSD-2-Clause License - see [LICENSE](LICENSE.md) file for details.
 
 ## Resources
 
-- [Documentation](https://hexdocs.pm/exk_passwd)
+- [Documentation](https://github.com/futhr/exk_passwd)
 - [GitHub Repository](https://github.com/futhr/exk_passwd)
 - [Issue Tracker](https://github.com/futhr/exk_passwd/issues)
 - [Changelog](CHANGELOG.md)
