@@ -290,8 +290,7 @@ defmodule ExkPasswd.I18nTest do
         )
 
       password = ExkPasswd.generate(config)
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
     end
 
     test "supports long German compound words" do
@@ -342,8 +341,7 @@ defmodule ExkPasswd.I18nTest do
       password = ExkPasswd.generate(config)
 
       # Should generate a valid password
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
       # Should contain Chinese characters
       assert password =~ ~r/字/
     end

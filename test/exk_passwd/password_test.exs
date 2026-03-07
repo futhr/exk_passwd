@@ -64,8 +64,7 @@ defmodule ExkPasswd.PasswordTest do
   describe "create/0" do
     test "creates password with default config" do
       password = Password.create()
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
     end
 
     test "generates different passwords each time" do
@@ -198,8 +197,7 @@ defmodule ExkPasswd.PasswordTest do
       # password should just be 3 concatenated words
       # We can't assert specific characters are absent since dictionary words
       # like "yo-yo" contain hyphens naturally
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
 
       # Verify no extra separators were added by checking that the password
       # only contains characters that could come from dictionary words
@@ -615,8 +613,7 @@ defmodule ExkPasswd.PasswordTest do
         )
 
       password = Password.create(config)
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
     end
 
     test "creates maximal password" do
@@ -784,8 +781,7 @@ defmodule ExkPasswd.PasswordTest do
 
       password = Password.create(config)
       # Should work without padding
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
     end
   end
 

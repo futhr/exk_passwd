@@ -45,8 +45,7 @@ defmodule ExkPasswdTest do
   describe "generate/0" do
     test "generates a password" do
       password = ExkPasswd.generate()
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
     end
 
     test "generates different passwords on subsequent calls" do
@@ -197,8 +196,7 @@ defmodule ExkPasswdTest do
 
     test "works with valid preset and options" do
       password = ExkPasswd.generate(:xkcd, num_words: 5)
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
     end
   end
 

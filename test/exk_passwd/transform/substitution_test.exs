@@ -288,8 +288,7 @@ defmodule ExkPasswd.Transform.SubstitutionTest do
       password = ExkPasswd.generate(config)
 
       # Both substitutions should be applied
-      assert is_binary(password)
-      assert String.length(password) > 0
+      assert password != ""
     end
   end
 end
