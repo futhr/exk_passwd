@@ -156,7 +156,7 @@ defmodule ExkPasswd.DictionaryTest do
     test "returns word in valid range" do
       word = Dictionary.random_word_between(4, 8)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
 
     test "handles exact length" do
@@ -167,7 +167,7 @@ defmodule ExkPasswd.DictionaryTest do
     test "handles reversed range" do
       word = Dictionary.random_word_between(8, 4)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
 
     test "returns different words on multiple calls" do
@@ -186,7 +186,7 @@ defmodule ExkPasswd.DictionaryTest do
       word = Dictionary.random_word_between(4, 8, :lower)
       assert word == String.downcase(word)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
   end
 
@@ -195,7 +195,7 @@ defmodule ExkPasswd.DictionaryTest do
       word = Dictionary.random_word_between(4, 8, :upper)
       assert word == String.upcase(word)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
   end
 
@@ -204,7 +204,7 @@ defmodule ExkPasswd.DictionaryTest do
       word = Dictionary.random_word_between(4, 8, :capitalize)
       assert word == String.capitalize(word)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
 
     test "first character is uppercase" do
@@ -249,7 +249,7 @@ defmodule ExkPasswd.DictionaryTest do
 
       assert is_binary(word)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
       assert %Buffer{} = new_state
     end
 
@@ -258,7 +258,7 @@ defmodule ExkPasswd.DictionaryTest do
       {word, _} = Dictionary.random_word_between_with_state(8, 4, :none, :eff, state)
 
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
 
     test "state is consumed and can be reused" do
@@ -439,7 +439,7 @@ defmodule ExkPasswd.DictionaryTest do
       # Should swap and work correctly
       word = Dictionary.random_word_between(8, 4, :none)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
 
     test "returns nil for non-existent custom dictionary" do
@@ -462,7 +462,7 @@ defmodule ExkPasswd.DictionaryTest do
       {word, new_state} = Dictionary.random_word_between_with_state(8, 4, :none, :eff, state)
 
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
       assert %Buffer{} = new_state
     end
   end
@@ -474,7 +474,7 @@ defmodule ExkPasswd.DictionaryTest do
       # Should use fallback and still return valid word
       assert is_binary(word)
       len = String.length(word)
-      assert len >= 3 and len <= 11
+      assert len in 3..11
     end
 
     test "handles uncommon range with :lower case" do
@@ -658,7 +658,7 @@ defmodule ExkPasswd.DictionaryTest do
 
       assert is_binary(word)
       len = String.length(word)
-      assert len >= 4 and len <= 6
+      assert len in 4..6
       assert %Buffer{} = new_state
     end
 
@@ -670,7 +670,7 @@ defmodule ExkPasswd.DictionaryTest do
       assert is_binary(word)
       assert word == String.downcase(word)
       len = String.length(word)
-      assert len >= 4 and len <= 6
+      assert len in 4..6
       assert %Buffer{} = new_state
     end
 
@@ -681,7 +681,7 @@ defmodule ExkPasswd.DictionaryTest do
       assert is_binary(word)
       assert word == String.upcase(word)
       len = String.length(word)
-      assert len >= 4 and len <= 6
+      assert len in 4..6
       assert %Buffer{} = new_state
     end
   end

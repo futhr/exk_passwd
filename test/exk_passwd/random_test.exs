@@ -129,7 +129,7 @@ defmodule ExkPasswd.RandomTest do
   describe "integer_between/2" do
     test "generates integer in range" do
       value = Random.integer_between(5, 10)
-      assert value >= 5 and value <= 10
+      assert value in 5..10
     end
 
     test "handles same min and max" do
@@ -139,7 +139,7 @@ defmodule ExkPasswd.RandomTest do
 
     test "handles reversed arguments" do
       value = Random.integer_between(10, 5)
-      assert value >= 5 and value <= 10
+      assert value in 5..10
     end
 
     test "generates different values" do

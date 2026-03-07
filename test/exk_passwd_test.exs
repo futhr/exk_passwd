@@ -160,7 +160,7 @@ defmodule ExkPasswdTest do
 
       assert result.rating in [:excellent, :good, :fair, :weak]
       assert is_integer(result.score)
-      assert result.score >= 0 and result.score <= 100
+      assert result.score in 0..100
     end
   end
 

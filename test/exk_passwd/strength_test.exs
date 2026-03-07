@@ -60,7 +60,7 @@ defmodule ExkPasswd.StrengthTest do
       result = Strength.analyze(password, config)
 
       assert is_integer(result.score)
-      assert result.score >= 0 and result.score <= 100
+      assert result.score in 0..100
       assert result.rating in [:excellent, :good, :fair, :weak]
     end
 
@@ -96,7 +96,7 @@ defmodule ExkPasswd.StrengthTest do
       result = Strength.analyze("test-password-here", config)
 
       assert is_integer(result.score)
-      assert result.score >= 0 and result.score <= 100
+      assert result.score in 0..100
     end
   end
 

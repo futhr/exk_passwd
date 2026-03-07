@@ -232,7 +232,7 @@ defmodule ExkPasswd.BufferTest do
       {digit, new_state} = Buffer.random_digit(state)
 
       assert is_integer(digit)
-      assert digit >= 0 and digit <= 9
+      assert digit in 0..9
       assert %Buffer{} = new_state
     end
 

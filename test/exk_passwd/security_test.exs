@@ -311,7 +311,7 @@ defmodule ExkPasswd.SecurityTest do
       for word <- words do
         len = String.length(word)
 
-        assert len >= 4 and len <= 6,
+        assert len in 4..6,
                "Word '#{word}' (length #{len}) outside range [4, 6]"
       end
 

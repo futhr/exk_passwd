@@ -90,13 +90,13 @@ defmodule ExkPasswd.TokenTest do
     test "returns word within range" do
       word = Token.get_word_between(4, 8)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
 
     test "handles reversed arguments" do
       word = Token.get_word_between(8, 4)
       len = String.length(word)
-      assert len >= 4 and len <= 8
+      assert len in 4..8
     end
 
     test "handles equal min and max" do
