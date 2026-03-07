@@ -160,58 +160,24 @@ defmodule ExkPasswd.Dictionary do
   def load_custom(name, wordlist) when is_atom(name) and is_list(wordlist) do
     init()
 
-    # Prepare all case variants
-    words_original = wordlist
-    words_lower = Enum.map(wordlist, &String.downcase/1)
-    words_upper = Enum.map(wordlist, &String.upcase/1)
-    words_capital = Enum.map(wordlist, &String.capitalize/1)
-
-    # Index by length
-    by_length_original = Enum.group_by(words_original, &String.length/1)
-    by_length_lower = Enum.group_by(words_lower, &String.length/1)
-    by_length_upper = Enum.group_by(words_upper, &String.length/1)
-    by_length_capital = Enum.group_by(words_capital, &String.length/1)
-
-    # Convert to tuples
-    tuples_original =
-      for {len, words} <- by_length_original, into: %{} do
-        {len, {List.to_tuple(words), length(words)}}
-      end
-
-    tuples_lower =
-      for {len, words} <- by_length_lower, into: %{} do
-        {len, {List.to_tuple(words), length(words)}}
-      end
-
-    tuples_upper =
-      for {len, words} <- by_length_upper, into: %{} do
-        {len, {List.to_tuple(words), length(words)}}
-      end
-
-    tuples_capital =
-      for {len, words} <- by_length_capital, into: %{} do
-        {len, {List.to_tuple(words), length(words)}}
-      end
-
-    # Build range tuples
-    range_original = build_range_tuples(by_length_original)
-    range_lower = build_range_tuples(by_length_lower)
-    range_upper = build_range_tuples(by_length_upper)
-    range_capital = build_range_tuples(by_length_capital)
+    {t_orig, r_orig} = build_variant(wordlist, & &1)
+    {t_lower, r_lower} = build_variant(wordlist, &String.downcase/1)
+    {t_upper, r_upper} = build_variant(wordlist, &String.upcase/1)
+    {t_capital, r_capital} = build_variant(wordlist, &String.capitalize/1)
 
     prepared = %{
       size: length(wordlist),
       by_length: %{
-        original: tuples_original,
-        lower: tuples_lower,
-        upper: tuples_upper,
-        capitalize: tuples_capital
+        original: t_orig,
+        lower: t_lower,
+        upper: t_upper,
+        capitalize: t_capital
       },
       ranges: %{
-        original: range_original,
-        lower: range_lower,
-        upper: range_upper,
-        capitalize: range_capital
+        original: r_orig,
+        lower: r_lower,
+        upper: r_upper,
+        capitalize: r_capital
       }
     }
 
@@ -308,19 +274,8 @@ defmodule ExkPasswd.Dictionary do
     end
   end
 
-  defp count_between_fallback(min, max, by_length) when min <= max do
-    min..max
-    |> Enum.reduce(0, fn len, acc ->
-      case Map.get(by_length, len) do
-        {_, count} -> acc + count
-        nil -> acc
-      end
-    end)
-  end
-
-  defp count_between_fallback(min, max, by_length) when min > max do
-    max..min
-    |> Enum.reduce(0, fn len, acc ->
+  defp count_between_fallback(min, max, by_length) do
+    Enum.reduce(min(min, max)..max(min, max), 0, fn len, acc ->
       case Map.get(by_length, len) do
         {_, count} -> acc + count
         nil -> acc
@@ -452,6 +407,20 @@ defmodule ExkPasswd.Dictionary do
       [] -> nil
       _ -> Random.select(words)
     end
+  end
+
+  defp build_variant(wordlist, transform_fn) do
+    by_length =
+      wordlist
+      |> Enum.map(transform_fn)
+      |> Enum.group_by(&String.length/1)
+
+    tuples =
+      for {len, words} <- by_length, into: %{} do
+        {len, {List.to_tuple(words), length(words)}}
+      end
+
+    {tuples, build_range_tuples(by_length)}
   end
 
   # Helper function for building range tuples at runtime (for custom dictionaries)
