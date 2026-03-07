@@ -153,14 +153,12 @@ defmodule ExkPasswd.AdversarialTest do
         |> Enum.reject(&(&1 == ""))
 
       digit_integers =
-        Enum.map(digit_sequences, fn digits ->
-          try do
-            String.to_integer(digits)
-          rescue
-            ArgumentError -> nil
+        Enum.flat_map(digit_sequences, fn digits ->
+          case Integer.parse(digits) do
+            {n, ""} -> [n]
+            _ -> []
           end
         end)
-        |> Enum.reject(&is_nil/1)
 
       sorted_digits = Enum.sort(digit_integers)
 
