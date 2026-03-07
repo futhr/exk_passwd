@@ -358,61 +358,61 @@ defmodule ExkPasswd.Transform.RomajiTest do
 
   describe "Kanji detection" do
     test "detects common Kanji characters" do
-      assert Romaji.contains_kanji?("桜") == true
-      assert Romaji.contains_kanji?("日本") == true
-      assert Romaji.contains_kanji?("漢字") == true
-      assert Romaji.contains_kanji?("東京") == true
+      assert Romaji.contains_kanji?("桜")
+      assert Romaji.contains_kanji?("日本")
+      assert Romaji.contains_kanji?("漢字")
+      assert Romaji.contains_kanji?("東京")
     end
 
     test "returns false for Hiragana" do
-      assert Romaji.contains_kanji?("さくら") == false
-      assert Romaji.contains_kanji?("にほん") == false
-      assert Romaji.contains_kanji?("ひらがな") == false
+      refute Romaji.contains_kanji?("さくら")
+      refute Romaji.contains_kanji?("にほん")
+      refute Romaji.contains_kanji?("ひらがな")
     end
 
     test "returns false for Katakana" do
-      assert Romaji.contains_kanji?("サクラ") == false
-      assert Romaji.contains_kanji?("カタカナ") == false
-      assert Romaji.contains_kanji?("コーヒー") == false
+      refute Romaji.contains_kanji?("サクラ")
+      refute Romaji.contains_kanji?("カタカナ")
+      refute Romaji.contains_kanji?("コーヒー")
     end
 
     test "returns false for ASCII text" do
-      assert Romaji.contains_kanji?("hello") == false
-      assert Romaji.contains_kanji?("test123") == false
-      assert Romaji.contains_kanji?("") == false
+      refute Romaji.contains_kanji?("hello")
+      refute Romaji.contains_kanji?("test123")
+      refute Romaji.contains_kanji?("")
     end
 
     test "detects Kanji in mixed text" do
-      assert Romaji.contains_kanji?("さくら桜") == true
-      assert Romaji.contains_kanji?("日本語") == true
-      assert Romaji.contains_kanji?("漢字とひらがな") == true
+      assert Romaji.contains_kanji?("さくら桜")
+      assert Romaji.contains_kanji?("日本語")
+      assert Romaji.contains_kanji?("漢字とひらがな")
     end
 
     test "kanji? detects single Kanji characters" do
-      assert Romaji.kanji?("桜") == true
-      assert Romaji.kanji?("日") == true
-      assert Romaji.kanji?("本") == true
-      assert Romaji.kanji?("語") == true
+      assert Romaji.kanji?("桜")
+      assert Romaji.kanji?("日")
+      assert Romaji.kanji?("本")
+      assert Romaji.kanji?("語")
     end
 
     test "kanji? returns false for non-Kanji" do
-      assert Romaji.kanji?("あ") == false
-      assert Romaji.kanji?("ア") == false
-      assert Romaji.kanji?("a") == false
-      assert Romaji.kanji?("1") == false
-      assert Romaji.kanji?("") == false
+      refute Romaji.kanji?("あ")
+      refute Romaji.kanji?("ア")
+      refute Romaji.kanji?("a")
+      refute Romaji.kanji?("1")
+      refute Romaji.kanji?("")
     end
 
     test "kanji? handles CJK Extension ranges" do
       # CJK Extension A (U+3400 to U+4DBF)
       # 㐀 is U+3400
-      assert Romaji.kanji?(<<0xE3, 0x90, 0x80>>) == true
+      assert Romaji.kanji?(<<0xE3, 0x90, 0x80>>)
 
       # Test boundary cases
       # U+4E00 (start of main CJK)
-      assert Romaji.kanji?("一") == true
+      assert Romaji.kanji?("一")
       # U+9FA5 (within main CJK)
-      assert Romaji.kanji?("龥") == true
+      assert Romaji.kanji?("龥")
     end
   end
 
@@ -827,17 +827,17 @@ defmodule ExkPasswd.Transform.RomajiTest do
 
   describe "small_vowel?/1" do
     test "returns true for small vowels" do
-      assert Romaji.small_vowel?("ぁ") == true
-      assert Romaji.small_vowel?("ィ") == true
-      assert Romaji.small_vowel?("ぅ") == true
-      assert Romaji.small_vowel?("ェ") == true
-      assert Romaji.small_vowel?("ぉ") == true
+      assert Romaji.small_vowel?("ぁ")
+      assert Romaji.small_vowel?("ィ")
+      assert Romaji.small_vowel?("ぅ")
+      assert Romaji.small_vowel?("ェ")
+      assert Romaji.small_vowel?("ぉ")
     end
 
     test "returns false for regular characters" do
-      assert Romaji.small_vowel?("あ") == false
-      assert Romaji.small_vowel?("ア") == false
-      assert Romaji.small_vowel?("か") == false
+      refute Romaji.small_vowel?("あ")
+      refute Romaji.small_vowel?("ア")
+      refute Romaji.small_vowel?("か")
     end
   end
 end

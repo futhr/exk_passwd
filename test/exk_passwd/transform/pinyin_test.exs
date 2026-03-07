@@ -260,67 +260,67 @@ defmodule ExkPasswd.Transform.PinyinTest do
 
   describe "contains_hanzi?/1" do
     test "returns true for Chinese text" do
-      assert Pinyin.contains_hanzi?("你好") == true
-      assert Pinyin.contains_hanzi?("中国") == true
-      assert Pinyin.contains_hanzi?("一") == true
+      assert Pinyin.contains_hanzi?("你好")
+      assert Pinyin.contains_hanzi?("中国")
+      assert Pinyin.contains_hanzi?("一")
     end
 
     test "returns false for ASCII text" do
-      assert Pinyin.contains_hanzi?("hello") == false
-      assert Pinyin.contains_hanzi?("123") == false
-      assert Pinyin.contains_hanzi?("") == false
+      refute Pinyin.contains_hanzi?("hello")
+      refute Pinyin.contains_hanzi?("123")
+      refute Pinyin.contains_hanzi?("")
     end
 
     test "returns true for mixed text" do
-      assert Pinyin.contains_hanzi?("hello中国") == true
-      assert Pinyin.contains_hanzi?("123你好456") == true
-      assert Pinyin.contains_hanzi?("test文test") == true
+      assert Pinyin.contains_hanzi?("hello中国")
+      assert Pinyin.contains_hanzi?("123你好456")
+      assert Pinyin.contains_hanzi?("test文test")
     end
 
     test "returns false for other scripts" do
       # Japanese hiragana/katakana are not Hanzi
-      assert Pinyin.contains_hanzi?("さくら") == false
-      assert Pinyin.contains_hanzi?("サクラ") == false
+      refute Pinyin.contains_hanzi?("さくら")
+      refute Pinyin.contains_hanzi?("サクラ")
       # But Kanji (shared characters) are Hanzi
-      assert Pinyin.contains_hanzi?("日本") == true
+      assert Pinyin.contains_hanzi?("日本")
     end
   end
 
   describe "hanzi?/1" do
     test "returns true for single Hanzi characters" do
-      assert Pinyin.hanzi?("中") == true
-      assert Pinyin.hanzi?("国") == true
-      assert Pinyin.hanzi?("人") == true
-      assert Pinyin.hanzi?("一") == true
+      assert Pinyin.hanzi?("中")
+      assert Pinyin.hanzi?("国")
+      assert Pinyin.hanzi?("人")
+      assert Pinyin.hanzi?("一")
     end
 
     test "returns false for non-Hanzi" do
-      assert Pinyin.hanzi?("a") == false
-      assert Pinyin.hanzi?("1") == false
-      assert Pinyin.hanzi?("!") == false
-      assert Pinyin.hanzi?("") == false
+      refute Pinyin.hanzi?("a")
+      refute Pinyin.hanzi?("1")
+      refute Pinyin.hanzi?("!")
+      refute Pinyin.hanzi?("")
     end
 
     test "handles CJK extension ranges" do
       # CJK Extension A character (U+3400)
-      assert Pinyin.hanzi?(<<0xE3, 0x90, 0x80>>) == true
+      assert Pinyin.hanzi?(<<0xE3, 0x90, 0x80>>)
     end
 
     test "returns true for first character of multi-char string" do
       # hanzi? checks the first character
-      assert Pinyin.hanzi?("中国") == true
+      assert Pinyin.hanzi?("中国")
     end
 
     test "handles edge cases gracefully" do
       # Test with characters outside typical ranges
       # Hiragana
-      assert Pinyin.hanzi?("あ") == false
+      refute Pinyin.hanzi?("あ")
       # Katakana
-      assert Pinyin.hanzi?("ア") == false
+      refute Pinyin.hanzi?("ア")
       # Greek
-      assert Pinyin.hanzi?("α") == false
+      refute Pinyin.hanzi?("α")
       # Korean Hangul
-      assert Pinyin.hanzi?("한") == false
+      refute Pinyin.hanzi?("한")
     end
   end
 
