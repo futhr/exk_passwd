@@ -197,7 +197,7 @@ defmodule ExkPasswd.Config.Presets do
   This is typically called by the application supervisor.
   """
   @spec start_link(term()) :: {:ok, pid()} | {:error, term()}
-  def start_link(_opts) do
+  def start_link(_) do
     Agent.start_link(fn -> %{} end, name: __MODULE__)
   end
 
@@ -328,13 +328,11 @@ defmodule ExkPasswd.Config.Presets do
     Map.values(@builtin_presets)
   end
 
-  # Private helpers
-
   defp get_runtime(name) when is_atom(name) do
     Agent.get(__MODULE__, &Map.get(&1, name))
   end
 
-  defp get_runtime(_name), do: nil
+  defp get_runtime(_), do: nil
 
   defp try_string_to_atom(string) do
     String.to_existing_atom(string)
