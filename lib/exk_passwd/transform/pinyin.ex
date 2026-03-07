@@ -906,7 +906,7 @@ defmodule ExkPasswd.Transform.Pinyin do
         iex> ExkPasswd.Transform.apply(%ExkPasswd.Transform.Pinyin{}, "女人", nil)
         "nvren"
     """
-    def apply(_transform, word, _config) do
+    def apply(_, word, _) do
       pinyin_map = ExkPasswd.Transform.Pinyin.pinyin_map()
 
       word
@@ -930,7 +930,7 @@ defmodule ExkPasswd.Transform.Pinyin do
     `0.0` (no additional entropy)
     """
     @spec entropy_bits(ExkPasswd.Transform.Pinyin.t(), ExkPasswd.Config.t() | nil) :: float()
-    def entropy_bits(_transform, _config) do
+    def entropy_bits(_, _) do
       0.0
     end
   end

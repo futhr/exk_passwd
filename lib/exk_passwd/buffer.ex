@@ -101,7 +101,7 @@ defmodule ExkPasswd.Buffer do
       true
   """
   @spec random_integer(t(), pos_integer()) :: {non_neg_integer(), t()}
-  def random_integer(_state, max) when is_integer(max) and max <= 0 do
+  def random_integer(_, max) when is_integer(max) and max <= 0 do
     raise ArgumentError, "max must be a positive integer, got: #{max}"
   end
 

@@ -475,7 +475,7 @@ defmodule ExkPasswd.Transform.Romaji do
         iex> ExkPasswd.Transform.apply(%ExkPasswd.Transform.Romaji{}, "サクラ", nil)
         "sakura"
     """
-    def apply(_transform, word, _config) do
+    def apply(_, word, _) do
       romaji_map = ExkPasswd.Transform.Romaji.romaji_map()
       graphemes = String.graphemes(word)
 
@@ -487,7 +487,7 @@ defmodule ExkPasswd.Transform.Romaji do
     # Context-aware romanization with proper Hepburn rules
     # Process graphemes list and return {result_string, accumulated} tuple
     # The accumulated parameter tracks what we've built so far for context-aware decisions
-    defp convert_with_context([], _map, accumulated), do: {accumulated, accumulated}
+    defp convert_with_context([], _, accumulated), do: {accumulated, accumulated}
 
     # Handle sokuon (っ/ッ) - doubles the next consonant
     # Special case: っちゃ/っちゅ/っちょ → "tcha/tchu/tcho" (Modified Hepburn rule)
@@ -654,9 +654,9 @@ defmodule ExkPasswd.Transform.Romaji do
 
     # Palatalization mapping using pattern matching (reduces complexity)
     # Special cases that don't follow the simple i→y pattern
-    defp palatalize_consonant("chi" <> _rest, vowel), do: "ch" <> vowel
-    defp palatalize_consonant("shi" <> _rest, vowel), do: "sh" <> vowel
-    defp palatalize_consonant("ji" <> _rest, vowel), do: "j" <> vowel
+    defp palatalize_consonant("chi" <> _, vowel), do: "ch" <> vowel
+    defp palatalize_consonant("shi" <> _, vowel), do: "sh" <> vowel
+    defp palatalize_consonant("ji" <> _, vowel), do: "j" <> vowel
 
     # Regular i-ending consonants: ki→ky, gi→gy, etc.
     defp palatalize_consonant(consonant, vowel) do
@@ -742,7 +742,7 @@ defmodule ExkPasswd.Transform.Romaji do
 
     # Default: If no special rule applies, just append (for completeness)
     # This handles edge cases and ensures we always return a valid result
-    defp combine_with_small_vowel(_current, romaji, vowel) do
+    defp combine_with_small_vowel(_, romaji, vowel) do
       # For most cases, this shouldn't be reached, but we handle it gracefully
       # by simply appending the vowel
       romaji <> vowel
@@ -760,7 +760,7 @@ defmodule ExkPasswd.Transform.Romaji do
     `0.0` (no additional entropy)
     """
     @spec entropy_bits(ExkPasswd.Transform.Romaji.t(), ExkPasswd.Config.t() | nil) :: float()
-    def entropy_bits(_transform, _config) do
+    def entropy_bits(_, _) do
       0.0
     end
   end

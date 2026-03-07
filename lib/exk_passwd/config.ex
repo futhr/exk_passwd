@@ -291,7 +291,7 @@ defmodule ExkPasswd.Config do
   defp merge_padding(opts) do
     case Keyword.has_key?(opts, :padding) do
       true ->
-        {_current_value, updated_opts} =
+        {_, updated_opts} =
           Keyword.get_and_update(opts, :padding, &{&1, Map.merge(@default_padding, &1)})
 
         updated_opts

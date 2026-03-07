@@ -157,7 +157,7 @@ defmodule ExkPasswd.Batch do
     |> List.flatten()
   end
 
-  defp create_passwords(0, _config), do: []
+  defp create_passwords(0, _), do: []
 
   defp create_passwords(batch_size, config) do
     for _ <- 1..batch_size, do: Password.create(config)
@@ -165,7 +165,7 @@ defmodule ExkPasswd.Batch do
 
   @spec generate_with_buffer(non_neg_integer(), Config.t(), Buffer.t(), [String.t()]) ::
           {[String.t()], Buffer.t()}
-  defp generate_with_buffer(0, _config, random_state, acc) do
+  defp generate_with_buffer(0, _, random_state, acc) do
     {Enum.reverse(acc), random_state}
   end
 
@@ -182,7 +182,7 @@ defmodule ExkPasswd.Batch do
           non_neg_integer(),
           pos_integer()
         ) :: [String.t()]
-  defp generate_unique_recursive(count, _config, _seen_set, attempts, max_attempts)
+  defp generate_unique_recursive(count, _, _, attempts, max_attempts)
        when attempts >= max_attempts do
     raise "Failed to generate #{count} unique passwords after #{max_attempts} attempts. " <>
             "This suggests very low entropy in the config. " <>

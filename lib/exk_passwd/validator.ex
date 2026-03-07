@@ -94,7 +94,7 @@ defmodule ExkPasswd.Validator do
       :ok
   """
   @spec run_all(Config.t(), [module()]) :: :ok | {:error, String.t()}
-  def run_all(_config, []), do: :ok
+  def run_all(_, []), do: :ok
 
   def run_all(config, [validator | rest]) do
     case validator.validate(config) do

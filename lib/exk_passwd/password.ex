@@ -143,7 +143,7 @@ defmodule ExkPasswd.Password do
     )
   end
 
-  defp select_words_with_state_by_case(_case_transform, _config, random_state, 0, acc) do
+  defp select_words_with_state_by_case(_, _, random_state, 0, acc) do
     {Enum.reverse(acc), random_state}
   end
 
@@ -329,8 +329,8 @@ defmodule ExkPasswd.Password do
   end
 
   # Only join words with separator when prefix or suffix is not an empty string.
-  defp join("", suffix, _separator), do: suffix
-  defp join(prefix, "", _separator), do: prefix
+  defp join("", suffix, _), do: suffix
+  defp join(prefix, "", _), do: prefix
 
   defp join(prefix, suffix, separator) do
     prefix <> separator <> suffix

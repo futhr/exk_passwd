@@ -32,19 +32,19 @@ defmodule ExkPasswd.Transform.CaseTransform do
   defimpl ExkPasswd.Transform do
     @spec apply(ExkPasswd.Transform.CaseTransform.t(), String.t(), ExkPasswd.Config.t()) ::
             String.t()
-    def apply(%{mode: :upper}, word, _config), do: String.upcase(word)
-    def apply(%{mode: :lower}, word, _config), do: String.downcase(word)
-    def apply(%{mode: :capitalize}, word, _config), do: String.capitalize(word)
-    def apply(%{mode: :none}, word, _config), do: word
+    def apply(%{mode: :upper}, word, _), do: String.upcase(word)
+    def apply(%{mode: :lower}, word, _), do: String.downcase(word)
+    def apply(%{mode: :capitalize}, word, _), do: String.capitalize(word)
+    def apply(%{mode: :none}, word, _), do: word
 
-    def apply(%{mode: :invert}, word, _config) do
+    def apply(%{mode: :invert}, word, _) do
       case String.next_codepoint(word) do
         {head, rest} -> String.downcase(head) <> String.upcase(rest)
         nil -> word
       end
     end
 
-    def apply(%{mode: :random}, word, _config) do
+    def apply(%{mode: :random}, word, _) do
       if Random.boolean() do
         String.upcase(word)
       else
@@ -58,7 +58,7 @@ defmodule ExkPasswd.Transform.CaseTransform do
       config.num_words * 1.0
     end
 
-    def entropy_bits(_, _config) do
+    def entropy_bits(_, _) do
       # Deterministic transforms add no entropy
       0.0
     end

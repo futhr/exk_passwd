@@ -63,13 +63,13 @@ defmodule ExkPasswd.Transform.Substitution do
   defimpl ExkPasswd.Transform do
     @spec apply(ExkPasswd.Transform.Substitution.t(), String.t(), ExkPasswd.Config.t()) ::
             String.t()
-    def apply(%{mode: :none}, word, _config), do: word
+    def apply(%{mode: :none}, word, _), do: word
 
-    def apply(%{map: subs, mode: :always}, word, _config) do
+    def apply(%{map: subs, mode: :always}, word, _) do
       substitute_characters(word, subs)
     end
 
-    def apply(%{map: subs, mode: :random}, word, _config) do
+    def apply(%{map: subs, mode: :random}, word, _) do
       if Random.boolean() do
         substitute_characters(word, subs)
       else
@@ -83,7 +83,7 @@ defmodule ExkPasswd.Transform.Substitution do
       config.num_words * 1.0
     end
 
-    def entropy_bits(_, _config) do
+    def entropy_bits(_, _) do
       # Deterministic or no substitution = no entropy
       0.0
     end

@@ -119,7 +119,7 @@ defmodule ExkPasswd.Token do
     Dictionary.random_word_between(first, last, :none, :eff) || ""
   end
 
-  def get_word_between(_first, _last), do: ""
+  def get_word_between(_, _), do: ""
 
   @doc """
   Get a zero-padded random number with a specified number of digits.
@@ -260,7 +260,7 @@ defmodule ExkPasswd.Token do
     end
   end
 
-  def get_n_of(_range, _count), do: ""
+  def get_n_of(_, _), do: ""
 
   @doc """
   Generate a random number string using a stateful Buffer generator.

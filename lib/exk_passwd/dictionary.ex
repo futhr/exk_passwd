@@ -288,7 +288,7 @@ defmodule ExkPasswd.Dictionary do
 
   def count_between(min, max, :eff) when min <= max do
     case Map.get(@range_tuples_original, {min, max}) do
-      {_tuple, count} -> count
+      {_, count} -> count
       nil -> count_between_fallback(min, max, @words_by_length_original)
     end
   end
@@ -299,7 +299,7 @@ defmodule ExkPasswd.Dictionary do
     case :ets.lookup(@ets_table, dict_name) do
       [{^dict_name, data}] ->
         case Map.get(data.ranges.original, {min, max}) do
-          {_tuple, count} -> count
+          {_, count} -> count
           nil -> count_between_fallback(min, max, data.by_length.original)
         end
 
@@ -312,7 +312,7 @@ defmodule ExkPasswd.Dictionary do
     min..max
     |> Enum.reduce(0, fn len, acc ->
       case Map.get(by_length, len) do
-        {_tuple, count} -> acc + count
+        {_, count} -> acc + count
         nil -> acc
       end
     end)
@@ -322,7 +322,7 @@ defmodule ExkPasswd.Dictionary do
     max..min
     |> Enum.reduce(0, fn len, acc ->
       case Map.get(by_length, len) do
-        {_tuple, count} -> acc + count
+        {_, count} -> acc + count
         nil -> acc
       end
     end)
@@ -409,7 +409,7 @@ defmodule ExkPasswd.Dictionary do
       min..max
       |> Enum.flat_map(fn len ->
         case Map.get(tuples_map, len) do
-          {tuple, _count} -> Tuple.to_list(tuple)
+          {tuple, _} -> Tuple.to_list(tuple)
           nil -> []
         end
       end)
@@ -443,7 +443,7 @@ defmodule ExkPasswd.Dictionary do
       min..max
       |> Enum.flat_map(fn len ->
         case Map.get(by_length, len) do
-          {tuple, _count} -> Tuple.to_list(tuple)
+          {tuple, _} -> Tuple.to_list(tuple)
           nil -> []
         end
       end)

@@ -21,6 +21,7 @@
           {Credo.Check.Consistency.ExceptionNames, []},
           {Credo.Check.Consistency.MultiAliasImportRequireUse, []},
           {Credo.Check.Consistency.ParameterPatternMatching, []},
+          {Credo.Check.Consistency.UnusedVariableNames, [force: :anonymous]},
 
           #
           # ━━━ Design ━━━
@@ -133,12 +134,6 @@
           #
           {Credo.Check.Readability.PreferUnquotedAtoms, "requires Elixir < 1.7.0-dev"},
           {Credo.Check.Warning.LazyLogging, "requires Elixir < 1.7.0"},
-
-          #
-          # ━━━ Intentionally mixed conventions ━━━
-          #
-          {Credo.Check.Consistency.UnusedVariableNames,
-           "both _ and _named are valid; _named documents intent in tests"},
 
           #
           # ━━━ Not suitable for shared-state tests ━━━
