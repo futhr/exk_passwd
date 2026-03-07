@@ -118,11 +118,9 @@ defmodule ExkPasswd.Random do
   """
   @spec select(Enum.t()) :: any() | nil
   def select(enumerable) do
-    list = Enum.to_list(enumerable)
-
-    case length(list) do
-      0 -> nil
-      count -> Enum.at(list, integer(count))
+    case Enum.to_list(enumerable) do
+      [] -> nil
+      list -> Enum.at(list, integer(length(list)))
     end
   end
 
