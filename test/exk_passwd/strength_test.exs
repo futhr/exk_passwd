@@ -102,44 +102,49 @@ defmodule ExkPasswd.StrengthTest do
 
   describe "rating thresholds" do
     test "excellent rating for >= 78 bits entropy" do
-      # Using a mock entropy by having many words
       config = Config.new!(num_words: 6, digits: {3, 3})
       result = Strength.analyze("word1-word2-word3-word4-word5-word6-123-456", config)
 
-      # Should be excellent with high entropy
-      if result.entropy_bits >= 78 do
-        assert result.rating == :excellent
-      end
+      assert result.entropy_bits >= 78,
+             "Expected entropy >= 78 bits, got: #{result.entropy_bits}"
+
+      assert result.rating == :excellent
     end
 
     test "good rating for >= 52 bits entropy" do
       config = Config.new!(num_words: 4, digits: {2, 2})
       result = Strength.analyze("word1-word2-word3-word4-12-34", config)
 
-      # Should be at least good with decent entropy
-      if result.entropy_bits >= 52 and result.entropy_bits < 78 do
-        assert result.rating == :good
-      end
+      assert result.entropy_bits >= 52,
+             "Expected entropy >= 52 bits, got: #{result.entropy_bits}"
+
+      assert result.entropy_bits < 78,
+             "Expected entropy < 78 bits, got: #{result.entropy_bits}"
+
+      assert result.rating == :good
     end
 
     test "fair rating for >= 40 bits entropy" do
-      config = Config.new!(num_words: 3, digits: {1, 1})
-      result = Strength.analyze("word1-word2-word3-1-2", config)
+      config = Config.new!(num_words: 3, digits: {0, 0})
+      result = Strength.analyze("word1-word2-word3", config)
 
-      # Should be at least fair
-      if result.entropy_bits >= 40 and result.entropy_bits < 52 do
-        assert result.rating == :fair
-      end
+      assert result.entropy_bits >= 40,
+             "Expected entropy >= 40 bits, got: #{result.entropy_bits}"
+
+      assert result.entropy_bits < 52,
+             "Expected entropy < 52 bits, got: #{result.entropy_bits}"
+
+      assert result.rating == :fair
     end
 
     test "weak rating for < 40 bits entropy" do
       config = Config.new!(num_words: 2, digits: {0, 0})
       result = Strength.analyze("ab-cd", config)
 
-      # Should be weak with low entropy
-      if result.entropy_bits < 40 do
-        assert result.rating == :weak
-      end
+      assert result.entropy_bits < 40,
+             "Expected entropy < 40 bits, got: #{result.entropy_bits}"
+
+      assert result.rating == :weak
     end
   end
 
