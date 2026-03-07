@@ -214,7 +214,7 @@ defmodule ExkPasswd.TransformTest do
 
       password = ExkPasswd.generate(config)
       assert is_binary(password)
-      assert String.contains?(password, "-")
+      assert password =~ "-"
     end
 
     test "nil transforms key doesn't affect password" do
@@ -226,7 +226,7 @@ defmodule ExkPasswd.TransformTest do
 
       password = ExkPasswd.generate(config)
       assert is_binary(password)
-      assert String.contains?(password, "-")
+      assert password =~ "-"
     end
   end
 

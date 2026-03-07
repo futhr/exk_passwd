@@ -59,20 +59,20 @@ defmodule ExkPasswdTest do
     test "generates password with preset atom" do
       password = ExkPasswd.generate(:xkcd)
       assert is_binary(password)
-      assert String.contains?(password, "-")
+      assert password =~ "-"
     end
 
     test "generates password with keyword list" do
       password = ExkPasswd.generate(num_words: 3, separator: "_")
       assert is_binary(password)
-      assert String.contains?(password, "_")
+      assert password =~ "_"
     end
 
     test "generates password with Config struct" do
       config = ExkPasswd.Config.new!(num_words: 2, separator: "-", case_transform: :lower)
       password = ExkPasswd.generate(config)
       assert is_binary(password)
-      assert String.contains?(password, "-")
+      assert password =~ "-"
     end
 
     test "raises for unknown preset" do

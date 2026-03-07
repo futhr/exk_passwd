@@ -159,7 +159,7 @@ defmodule ExkPasswd.I18nTest do
       # Should be ASCII only
       assert password =~ ~r/^[a-z-]+$/
       # Should contain separator
-      assert String.contains?(password, "-")
+      assert password =~ "-"
     end
 
     test "Pinyin transform contributes no entropy" do
@@ -213,7 +213,7 @@ defmodule ExkPasswd.I18nTest do
       # Should be ASCII only
       assert password =~ ~r/^[a-z-]+$/
       # Should contain separator
-      assert String.contains?(password, "-")
+      assert password =~ "-"
     end
 
     test "Romaji transform contributes no entropy" do

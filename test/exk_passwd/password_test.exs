@@ -179,7 +179,7 @@ defmodule ExkPasswd.PasswordTest do
     test "uses specified separator" do
       config = Config.new!(separator: "|", num_words: 3)
       password = Password.create(config)
-      assert String.contains?(password, "|")
+      assert password =~ "|"
     end
 
     test "uses empty separator" do
@@ -219,7 +219,7 @@ defmodule ExkPasswd.PasswordTest do
       password = Password.create(config)
 
       # Should contain underscores
-      assert String.contains?(password, "_"),
+      assert password =~ "_",
              "Expected separator '_' to appear in password: #{password}"
 
       # Should have 3 separators for 4 words
@@ -643,7 +643,7 @@ defmodule ExkPasswd.PasswordTest do
 
       password = Password.create(config)
       assert is_binary(password)
-      assert String.contains?(password, "_")
+      assert password =~ "_"
       assert String.starts_with?(password, "@")
       assert String.ends_with?(password, "@")
     end
