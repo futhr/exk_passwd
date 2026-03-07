@@ -102,7 +102,7 @@ defmodule ExkPasswd.EdgeCaseTest do
       buffer = ExkPasswd.Buffer.new(10)
 
       # Exhaust it by requesting many random integers
-      {_values, final_buffer} =
+      {_, final_buffer} =
         Enum.reduce(1..5, {[], buffer}, fn _, {acc, buf} ->
           {val, new_buf} = ExkPasswd.Buffer.random_integer(buf, 1000)
           {[val | acc], new_buf}
@@ -133,7 +133,7 @@ defmodule ExkPasswd.EdgeCaseTest do
   describe "Config.Schema edge cases" do
     test "validates word_length must be a Range" do
       result = ExkPasswd.Config.Schema.validate(%ExkPasswd.Config{word_length: 4})
-      assert {:error, _msg} = result
+      assert {:error, _} = result
     end
   end
 end

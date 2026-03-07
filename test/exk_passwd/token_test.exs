@@ -272,7 +272,7 @@ defmodule ExkPasswd.TokenTest do
 
       {num1, state} = Token.get_number_with_state(2, state)
       {num2, state} = Token.get_number_with_state(3, state)
-      {num3, _state} = Token.get_number_with_state(4, state)
+      {num3, _} = Token.get_number_with_state(4, state)
 
       assert String.length(num1) == 2
       assert String.length(num2) == 3

@@ -99,7 +99,7 @@ defmodule ExkPasswd.SecurityTest do
 
       # Calculate chi-square statistic
       chi_square =
-        Enum.reduce(frequencies, 0, fn {_value, observed}, acc ->
+        Enum.reduce(frequencies, 0, fn {_, observed}, acc ->
           acc + :math.pow(observed - expected, 2) / expected
         end)
 
@@ -125,7 +125,7 @@ defmodule ExkPasswd.SecurityTest do
       # Each value should appear roughly 1/3 of the time
       expected = @sample_size / max
 
-      for {_value, count} <- frequencies do
+      for {_, count} <- frequencies do
         # Allow 10% deviation
         assert abs(count - expected) < expected * 0.1,
                "Value appears #{count} times, expected ~#{expected}"
@@ -158,7 +158,7 @@ defmodule ExkPasswd.SecurityTest do
 
       expected = @sample_size / 10
 
-      for {_value, count} <- frequencies do
+      for {_, count} <- frequencies do
         # Allow 15% deviation to account for statistical variance
         # With 10,000 samples, standard deviation ≈ 31.6, so ~3σ ≈ 95 (9.5%)
         # Using 15% provides a comfortable margin while still detecting bias
@@ -178,7 +178,7 @@ defmodule ExkPasswd.SecurityTest do
       expected = @sample_size / 20
 
       chi_square =
-        Enum.reduce(frequencies, 0, fn {_value, observed}, acc ->
+        Enum.reduce(frequencies, 0, fn {_, observed}, acc ->
           acc + :math.pow(observed - expected, 2) / expected
         end)
 
@@ -389,7 +389,7 @@ defmodule ExkPasswd.SecurityTest do
 
       # Generate many passwords
       for _ <- 1..10_000 do
-        _password = ExkPasswd.generate()
+        _ = ExkPasswd.generate()
       end
 
       # Force garbage collection multiple times to ensure cleanup

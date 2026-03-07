@@ -255,7 +255,7 @@ defmodule ExkPasswd.DictionaryTest do
 
     test "handles reversed range" do
       state = Buffer.new(100)
-      {word, _new_state} = Dictionary.random_word_between_with_state(8, 4, :none, :eff, state)
+      {word, _} = Dictionary.random_word_between_with_state(8, 4, :none, :eff, state)
 
       len = String.length(word)
       assert len >= 4 and len <= 8
@@ -264,7 +264,7 @@ defmodule ExkPasswd.DictionaryTest do
     test "state is consumed and can be reused" do
       state = Buffer.new(100)
       {word1, state2} = Dictionary.random_word_between_with_state(4, 8, :none, :eff, state)
-      {word2, _state3} = Dictionary.random_word_between_with_state(4, 8, :none, :eff, state2)
+      {word2, _} = Dictionary.random_word_between_with_state(4, 8, :none, :eff, state2)
 
       # Both words should be valid
       assert is_binary(word1)
@@ -325,7 +325,7 @@ defmodule ExkPasswd.DictionaryTest do
     test "handles lowercase in custom dictionary with state" do
       state = Buffer.new(100)
 
-      {word, _new_state} =
+      {word, _} =
         Dictionary.random_word_between_with_state(5, 6, :lower, :fruits2, state)
 
       assert word == String.downcase(word)
@@ -334,7 +334,7 @@ defmodule ExkPasswd.DictionaryTest do
     test "handles uppercase in custom dictionary with state" do
       state = Buffer.new(100)
 
-      {word, _new_state} =
+      {word, _} =
         Dictionary.random_word_between_with_state(5, 6, :upper, :fruits2, state)
 
       assert word == String.upcase(word)
@@ -343,7 +343,7 @@ defmodule ExkPasswd.DictionaryTest do
     test "handles capitalize in custom dictionary with state" do
       state = Buffer.new(100)
 
-      {word, _new_state} =
+      {word, _} =
         Dictionary.random_word_between_with_state(5, 6, :capitalize, :fruits2, state)
 
       assert word == String.capitalize(word)
@@ -403,7 +403,7 @@ defmodule ExkPasswd.DictionaryTest do
 
   describe "performance characteristics" do
     test "can generate many words quickly" do
-      {time, _words} =
+      {time, _} =
         :timer.tc(fn ->
           for _ <- 1..1000 do
             Dictionary.random_word_between(4, 8)

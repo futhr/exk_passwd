@@ -224,7 +224,7 @@ defmodule ExkPasswd.ConfigTest do
     test "returns error for invalid merge" do
       base = Config.new!(num_words: 3)
       result = Config.merge(base, num_words: 0)
-      assert {:error, _msg} = result
+      assert {:error, _} = result
     end
   end
 

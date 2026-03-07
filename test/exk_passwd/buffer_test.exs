@@ -97,7 +97,7 @@ defmodule ExkPasswd.BufferTest do
     test "produces different values" do
       state = Buffer.new(1000)
 
-      {values, _final_state} =
+      {values, _} =
         Enum.reduce(1..20, {[], state}, fn _, {acc, st} ->
           {value, new_st} = Buffer.random_integer(st, 1000)
           {[value | acc], new_st}
@@ -151,10 +151,10 @@ defmodule ExkPasswd.BufferTest do
       state = Buffer.new(4)
 
       # Consume it multiple times - this should trigger refresh
-      {_val1, state} = Buffer.random_integer(state, 1000)
-      {_val2, state} = Buffer.random_integer(state, 1000)
-      {_val3, state} = Buffer.random_integer(state, 1000)
-      {val4, _state} = Buffer.random_integer(state, 1000)
+      {_, state} = Buffer.random_integer(state, 1000)
+      {_, state} = Buffer.random_integer(state, 1000)
+      {_, state} = Buffer.random_integer(state, 1000)
+      {val4, _} = Buffer.random_integer(state, 1000)
 
       # Should still work after multiple operations
       assert is_integer(val4)
@@ -193,7 +193,7 @@ defmodule ExkPasswd.BufferTest do
 
       final_state =
         Enum.reduce(1..100, state, fn _, st ->
-          {_elem, new_st} = Buffer.random_element(st, ~w[a b c d e])
+          {_, new_st} = Buffer.random_element(st, ~w[a b c d e])
           new_st
         end)
 
@@ -214,7 +214,7 @@ defmodule ExkPasswd.BufferTest do
     test "produces both true and false" do
       state = Buffer.new(1000)
 
-      {values, _final_state} =
+      {values, _} =
         Enum.reduce(1..50, {[], state}, fn _, {acc, st} ->
           {value, new_st} = Buffer.random_boolean(st)
           {[value | acc], new_st}
@@ -239,7 +239,7 @@ defmodule ExkPasswd.BufferTest do
     test "produces various digits" do
       state = Buffer.new(1000)
 
-      {digits, _final_state} =
+      {digits, _} =
         Enum.reduce(1..100, {[], state}, fn _, {acc, st} ->
           {digit, new_st} = Buffer.random_digit(st)
           {[digit | acc], new_st}

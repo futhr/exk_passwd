@@ -49,8 +49,8 @@ defmodule ExkPasswd.Config.PresetsTest do
   setup do
     # Start the Agent for runtime presets (or use existing)
     case start_supervised(Presets) do
-      {:ok, _pid} -> :ok
-      {:error, {:already_started, _pid}} -> :ok
+      {:ok, _} -> :ok
+      {:error, {:already_started, _}} -> :ok
     end
 
     :ok

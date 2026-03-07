@@ -507,7 +507,7 @@ defmodule ExkPasswd.PasswordTest do
       state = Buffer.new(1000)
 
       {pass1, state2} = Password.create_with_state(config, state)
-      {pass2, _state3} = Password.create_with_state(config, state2)
+      {pass2, _} = Password.create_with_state(config, state2)
 
       assert is_binary(pass1)
       assert is_binary(pass2)
@@ -519,7 +519,7 @@ defmodule ExkPasswd.PasswordTest do
 
       for case_transform <- [:none, :lower, :upper, :capitalize, :alternate, :random, :invert] do
         config = Config.new!(case_transform: case_transform, num_words: 2)
-        {password, _new_state} = Password.create_with_state(config, state)
+        {password, _} = Password.create_with_state(config, state)
         assert is_binary(password)
       end
     end
@@ -534,7 +534,7 @@ defmodule ExkPasswd.PasswordTest do
 
       state = Buffer.new(500)
 
-      {password, _new_state} = Password.create_with_state(config, state)
+      {password, _} = Password.create_with_state(config, state)
 
       assert String.match?(password, ~r/^\d{3}/)
       assert String.match?(password, ~r/\d{3}$/)
@@ -550,7 +550,7 @@ defmodule ExkPasswd.PasswordTest do
 
       state = Buffer.new(500)
 
-      {password, _new_state} = Password.create_with_state(config, state)
+      {password, _} = Password.create_with_state(config, state)
 
       assert String.starts_with?(password, "**")
       assert String.ends_with?(password, "**")
@@ -817,7 +817,7 @@ defmodule ExkPasswd.PasswordTest do
         )
 
       state = Buffer.new(500)
-      {password, _new_state} = Password.create_with_state(config, state)
+      {password, _} = Password.create_with_state(config, state)
       assert is_binary(password)
     end
   end

@@ -385,7 +385,7 @@ defmodule ExkPasswd.AdversarialTest do
 
   defp calculate_shannon_entropy(frequencies, total) do
     frequencies
-    |> Enum.reduce(0, fn {_char, count}, acc ->
+    |> Enum.reduce(0, fn {_, count}, acc ->
       p = count / total
       acc - p * :math.log2(p)
     end)
