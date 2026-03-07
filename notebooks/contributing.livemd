@@ -288,7 +288,7 @@ defmodule DevTransform do
       "#{marker}#{word}#{marker}"
     end
 
-    def entropy_bits(%{marker: _marker}, _config) do
+    def entropy_bits(%{marker: _}, _config) do
       # Deterministic, no additional entropy
       0.0
     end

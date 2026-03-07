@@ -551,7 +551,7 @@ defmodule MyApp.PhoneticTransform do
       |> Enum.join("-")
     end
 
-    def entropy_bits(%{format: _format}, _config) do
+    def entropy_bits(%{format: _}, _config) do
       # Phonetic transform is deterministic, no entropy change
       # Primary benefit is unambiguous verbal communication
       0.0
