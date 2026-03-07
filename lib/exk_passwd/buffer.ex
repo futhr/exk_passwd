@@ -168,15 +168,7 @@ defmodule ExkPasswd.Buffer do
   def random_boolean(state) do
     {bytes, new_state} = consume_bytes(state, 1)
 
-    value =
-      bytes
-      |> :binary.decode_unsigned()
-      |> rem(2)
-      |> case do
-        0 -> false
-        1 -> true
-      end
-
+    value = rem(:binary.decode_unsigned(bytes), 2) == 1
     {value, new_state}
   end
 
@@ -247,7 +239,7 @@ defmodule ExkPasswd.Buffer do
     else
       # Consume from existing buffer
       bytes = binary_part(buffer, offset, num_bytes)
-      new_state = %{state | buffer: buffer, offset: offset + num_bytes}
+      new_state = %{state | offset: offset + num_bytes}
       {bytes, new_state}
     end
   end

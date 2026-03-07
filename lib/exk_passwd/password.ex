@@ -315,16 +315,16 @@ defmodule ExkPasswd.Password do
 
   # Apply custom transforms using the Transform protocol
   defp apply_custom_transforms(words, config) do
-    transforms = Config.get_meta(config, :transforms, [])
+    case Config.get_meta(config, :transforms, []) do
+      [] ->
+        words
 
-    if Enum.empty?(transforms) do
-      words
-    else
-      Enum.map(words, fn word ->
-        Enum.reduce(transforms, word, fn transform, acc ->
-          Transform.apply(transform, acc, config)
+      transforms ->
+        Enum.map(words, fn word ->
+          Enum.reduce(transforms, word, fn transform, acc ->
+            Transform.apply(transform, acc, config)
+          end)
         end)
-      end)
     end
   end
 

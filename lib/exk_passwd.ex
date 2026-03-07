@@ -139,7 +139,7 @@ defmodule ExkPasswd do
       #=> "28?heavy?SOUND?later?94"
   """
   @spec generate() :: String.t()
-  def generate(), do: generate(:default)
+  def generate, do: generate(:default)
 
   @doc """
   Generate a password using a preset, keyword options, or a Config struct.

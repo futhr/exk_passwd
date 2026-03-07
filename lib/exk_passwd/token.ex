@@ -251,12 +251,9 @@ defmodule ExkPasswd.Token do
   """
   @spec get_n_of(String.t() | list(), integer()) :: String.t()
   def get_n_of(range, count) when is_integer(count) and count > 0 do
-    char = get_token(range)
-
-    if String.length(char) > 0 do
-      String.duplicate(char, count)
-    else
-      ""
+    case get_token(range) do
+      "" -> ""
+      char -> String.duplicate(char, count)
     end
   end
 
