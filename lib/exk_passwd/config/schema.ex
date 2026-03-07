@@ -154,7 +154,7 @@ defmodule ExkPasswd.Config.Schema do
       max > 50 ->
         {:error, "word_length maximum must be at most 50, got: #{max}"}
 
-      config.word_length_bounds != nil ->
+      not is_nil(config.word_length_bounds) ->
         validate_word_length_against_bounds(min, max, config.word_length_bounds)
 
       true ->
@@ -321,25 +321,18 @@ defmodule ExkPasswd.Config.Schema do
   end
 
   # Helper to validate allowed symbols
-  defp validate_allowed_symbols(string, field_name) when is_binary(string) do
-    # Empty string is allowed (means don't use separators/padding)
-    if string == "" do
-      :ok
-    else
-      graphemes = String.graphemes(string)
-      # Reject letters and digits, but allow all other Unicode characters including symbols
-      invalid =
-        Enum.filter(graphemes, fn char ->
-          String.match?(char, ~r/^[\p{L}\p{N}]$/u)
-        end)
+  defp validate_allowed_symbols("", _), do: :ok
 
-      if Enum.empty?(invalid) do
+  defp validate_allowed_symbols(string, field_name) when is_binary(string) do
+    # Reject letters and digits, but allow all other Unicode characters including symbols
+    case Enum.filter(String.graphemes(string), &String.match?(&1, ~r/^[\p{L}\p{N}]$/u)) do
+      [] ->
         :ok
-      else
+
+      invalid ->
         {:error,
          "#{field_name} cannot contain letters or numbers, got: #{inspect(invalid)}. " <>
            "Only symbols and punctuation are allowed (including Unicode symbols)."}
-      end
     end
   end
 

@@ -227,8 +227,10 @@ defmodule ExkPasswd.Config.Presets do
   end
 
   def get(name) when is_binary(name) do
-    atom_name = try_string_to_atom(name)
-    if atom_name, do: get(atom_name), else: get_runtime(name)
+    case try_string_to_atom(name) do
+      nil -> get_runtime(name)
+      atom_name -> get(atom_name)
+    end
   end
 
   @doc """
