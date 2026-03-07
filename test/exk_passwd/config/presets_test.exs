@@ -112,19 +112,19 @@ defmodule ExkPasswd.Config.PresetsTest do
     end
 
     test "get/1 returns nil for unknown preset" do
-      assert Presets.get(:nonexistent) == nil
-      assert Presets.get("unknown") == nil
+      assert is_nil(Presets.get(:nonexistent))
+      assert is_nil(Presets.get("unknown"))
     end
 
     test "get/1 with non-existent string preset" do
       result = Presets.get("nonexistent_preset")
-      assert result == nil
+      assert is_nil(result)
     end
 
     test "get/1 handles very long string that can't be an atom" do
       long_name = String.duplicate("a", 500)
       result = Presets.get(long_name)
-      assert result == nil
+      assert is_nil(result)
     end
 
     test "get/1 with string converts to atom and looks up" do

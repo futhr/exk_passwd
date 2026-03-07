@@ -68,7 +68,7 @@ defmodule ExkPasswd.EdgeCaseTest do
 
       # Request a range that doesn't exist (words longer than available)
       result = ExkPasswd.Dictionary.random_word_between(20, 25, :none, :test_dict_range)
-      assert result == nil
+      assert is_nil(result)
     end
   end
 

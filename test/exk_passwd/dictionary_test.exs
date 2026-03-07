@@ -444,7 +444,7 @@ defmodule ExkPasswd.DictionaryTest do
 
     test "returns nil for non-existent custom dictionary" do
       result = Dictionary.random_word_between(4, 8, :none, :nonexistent_custom_dict)
-      assert result == nil
+      assert is_nil(result)
     end
   end
 
@@ -504,7 +504,7 @@ defmodule ExkPasswd.DictionaryTest do
     test "returns nil for impossible range" do
       # Range far beyond dictionary capabilities
       word = Dictionary.random_word_between(50, 100, :none, :eff)
-      assert word == nil
+      assert is_nil(word)
     end
   end
 
@@ -565,7 +565,7 @@ defmodule ExkPasswd.DictionaryTest do
 
     test "returns nil for range outside custom dictionary" do
       word = Dictionary.random_word_between(10, 20, :none, :tiny_dict)
-      assert word == nil
+      assert is_nil(word)
     end
   end
 

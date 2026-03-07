@@ -157,7 +157,7 @@ defmodule ExkPasswd.ConfigTest do
 
     test "returns nil when key not found and no default" do
       config = Config.new!(meta: %{})
-      assert Config.get_meta(config, :missing) == nil
+      assert is_nil(Config.get_meta(config, :missing))
     end
   end
 

@@ -85,7 +85,7 @@ defmodule ExkPasswd.RandomTest do
 
     test "returns nil for empty list" do
       result = Random.select([])
-      assert result == nil
+      assert is_nil(result)
     end
 
     test "selects from range" do
