@@ -207,14 +207,7 @@ defmodule ExkPasswd.Batch do
         ) :: [String.t()]
   defp generate_unique_continue(count, config, seen_set, attempts, max_attempts) do
     password = Password.create(config)
-
-    new_seen_set =
-      if MapSet.member?(seen_set, password) do
-        seen_set
-      else
-        MapSet.put(seen_set, password)
-      end
-
+    new_seen_set = MapSet.put(seen_set, password)
     generate_unique_recursive(count, config, new_seen_set, attempts + 1, max_attempts)
   end
 end
