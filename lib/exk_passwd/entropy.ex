@@ -331,9 +331,8 @@ defmodule ExkPasswd.Entropy do
       {has_digits, @digits_size},
       {has_symbols, @symbols_size}
     ]
-    |> Enum.reduce(0, fn {present?, size}, acc ->
-      if present?, do: acc + size, else: acc
-    end)
+    |> Enum.filter(fn {present?, _} -> present? end)
+    |> Enum.reduce(0, fn {_, size}, acc -> acc + size end)
     |> max(1)
   end
 
@@ -368,31 +367,21 @@ defmodule ExkPasswd.Entropy do
     padding_chars = String.graphemes(config.padding.char)
     char_count = length(padding_chars)
 
-    cond do
-      char_count == 0 -> 0.0
-      config.padding.to_length > 0 -> :math.log2(char_count)
-      config.padding.before > 0 or config.padding.after > 0 -> :math.log2(char_count)
-      true -> 0.0
+    if char_count > 0 and
+         (config.padding.to_length > 0 or config.padding.before > 0 or config.padding.after > 0) do
+      :math.log2(char_count)
+    else
+      0.0
     end
   end
 
   defp calculate_digit_entropy(config) do
-    before_entropy =
-      if elem(config.digits, 0) > 0 do
-        :math.log2(:math.pow(10, elem(config.digits, 0)))
-      else
-        0.0
-      end
-
-    after_entropy =
-      if elem(config.digits, 1) > 0 do
-        :math.log2(:math.pow(10, elem(config.digits, 1)))
-      else
-        0.0
-      end
-
-    before_entropy + after_entropy
+    {digits_before, digits_after} = config.digits
+    digit_entropy(digits_before) + digit_entropy(digits_after)
   end
+
+  defp digit_entropy(0), do: 0.0
+  defp digit_entropy(n), do: n * :math.log2(10)
 
   defp calculate_case_entropy(config) do
     case config.case_transform do
@@ -404,7 +393,7 @@ defmodule ExkPasswd.Entropy do
   end
 
   defp calculate_substitution_entropy(config) do
-    case Map.get(config, :substitution_mode, :none) do
+    case config.substitution_mode do
       :random ->
         # Each word has 50% chance of substitution = 1 bit per word
         config.num_words * 1.0
