@@ -289,16 +289,7 @@ defmodule ExkPasswd.Config do
   end
 
   defp merge_padding(opts) do
-    case Keyword.has_key?(opts, :padding) do
-      true ->
-        {_, updated_opts} =
-          Keyword.get_and_update(opts, :padding, &{&1, Map.merge(@default_padding, &1)})
-
-        updated_opts
-
-      false ->
-        opts
-    end
+    Keyword.update(opts, :padding, @default_padding, &Map.merge(@default_padding, &1))
   end
 
   defp run_custom_validators(%__MODULE__{validators: []}), do: :ok
