@@ -7,8 +7,8 @@
 [![Test Suite](https://github.com/futhr/exk_passwd/workflows/Test%20Suite/badge.svg)](https://github.com/futhr/exk_passwd/actions)
 [![codecov](https://codecov.io/gh/futhr/exk_passwd/graph/badge.svg?token=HXDYFULIMN)](https://codecov.io/gh/futhr/exk_passwd)
 [![Doc Coverage](https://img.shields.io/badge/doc%20coverage-100%25-brightgreen.svg)](https://github.com/futhr/exk_passwd)
-[![Hex.pm](https://img.shields.io/badge/hex-not%20yet%20published-lightgrey.svg)](https://hex.pm/packages/exk_passwd)
-[![Documentation](https://img.shields.io/badge/docs-GitHub-purple.svg)](https://github.com/futhr/exk_passwd)
+[![Hex.pm](https://img.shields.io/hexpm/v/exk_passwd.svg)](https://hex.pm/packages/exk_passwd)
+[![Documentation](https://img.shields.io/badge/docs-hexdocs-purple.svg)](https://hexdocs.pm/exk_passwd)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.18-blueviolet.svg)](https://elixir-lang.org)
 
@@ -64,7 +64,7 @@ Word-based passwords like `correct-horse-battery-staple` offer:
 
 ### Core Features
 - **Cryptographically Secure** - Uses `:crypto.strong_rand_bytes/1` for all randomness
-- **EFF Large Wordlist** - 7,776 carefully curated words (12.9 bits entropy per word)
+- **EFF Large Wordlist** - 7,826 carefully curated words (12.9 bits entropy per word)
 - **Zero Runtime Dependencies** - Only uses Elixir stdlib and `:crypto`
 - **Multiple Presets** - 7 built-in presets for different use cases
 - **Fully Customizable** - Fine-grained control over all generation parameters
@@ -83,14 +83,12 @@ Word-based passwords like `correct-horse-battery-staple` offer:
 
 ## Installation
 
-_Note: This project is currently in production evaluation and has not yet been released to Hex. Documentation is available on [GitHub](https://github.com/futhr/exk_passwd)._
-
 Add `exk_passwd` to your dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:exk_passwd, github: "futhr/exk_passwd"}
+    {:exk_passwd, "~> 0.1.0"}
   ]
 end
 ```
@@ -277,7 +275,7 @@ ExkPasswd's default preset generates passwords with **high entropy** while remai
 
 ### Dictionary & Security Model
 
-ExkPasswd uses the **EFF Large Wordlist** containing 7,776 carefully curated words:
+ExkPasswd uses the **EFF Large Wordlist** containing 7,826 carefully curated words:
 - **Memorability** - Common, recognizable English words
 - **Typability** - No complex spellings or rare words
 - **Length variety** - 3-9 characters per word
@@ -694,28 +692,14 @@ We welcome contributions!
 
 ## Releasing
 
-This project uses [git_ops](https://hex.pm/packages/git_ops) for release automation.
-
-### Releases
+This project uses [git_ops](https://hex.pm/packages/git_ops) for automated releases.
 
 ```bash
-# Check what would happen
-mix git_ops.release --dry-run
-
-# Create release (bumps version, updates CHANGELOG, creates tag)
-mix git_ops.release
-
-# Publish to Hex
-mix hex.publish
+mix release              # Bumps version, updates CHANGELOG, commits, and tags
+git push --follow-tags   # Pushes commit and tag
 ```
 
-The release process:
-1. Analyzes conventional commits (feat:, fix:, docs:, etc.)
-2. Determines version bump (major/minor/patch)
-3. Updates version in `mix.exs`
-4. Generates CHANGELOG entries
-5. Creates git tag
-6. Optionally publishes to Hex
+CI (`publish.yml`) triggers on `v*` tag → runs checks → `mix hex.publish`
 
 ---
 
