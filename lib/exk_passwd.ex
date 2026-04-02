@@ -284,8 +284,7 @@ defmodule ExkPasswd do
   @doc """
   Analyze password strength with user-friendly feedback.
 
-  Returns a comprehensive report including rating, score, crack time estimates,
-  and improvement suggestions.
+  Returns a map with rating, score, and entropy bits.
 
   ## Parameters
 
@@ -297,7 +296,7 @@ defmodule ExkPasswd do
       password = ExkPasswd.generate()
       config = ExkPasswd.Config.new!()
       ExkPasswd.analyze_strength(password, config)
-      #=> %{rating: :good, score: 59, entropy_bits: 59.2, suggestions: [...], ...}
+      #=> %{rating: :good, score: 59, entropy_bits: 59.2}
   """
   @spec analyze_strength(String.t(), Config.t()) :: map()
   defdelegate analyze_strength(password, config), to: Strength, as: :analyze

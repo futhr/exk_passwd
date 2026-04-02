@@ -64,7 +64,7 @@ The test suite simulates real attack scenarios:
 7. **Distribution analysis** - Word length, digits, case transforms
 8. **Parallel safety** - Process independence verification
 
-**Test Coverage**: 97.1% with 473 tests (60 doctests + 413 unit tests), all passing.
+**Test Coverage**: 100% with 835 tests (136 doctests + 699 unit tests), all passing.
 
 ## Security Considerations
 
@@ -157,7 +157,7 @@ assert collision_rate < 0.001
 1. **Never use `:rand` module** - always use `ExkPasswd.Random`
 2. **Avoid Enum.random/1** - not cryptographically secure
 3. **Run security tests** before committing: `mix test test/exk_passwd/security_test.exs`
-4. **Maintain test coverage** >90% overall, 100% for crypto code
+4. **Maintain test coverage** 95%+ overall, 100% for crypto code
 
 ## Compliance
 
@@ -191,4 +191,4 @@ For security-related questions or concerns, please contact the maintainers throu
 
 ---
 
-**Last Updated**: 2025-10-29
+**Last Updated**: 2026-04-03

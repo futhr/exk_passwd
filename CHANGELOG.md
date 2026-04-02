@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Cryptographically secure password generation using `:crypto.strong_rand_bytes/1`
-- EFF Large Wordlist (7,776 words, 12.9 bits entropy per word)
+- EFF Large Wordlist (7,826 words, 12.9 bits entropy per word)
 - 7 built-in presets: default, xkcd, web32, web16, wifi, apple_id, security
 - Custom dictionary support via ETS
 - Batch and parallel password generation
