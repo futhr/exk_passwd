@@ -92,7 +92,7 @@ mix coveralls.html
 mix test.watch
 
 # Run specific test file
-mix test test/exk_passwd/generator_test.exs
+mix test test/exk_passwd/password_test.exs
 ```
 
 ### Code Quality
@@ -151,7 +151,7 @@ lib/exk_passwd/
 * Write tests for all public functions
 * Include both success and error cases
 * Use descriptive test names
-* Aim for >90% test coverage (100% for security-critical code)
+* Aim for 95%+ test coverage (100% for security-critical code)
 * Test randomness and uniqueness for password generation
 
 Example test structure:
@@ -224,7 +224,7 @@ ExkPasswd follows these core principles:
 - No external dependencies for core functionality
 
 ### 3. Well-Tested
-- Maintain >90% overall test coverage
+- Maintain 95%+ overall test coverage
 - 100% coverage for security-critical code
 - All public API functions must be tested
 
@@ -243,18 +243,18 @@ ExkPasswd follows these core principles:
 
 ## Release Process
 
-1. Update version in `mix.exs`
-2. Update CHANGELOG.md
-3. Run all tests and checks
-4. Create a pull request
-5. After merge, tag the release
-6. Publish to Hex.pm
+Releases are managed by maintainers using git_ops:
+
+1. Ensure all tests pass: `mix check`
+2. Run `mix release` (alias for `mix git_ops.release`) — updates changelog, bumps version, commits, and tags
+3. Push with tags: `git push --follow-tags`
+4. CI will publish to Hex.pm on the `v*` tag
 
 ## Resources
 
 ### Documentation
 - [README](README.md) - Project overview
-- CLAUDE.md (in repository root) - Agent guidelines and best practices
+- AGENTS.md (in repository root) - Agent guidelines and best practices
 - [Hex Docs](https://hexdocs.pm/exk_passwd) - Published documentation
 
 ### Interactive Notebooks

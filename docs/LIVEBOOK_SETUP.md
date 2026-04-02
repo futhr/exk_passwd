@@ -166,4 +166,4 @@ Benchmarks verify these characteristics remain true as the codebase evolves.
 - [Livebook Documentation](https://livebook.dev/)
 - [Benchee Documentation](https://hexdocs.pm/benchee)
 - [ExkPasswd Documentation](https://hexdocs.pm/exk_passwd)
-- [Contributing Guide](CONTRIBUTING.md)
+- [Contributing Guide](../CONTRIBUTING.md)
