@@ -25,10 +25,10 @@ ExkPasswd follows a clean, modular architecture:
 
 ```
 lib/exk_passwd/
-├── config/               # Configuration system
+├── config/              # Configuration system
 │   ├── presets.ex       # Built-in presets (Agent-based)
 │   └── schema.ex        # Configuration validation
-├── transform/            # Transform protocol implementations
+├── transform/           # Transform protocol implementations
 │   ├── case_transform.ex
 │   └── substitution.ex
 ├── config.ex            # Configuration struct (schema-driven)
@@ -363,7 +363,7 @@ Before submitting a PR:
 
 1. **Read the test files** - They show how each module is used
 2. **Experiment with this notebook** - Try different configurations
-3. **Check CLAUDE.md in the repository** - Agent guidelines and best practices
+3. **Check AGENTS.md in the repository** - Agent guidelines and best practices
 4. **Review existing code** - Small, focused modules are easy to understand
 5. **Ask questions** - Open an issue if something is unclear
 
@@ -374,7 +374,7 @@ Before submitting a PR:
 * [Advanced Usage Notebook](advanced.livemd)
 * [Security Analysis Notebook](security.livemd)
 * [Benchmarks Notebook](benchmarks.livemd)
-* CLAUDE.md (in repository root) - Agent guidelines
+* AGENTS.md (in repository root) - Agent guidelines
 * [Hex Docs](https://hexdocs.pm/exk_passwd)
 
 ---

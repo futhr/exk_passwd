@@ -10,7 +10,7 @@ ExkPasswd is an Elixir library for generating secure, memorable passwords using 
 - Security first: Always use cryptographically secure randomness
 - Simplicity: Keep the API clean and intuitive
 - Zero dependencies: Use only Elixir stdlib and :crypto
-- Well-tested: Maintain >90% test coverage
+- Well-tested: Maintain 95%+ test coverage
 - Well-documented: All public APIs must have comprehensive docs
 
 ## Code Quality Standards
@@ -150,27 +150,45 @@ end
 
 ```
 lib/
-├── exk_passwd.ex              # Main API
+├── exk_passwd.ex              # Main API (delegates to other modules)
 ├── exk_passwd/
-│   ├── settings.ex            # Configuration struct
-│   ├── presets.ex             # Preset configurations
-│   ├── password_creator.ex    # Core generation logic
-│   ├── dictionary.ex          # Word list management
-│   ├── transformer.ex         # Case/padding transforms
-│   ├── random.ex              # Secure random utilities
-│   └── cli.ex                 # Command-line interface
+│   ├── config.ex              # Configuration struct (schema-driven)
+│   ├── config/
+│   │   ├── presets.ex         # Built-in presets (Agent-based)
+│   │   └── schema.ex          # Configuration validation
+│   ├── password.ex            # Core password generation engine
+│   ├── dictionary.ex          # ETS-backed word storage (O(1) lookups)
+│   ├── batch.ex               # Optimized batch generation
+│   ├── token.ex               # Random number/symbol generation
+│   ├── buffer.ex              # Buffered random bytes for performance
+│   ├── entropy.ex             # Entropy calculation
+│   ├── strength.ex            # Password strength analysis
+│   ├── transform.ex           # Transform protocol definition
+│   ├── transform/
+│   │   ├── case_transform.ex  # Case transformation implementations
+│   │   ├── substitution.ex    # Character substitution transform
+│   │   ├── pinyin.ex          # Chinese Pinyin romanization
+│   │   └── romaji.ex          # Japanese Romaji romanization
+│   ├── validator.ex           # Configuration validation
+│   └── random.ex              # Cryptographically secure random utilities
 ```
 
 ### Module Responsibilities
 
 - **ExkPasswd**: Public API only, delegate to other modules
 - **Config**: Configuration struct and validation
-- **Presets**: Immutable preset configurations (use module attributes)
-- **PasswordCreator**: Core generation orchestration
-- **Dictionary**: Word loading and selection
-- **Transformer**: Case transforms, padding, separators
+- **Config.Presets**: Immutable preset configurations (Agent-based)
+- **Config.Schema**: Configuration validation rules
+- **Password**: Core password generation orchestration
+- **Dictionary**: Word loading, selection, and custom dictionary support
+- **Batch**: Optimized batch and parallel password generation
+- **Token**: Random number and symbol generation
+- **Buffer**: Buffered random bytes for performance
+- **Entropy**: Entropy calculation (blind and seen)
+- **Strength**: Password strength analysis and rating
+- **Transform**: Transform protocol and implementations
+- **Validator**: Configuration validation pipeline
 - **Random**: Cryptographically secure random utilities
-- **CLI**: Command-line interface (escript entry point)
 
 ## Testing Guidelines
 
@@ -247,7 +265,7 @@ end
 
 ### Coverage Goals
 
-- Maintain >90% overall coverage
+- Maintain 95%+ overall coverage
 - 100% coverage for security-critical code (Random, Dictionary selection)
 - All public API functions must be tested
 
@@ -321,26 +339,26 @@ Generates a password.
 """
 ```
 
-## Git Workflow
+## Commit Conventions
 
-### Commit Messages
+All commits must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. git_ops parses these to auto-generate CHANGELOG.md and determine version bumps.
 
-Follow conventional commits:
-```
-feat: add passphrase generation
-fix: correct word selection bias
-docs: update API examples
-test: add property tests for transformers
-refactor: simplify password creator logic
-perf: optimize dictionary loading
-```
+Format: `type(optional scope): description`
+
+Do not add `Co-Authored-By` or any AI/Claude attribution to commit messages.
+
+| Type | Version bump | Changelog |
+|------|-------------|-----------|
+| `feat:` | minor | "Features" |
+| `fix:` | patch | "Bug Fixes" |
+| `feat!:` / `fix!:` / `BREAKING CHANGE:` | major | shown |
+| `chore:`, `docs:`, `ci:`, `refactor:`, `style:`, `test:`, `build:` | none | hidden |
 
 ### Before Committing
 
 1. Run `mix format`
 2. Run `mix credo --strict`
 3. Run `mix test`
-4. Update CHANGELOG.md if user-facing change
 
 ## Performance Considerations
 
@@ -517,27 +535,11 @@ Keep dependencies minimal:
 
 This project uses `git_ops` for automated releases.
 
-### Commands
+### Release Flow
 
-```bash
-# First release
-mix git_ops.release --initial
-
-# Subsequent releases
-mix git_ops.release --dry-run  # Preview changes
-mix git_ops.release            # Create release
-
-# Publish
-mix hex.publish
-```
-
-### Pre-release Checklist
-
-1. Ensure all tests pass: `mix test`
-2. Run dialyzer: `mix dialyzer`
-3. Generate and review docs: `mix docs`
-
-git_ops handles version bumping, CHANGELOG generation, and git tagging based on conventional commits.
+1. `mix release` (alias for `mix git_ops.release`) — updates changelog, bumps version in mix.exs and README.md, commits, and tags
+2. `git push --follow-tags` — pushes commit and tag
+3. CI (`publish.yml`) triggers on `v*` tag → runs checks → `mix hex.publish`
 
 ## Error Messages
 
