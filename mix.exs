@@ -98,9 +98,8 @@ defmodule ExkPasswd.MixProject do
       # Documentation
       docs: ["docs --formatter html"],
 
-      # Publishing
-      "hex.publish": ["hex.build", "hex.publish", "tag"],
-      tag: &tag_release/1
+      # Release
+      release: ["git_ops.release"]
     ]
   end
 
@@ -125,7 +124,7 @@ defmodule ExkPasswd.MixProject do
         README.md
         LICENSE.md
         CHANGELOG.md
-        CLAUDE.md
+        AGENTS.md
         usage-rules.md
       ),
       maintainers: [
@@ -163,7 +162,7 @@ defmodule ExkPasswd.MixProject do
         "bench/output/dictionary.md": [title: "Dictionary Benchmarks"],
         "bench/output/batch.md": [title: "Batch Generation Benchmarks"],
         "CHANGELOG.md": [title: "Changelog"],
-        "docs/CONTRIBUTING.md": [title: "Contributing"],
+        "CONTRIBUTING.md": [title: "Contributing"],
         "LICENSE.md": [title: "License"]
       ],
       groups_for_modules: [
@@ -200,17 +199,11 @@ defmodule ExkPasswd.MixProject do
         "Getting Started": ~r/README|docs\/SECURITY|docs\/LIVEBOOK_SETUP/,
         "Interactive Tutorials": ~r/notebooks\//,
         "Benchmark Results": ~r/bench\/output\//,
-        Reference: ~r/CHANGELOG|docs\/CONTRIBUTING|LICENSE/
+        Reference: ~r/CHANGELOG|CONTRIBUTING|LICENSE/
       ],
       source_ref: "v#{@version}",
       source_url: @source_url,
       formatters: ["html"]
     ]
-  end
-
-  defp tag_release(_) do
-    Mix.shell().info("Tagging release as v#{@version}")
-    System.cmd("git", ["tag", "-a", "v#{@version}", "-m", "Release v#{@version}"])
-    System.cmd("git", ["push", "--tags"])
   end
 end
