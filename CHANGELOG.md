@@ -5,6 +5,32 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.1.1](https://github.com/futhr/exk_passwd/compare/v0.1.0...v0.1.1) (2026-04-03)
+
+
+
+
+### Bug Fixes:
+
+* trim hex package description and exclude PLT files by Tobias Bohwalli
+
+* raise memory leak test threshold for CI environments by Tobias Bohwalli
+
+* disable async tests that use shared ETS state by Tobias Bohwalli
+
+## [v0.1.2](https://github.com/futhr/exk_passwd/compare/v0.1.1...v0.1.2) (2026-04-03)
+
+
+
+
+### Bug Fixes:
+
+* trim hex package description and exclude PLT files by Tobias Bohwalli
+
+* raise memory leak test threshold for CI environments by Tobias Bohwalli
+
+* disable async tests that use shared ETS state by Tobias Bohwalli
+
 ## [v0.1.0](https://github.com/futhr/exk_passwd/compare/v0.1.0...v0.1.0) (2026-04-03)
 
 ### Features:
