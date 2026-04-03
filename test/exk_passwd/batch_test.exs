@@ -26,12 +26,9 @@ defmodule ExkPasswd.BatchTest do
 
   ## Concurrency Model
 
-  Tests use `async: true` because batch operations are stateless:
-  - Each batch creates its own Buffer state
-  - No shared mutable state between tests
-  - Parallel generation uses isolated Task processes
+  Tests use `async: false` because some tests load custom dictionaries into shared ETS state.
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   doctest ExkPasswd.Batch
 
   alias ExkPasswd.{Batch, Config}

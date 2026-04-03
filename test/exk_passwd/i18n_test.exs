@@ -59,7 +59,7 @@ defmodule ExkPasswd.I18nTest do
   - Memory techniques using native language words
   - Compliance with systems requiring ASCII-only passwords
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias ExkPasswd.{Config, Dictionary}
 

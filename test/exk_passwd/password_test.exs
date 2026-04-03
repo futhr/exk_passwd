@@ -53,10 +53,9 @@ defmodule ExkPasswd.PasswordTest do
 
   ## Concurrency Safety
 
-  Tests run with `async: true` as Password.create/1 is purely functional with no shared state.
-  The Buffer passed to create_with_state/2 is explicitly threaded through, avoiding race conditions.
+  Tests run with `async: false` because some tests load custom dictionaries into shared ETS state.
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   doctest ExkPasswd.Password
 
   alias ExkPasswd.{Buffer, Config, Password}

@@ -56,7 +56,7 @@ defmodule ExkPasswd.EntropyTest do
   Extensive tests cover all time unit transitions:
   - instant → seconds → minutes → hours → days → years → centuries → millennia → billions of years
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   doctest ExkPasswd.Entropy
 
   alias ExkPasswd.{Config, Entropy}
