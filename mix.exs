@@ -68,7 +68,7 @@ defmodule ExkPasswd.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
-      {:doctest_formatter, "~> 0.4", runtime: false},
+      {:doctest_formatter, "~> 0.4", only: :dev, runtime: false},
       {:ex_check, "~> 0.16", only: [:dev], runtime: false},
       {:doctor, "~> 0.21", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
@@ -105,10 +105,8 @@ defmodule ExkPasswd.MixProject do
 
   defp description do
     """
-    Secure, memorable password generation using the XKPasswd method. Combines random
-    words with numbers and symbols to create strong passwords that are easier to remember
-    than random character strings. Features entropy analysis, batch generation, character
-    substitutions, and custom dictionaries. Efficient with constant-time lookups. Zero runtime
+    Secure, memorable password generation using the XKPasswd method. Combines random words
+    with configurable transforms to create strong, easy-to-remember passwords. Zero runtime
     dependencies, uses only Elixir stdlib and :crypto.
     """
   end
@@ -117,7 +115,7 @@ defmodule ExkPasswd.MixProject do
     [
       files: ~w(
         lib
-        priv
+        priv/dict
         docs
         .formatter.exs
         mix.exs
