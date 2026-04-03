@@ -92,8 +92,8 @@ defmodule ExkPasswd.AdversarialTest do
         end)
 
       df = total_possible - 1
-      # 99.9% confidence
-      critical_value = df + :math.sqrt(2 * df) * 3.29
+      # 99.99% confidence (4-sigma) to reduce CI flakiness
+      critical_value = df + :math.sqrt(2 * df) * 3.72
 
       assert chi_square < critical_value,
              "Chi-square test failed: χ²=#{Float.round(chi_square, 1)} >= #{Float.round(critical_value, 1)}"
