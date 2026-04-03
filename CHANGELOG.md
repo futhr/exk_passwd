@@ -1,36 +1,78 @@
-# Changelog
+# Change Log
 
-All notable changes to exk_passwd will be documented in this file.
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](Https://conventionalcommits.org) for commit guidelines.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+<!-- changelog -->
 
-## [Unreleased]
+## [v0.1.0](https://github.com/futhr/exk_passwd/compare/v0.1.0...v0.1.0) (2026-04-03)
 
-### Added
-- Cryptographically secure password generation using `:crypto.strong_rand_bytes/1`
-- EFF Large Wordlist (7,826 words, 12.9 bits entropy per word)
-- 7 built-in presets: default, xkcd, web32, web16, wifi, apple_id, security
-- Custom dictionary support via ETS
-- Batch and parallel password generation
-- Entropy calculation (blind and seen)
-- Strength analysis and feedback
-- Case transformations: none, alternate, capitalize, invert, lower, upper, random
-- Character substitutions (leetspeak)
-- Pinyin transform with 500+ characters (Jun Da frequency list)
-- Romaji transform with IME-grade Modified Hepburn romanization
-- Helper functions: `contains_hanzi?/1`, `hanzi?/1`, `contains_kanji?/1`, `kanji?/1`
-- `Validator.run_all/2` function for testable validation pipeline
-- Comprehensive documentation and Livebook notebooks
-- 100% test coverage
-- Zero runtime dependencies
+### Features:
 
-### Changed
-- Simplified dictionary `build_range_tuples/1` by removing unreachable tuple handling
-- Simplified password case inversion by removing defensive nil checks
-- Simplified romaji `extract_vowel/1` by removing unreachable fallback clause
+* bench: generate markdown benchmark reports by Tobias Bohwalli
 
-### Fixed
-- Duplicate test runs in `mix check` (disabled default `:ex_unit` tool)
+* validator: add run_all/2 function for testable validation by Tobias Bohwalli
 
-[Unreleased]: https://github.com/futhr/exk_passwd/compare/main...HEAD
+* expand Pinyin transform with 500+ characters and helpers by Tobias Bohwalli
+
+* improve config schema validation for Unicode symbols by Tobias Bohwalli
+
+* Use GitHub as source instead of HEX (which doesn't yet exist). by Michael Westbay
+
+* Add # character to allowed symbols. by Michael Westbay
+
+* Suppress consolidate_protocol warnings in dev environment. by Michael Westbay
+
+* add internationalization support for Chinese and Japanese by Tobias Bohwalli
+
+* implement core password generation library by Tobias Bohwalli
+
+* add word dictionaries for password generation by Tobias Bohwalli
+
+### Bug Fixes:
+
+* prepare README for hex release by Tobias Bohwalli
+
+* test: use anonymous unused variables in test files by Tobias Bohwalli
+
+* credo: enable UnusedVariableNames with force: :anonymous by Tobias Bohwalli
+
+* test: resolve credo strict violations in test files by Tobias Bohwalli
+
+* config: suppress false-positive AppendSingleItem credo warnings by Tobias Bohwalli
+
+* transform: add @spec to protocol implementation functions by Tobias Bohwalli
+
+* dictionary: use try/rescue for ETS table init by Tobias Bohwalli
+
+* disable ex_unit to prevent duplicate test runs in mix check by Tobias Bohwalli
+
+* version doctest to not break on bump by Tobias Bohwalli
+
+* Get livebook examples to all work properly. by Michael Westbay
+
+* Change invalid symbol from # which is now valid. by Michael Westbay
+
+* Change invalid separator from # which is now valid. by Michael Westbay
+
+* Change invalid padding character from # which is now valid. by Michael Westbay
+
+* Calculate word entropy for custom dictionaries. by Michael Westbay
+
+* Merge configuring padding with default padding. by Michael Westbay
+
+* Handle case when {min, max} range not in customer dictionary. by Michael Westbay
+
+* update CI badge to match renamed workflow by Tobias Bohwalli
+
+* simplify CI coverage check to parse test output directly by Tobias Bohwalli
+
+* increase threshold for flaky sequential digit pattern test by Tobias Bohwalli
+
+* remove failing benchmark action that expected JSON format by Tobias Bohwalli
+
+* resolve CI test failures and documentation issues by Tobias Bohwalli
+
+### Performance Improvements:
+
+* add benchmarks and livebook examples by Tobias Bohwalli
