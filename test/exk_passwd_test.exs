@@ -1,43 +1,6 @@
 defmodule ExkPasswdTest do
-  @moduledoc """
-  Integration tests for the ExkPasswd public API.
+  @moduledoc false
 
-  ## Testing Strategy
-
-  This test suite validates the primary user-facing API surface, focusing on:
-
-  - **API contracts**: Ensuring all public functions conform to their documented behavior
-  - **Polymorphic input handling**: Testing multiple input types (atoms, keywords, structs)
-  - **Cryptographic quality**: Verifying password uniqueness and randomness properties
-  - **Batch operations**: Validating optimized batch, unique, and parallel generation paths
-  - **Security analysis**: Testing entropy calculation and strength rating accuracy
-
-  ## Concurrency
-
-  Tests run with `async: true` as password generation is purely functional with no shared state.
-  The only exception is Dictionary module initialization, which uses ETS and is tested separately
-  in `ExkPasswd.DictionaryTest`.
-
-  ## Coverage Focus
-
-  These tests prioritize correctness of the high-level API rather than exhaustive edge case testing
-  (which is handled in module-specific test files). The goal is to ensure that the common usage
-  patterns documented in hexdocs work reliably in production.
-
-  ## Cryptographic Verification
-
-  Several tests verify cryptographic properties:
-  - Password uniqueness across multiple generations (detect PRNG failures)
-  - Proper handling of configuration overrides
-  - Correct entropy calculations based on configuration space
-
-  ## Performance Characteristics
-
-  While not explicitly benchmarked here, these tests exercise:
-  - Single password generation: ~10-50µs
-  - Batch generation (100): ~2-5ms
-  - Parallel generation scales linearly with cores
-  """
   use ExUnit.Case, async: true
 
   doctest ExkPasswd

@@ -1,56 +1,6 @@
 defmodule ExkPasswd.DictionaryTest do
-  @moduledoc """
-  Tests for the ETS-backed dictionary subsystem.
+  @moduledoc false
 
-  ## Testing Strategy
-
-  This suite validates the Dictionary module's hybrid compile-time/runtime word storage system.
-  The module uses:
-  - **Compile-time indexing**: Fast word lookups by length in the default :eff dictionary
-  - **Runtime ETS storage**: Custom dictionaries loaded dynamically via `load_custom/2`
-  - **Pre-computed case variants**: O(1) case transformations without runtime String operations
-
-  ## Concurrency Model
-
-  Tests use `async: false` because:
-  1. The ETS table `:exk_passwd_custom_dicts` is shared global state
-  2. Multiple concurrent tests loading custom dictionaries would create race conditions
-  3. Dictionary initialization in `setup_all` must complete before any test runs
-
-  While the default :eff dictionary is read-only and safe for concurrent access, custom
-  dictionaries are mutable, requiring serialized test execution.
-
-  ## Test Coverage
-
-  ### Performance-Critical Paths
-  - Random word selection (must be O(1) via tuple indexing)
-  - Case transformations (pre-computed, not runtime String.upcase/2)
-  - Count operations (O(1) for exact lengths, O(max-min) for ranges)
-
-  ### Security-Critical Behavior
-  - Cryptographic randomness (uses Buffer for :crypto.strong_rand_bytes)
-  - Uniform distribution across word length ranges
-  - No bias in selection (verified statistically in manual tests)
-
-  ### Extensibility
-  - Custom dictionary loading and isolation
-  - Case variant storage for custom words
-  - ETS lifecycle (init, overwrite, cleanup)
-
-  ## Implementation Details
-
-  The Dictionary module optimizes for:
-  - **Read performance**: O(1) tuple index lookups beat Map/List for this access pattern
-  - **Memory efficiency**: Case variants stored once, not computed per request
-  - **Flexibility**: ETS allows runtime dictionary loading for i18n or domain-specific words
-
-  ## Performance Baseline
-
-  Expected performance on modern hardware:
-  - 1000 random word lookups: < 1ms (verified in performance_characteristics describe block)
-  - Custom dictionary load (1000 words): < 10ms
-  - ETS lookup overhead: < 1μs per operation
-  """
   use ExUnit.Case, async: false
   doctest ExkPasswd.Dictionary
 

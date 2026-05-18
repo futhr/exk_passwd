@@ -1,60 +1,6 @@
 defmodule ExkPasswd.PasswordTest do
-  @moduledoc """
-  Comprehensive tests for the core password generation engine.
+  @moduledoc false
 
-  ## Testing Strategy
-
-  This suite validates `ExkPasswd.Password`, the module responsible for orchestrating
-  the actual password assembly. It tests the entire configuration space systematically:
-
-  - **Case transforms** (6 variants: none, lower, upper, capitalize, alternate, invert, random)
-  - **Separators** (including empty string for no separation)
-  - **Digit padding** (before, after, both, none)
-  - **Symbol padding** (character selection and placement)
-  - **Character substitutions** (leetspeak-style transformations)
-  - **Length constraints** (minimum total length via padding)
-  - **Buffered random state** (for batch generation optimization)
-
-  ## Architecture Under Test
-
-  The Password module is a pure function that transforms:
-  ```
-  Config -> Random State -> String
-  ```
-
-  It coordinates several subsystems:
-  1. Dictionary module (word selection)
-  2. Transform protocol (case/substitution)
-  3. Token module (digit/symbol generation)
-  4. Buffer module (cryptographic random bytes)
-
-  ## Test Coverage Philosophy
-
-  Rather than exhaustive combinatorial testing (which would require millions of test cases),
-  this suite uses **representative sampling**:
-  - Each configuration dimension is tested independently
-  - Critical combinations are tested (e.g., case + substitutions)
-  - Edge cases are tested (empty separators, zero padding, etc.)
-
-  ## Determinism vs Randomness
-
-  Tests must verify correctness without relying on specific random outputs.
-  Strategies used:
-  - **Property testing**: "all words are lowercase" rather than "password equals X"
-  - **Statistical testing**: "10 generations produce >1 unique value" (cryptographic quality)
-  - **Structure testing**: "has N separators" or "matches regex pattern"
-
-  ## Performance Characteristics
-
-  While not explicitly benchmarked here, this module is the hot path for generation:
-  - Single password: ~10-50µs
-  - Dominated by :crypto.strong_rand_bytes/1 calls
-  - Buffered variant (create_with_state/2) reduces overhead 2-3x for batch operations
-
-  ## Concurrency Safety
-
-  Tests run with `async: false` because some tests load custom dictionaries into shared ETS state.
-  """
   use ExUnit.Case, async: false
   doctest ExkPasswd.Password
 

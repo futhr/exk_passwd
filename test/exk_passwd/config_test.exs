@@ -1,41 +1,6 @@
 defmodule ExkPasswd.ConfigTest do
-  @moduledoc """
-  Tests for the schema-driven configuration system.
+  @moduledoc false
 
-  ## Testing Strategy
-
-  This suite validates the `ExkPasswd.Config` module, which provides declarative schema validation
-  and composition for password generation configurations. Key test areas:
-
-  - **Schema validation**: Ensuring invalid configurations are rejected with clear errors
-  - **Boundary conditions**: Testing edge cases for numeric ranges and string values
-  - **Composition**: Verifying merge semantics and override behavior
-  - **Metadata extension**: Testing the meta field for runtime extensibility
-  - **Error messages**: Ensuring validation errors are actionable for developers
-
-  ## Validation Philosophy
-
-  ExkPasswd uses fail-fast validation with two APIs:
-  - `new!/1` - Raises `ArgumentError` for immediate failures in application code
-  - `new/1` - Returns `{:error, msg}` for user-facing validation (e.g., web forms)
-
-  This dual API approach follows Elixir conventions and supports both programming
-  errors (which should crash) and validation errors (which should be handled).
-
-  ## Configuration Space
-
-  The Config struct encodes the entire generation parameter space. Tests ensure:
-  - All valid configurations are accepted
-  - Invalid configurations are rejected with specific error messages
-  - Default values are sensible and secure
-  - Merging preserves validation invariants
-
-  ## Extensibility
-
-  The `meta` field provides escape hatch extensibility for custom plugins and transforms.
-  Tests verify this field is preserved through composition and doesn't interfere with
-  core validation.
-  """
   use ExUnit.Case, async: true
 
   alias ExkPasswd.Config

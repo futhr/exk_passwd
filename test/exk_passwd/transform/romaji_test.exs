@@ -1,15 +1,6 @@
 defmodule ExkPasswd.Transform.RomajiTest do
-  @moduledoc """
-  Comprehensive tests for Japanese Hiragana/Katakana to Romaji transformation.
+  @moduledoc false
 
-  Tests cover:
-  - Basic hiragana and katakana character conversion
-  - Palatalization (きゃ → kya)
-  - Sokuon/gemination (っ → doubled consonants)
-  - Long vowels (おう → ou/oo)
-  - N-sound (ん → n/m)
-  - Edge cases and real-world Japanese words
-  """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Transform.Romaji
 

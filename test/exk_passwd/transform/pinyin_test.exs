@@ -1,14 +1,6 @@
 defmodule ExkPasswd.Transform.PinyinTest do
-  @moduledoc """
-  Comprehensive tests for Chinese Hanzi to Pinyin transformation.
+  @moduledoc false
 
-  Tests cover:
-  - Basic character conversion
-  - ü/v keyboard compatibility (critical for IME input)
-  - High-frequency character coverage
-  - Edge cases and mixed text
-  - Hanzi detection functions
-  """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Transform.Pinyin
 

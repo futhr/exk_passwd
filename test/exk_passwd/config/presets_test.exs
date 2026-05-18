@@ -1,46 +1,6 @@
 defmodule ExkPasswd.Config.PresetsTest do
-  @moduledoc """
-  Tests for the Agent-based preset configuration system.
+  @moduledoc false
 
-  ## Testing Strategy
-
-  This suite validates the `ExkPasswd.Config.Presets` module, which provides:
-  - Built-in presets (`:default`, `:xkcd`, `:wifi`, `:web32`, `:web16`, `:appleid`, `:security`)
-  - Runtime custom preset registration via Agent state
-  - Preset composition and overrides
-
-  ## Architecture
-
-  The Presets module uses an Agent to store runtime-registered custom presets while keeping
-  built-in presets as compile-time data structures for performance. This hybrid approach:
-  - Enables extensibility (users can register custom presets at runtime)
-  - Maintains performance (built-ins don't require Agent calls)
-  - Allows testing without global state pollution (supervised Agent in tests)
-
-  ## Concurrency Model
-
-  Tests use `async: false` because:
-  1. The Presets Agent is shared state across tests
-  2. Custom preset registration modifies global state
-  3. Supervisor start order must be deterministic
-
-  The `setup` block ensures the Agent is started (or reuses existing) before each test.
-
-  ## Built-in Presets
-
-  Each built-in preset is tested to ensure:
-  - Configuration is valid (passes Config.Schema validation)
-  - Key parameters match documented values
-  - Security/entropy characteristics are appropriate for use case
-
-  ## Custom Presets
-
-  Tests verify that runtime preset registration:
-  - Allows arbitrary Config structs to be stored
-  - Persists across get/1 calls within same test
-  - Overwrites existing custom presets with same name
-  - Doesn't interfere with built-in presets
-  """
   use ExUnit.Case, async: false
 
   alias ExkPasswd.Config

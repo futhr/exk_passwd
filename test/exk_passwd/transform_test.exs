@@ -1,34 +1,6 @@
 defmodule ExkPasswd.TransformTest do
-  @moduledoc """
-  Tests for the ExkPasswd.Transform protocol.
+  @moduledoc false
 
-  This module tests the Transform protocol definition and verifies that
-  built-in implementations correctly implement the protocol contract.
-
-  ## Test Strategy
-
-  - **Protocol compliance**: Verify `apply/3` and `entropy_bits/2` work correctly
-  - **Built-in transforms**: Test CaseTransform, Substitution, Pinyin, Romaji
-  - **Transform chaining**: Multiple transforms applied in sequence via config meta
-  - **Entropy contribution**: Correct entropy calculation from various transforms
-  - **Edge cases**: Empty strings, unicode, special characters
-
-  ## Protocol Design
-
-  The Transform protocol defines two callbacks:
-
-  1. `apply/3` - Transforms a word/component string
-  2. `entropy_bits/2` - Returns entropy contribution in bits
-
-  Implementations must be defined at compile time (protocol consolidation).
-  Custom transforms should be defined in the application, not in tests.
-
-  ## Coverage Focus
-
-  These tests ensure the protocol works correctly with all built-in
-  implementations and that transforms integrate properly with the
-  password generation pipeline via the Config meta field.
-  """
   use ExUnit.Case, async: true
 
   alias ExkPasswd.{Config, Transform}

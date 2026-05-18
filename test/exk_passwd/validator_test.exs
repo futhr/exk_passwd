@@ -1,55 +1,6 @@
 defmodule ExkPasswd.ValidatorTest do
-  @moduledoc """
-  Tests for the Validator behaviour.
+  @moduledoc false
 
-  ## Overview
-
-  The Validator behaviour allows users to define custom validation rules for
-  password configurations. This enables domain-specific constraints beyond
-  the built-in schema validation.
-
-  ## Test Strategy
-
-  This suite validates:
-
-  1. **Behaviour Implementation**: Custom validators must implement `validate/1`
-     callback returning `:ok` or `{:error, reason}`.
-
-  2. **Integration with Config.new!/1**: Validators in the `:validators` option
-     are automatically invoked during configuration creation.
-
-  3. **Rejection on Failure**: Invalid configurations raise `ArgumentError`
-     with the custom error message from the validator.
-
-  4. **Validator Chaining**: Multiple validators are applied in sequence;
-     all must pass for configuration to be valid.
-
-  ## Example Validators
-
-  The test defines two sample validators:
-
-  - `TestValidator`: Requires at least 4 words
-  - `TestValidator2`: Prohibits `~` as separator
-
-  These demonstrate real-world use cases like enforcing security policies.
-
-  ## Use Cases
-
-  Custom validators enable:
-
-  - Organizational password policies (minimum word count, required complexity)
-  - Application-specific constraints (WiFi passwords ≤ 63 chars)
-  - Compliance requirements (NIST, PCI-DSS guidelines)
-  - Environment-based rules (stricter validation in production)
-
-  ## Validator Contract
-
-  ```elixir
-  @callback validate(Config.t()) :: :ok | {:error, String.t()}
-  ```
-
-  Validators receive the complete Config struct and can inspect any field.
-  """
   use ExUnit.Case, async: true
   doctest ExkPasswd.Validator
 

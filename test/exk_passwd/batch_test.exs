@@ -1,33 +1,6 @@
 defmodule ExkPasswd.BatchTest do
-  @moduledoc """
-  Tests for ExkPasswd.Batch - optimized batch password generation.
+  @moduledoc false
 
-  ## Test Strategy
-
-  This suite validates the three batch generation strategies:
-
-  1. **`generate_batch/3`**: Sequential generation with buffered random state
-     - Reduces `:crypto.strong_rand_bytes/1` syscalls via pre-allocated buffer
-     - Best for moderate batch sizes (10-1000 passwords)
-
-  2. **`generate_unique_batch/3`**: Guaranteed unique passwords
-     - Uses MapSet tracking to detect and regenerate duplicates
-     - Fails fast when entropy is too low to generate unique passwords
-
-  3. **`generate_parallel/3`**: Multi-process generation
-     - Distributes work across `System.schedulers_online()` workers
-     - Best for large batches (1000+) on multi-core systems
-
-  ## Performance Characteristics
-
-  - Buffered generation: ~2-3x faster than individual `Password.create/1` calls
-  - Parallel generation: Scales linearly with available CPU cores
-  - Unique generation: O(n) best case, O(n * max_attempts) worst case
-
-  ## Concurrency Model
-
-  Tests use `async: false` because some tests load custom dictionaries into shared ETS state.
-  """
   use ExUnit.Case, async: false
   doctest ExkPasswd.Batch
 
