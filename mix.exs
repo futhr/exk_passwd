@@ -67,16 +67,16 @@ defmodule ExkPasswd.MixProject do
       {:statistex, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:doctest_formatter, "~> 0.4", only: :dev, runtime: false},
       {:ex_check, "~> 0.16", only: [:dev], runtime: false},
-      {:doctor, "~> 0.21", only: :dev, runtime: false},
+      {:doctor, "~> 0.23", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:benchee, "~> 1.3", only: :dev, runtime: false},
+      {:benchee, "~> 1.5", only: :dev, runtime: false},
       {:benchee_markdown, "~> 0.3", only: :dev, runtime: false},
       {:excoveralls, "~> 0.18", only: :test},
       {:mix_test_watch, "~> 1.2", only: [:dev, :test], runtime: false},
-      {:git_ops, "~> 2.6", only: [:dev]}
+      {:git_ops, "~> 2.10", only: [:dev]}
     ]
   end
 
