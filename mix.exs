@@ -75,6 +75,7 @@ defmodule ExkPasswd.MixProject do
       {:benchee, "~> 1.5", only: :dev, runtime: false},
       {:benchee_markdown, "~> 0.3", only: :dev, runtime: false},
       {:excoveralls, "~> 0.18", only: :test},
+      {:castore, "~> 1.0", only: :test},
       {:mix_test_watch, "~> 1.2", only: [:dev, :test], runtime: false},
       {:git_ops, "~> 2.10", only: [:dev]}
     ]
