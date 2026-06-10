@@ -134,12 +134,12 @@ defmodule ExkPasswd.Config.PresetsTest do
       assert config.separator == "-"
     end
 
-    test "runtime presets can override built-in presets" do
-      # Register a preset with same name as built-in
+    test "built-in presets take precedence over runtime registration" do
+      # Registering a preset with the same name as a built-in is allowed,
+      # but get/1 resolves built-ins first
       custom = Config.new!(num_words: 10, separator: "_")
       :ok = Presets.register(:default, custom)
 
-      # Built-in should still take precedence
       config = Presets.get(:default)
       assert config.num_words == 3
     end
@@ -196,5 +196,79 @@ defmodule ExkPasswd.Config.PresetsTest do
         assert config.meta[:description]
       end
     end
+  end
+end
+
+defmodule ExkPasswd.Config.PresetsWithoutRegistryTest do
+  @moduledoc false
+
+  # These tests stop the registry Agent to exercise the degraded path, so they
+  # must not run concurrently with tests that use it.
+  use ExUnit.Case, async: false
+
+  alias ExkPasswd.Config
+  alias ExkPasswd.Config.Presets
+
+  setup do
+    # Remove any test-supervised registry, then stop the global one from
+    # test_helper so no registry is running during the test
+    _ = stop_supervised(Presets)
+
+    if pid = Process.whereis(Presets) do
+      Agent.stop(pid)
+    end
+
+    on_exit(fn ->
+      # Restore the global registry for subsequent tests. Agent.start/2 (not
+      # start_link/1) because on_exit runs in a short-lived process and a
+      # linked agent would die with it.
+      case Agent.start(fn -> %{} end, name: Presets) do
+        {:ok, _} -> :ok
+        {:error, {:already_started, _}} -> :ok
+      end
+    end)
+
+    :ok
+  end
+
+  test "get/1 resolves built-in presets without the registry" do
+    assert %Config{num_words: 5} = Presets.get(:xkcd)
+    assert %Config{} = Presets.get("wifi")
+  end
+
+  test "get/1 returns nil for unknown presets instead of exiting" do
+    assert is_nil(Presets.get(:nonexistent))
+    assert is_nil(Presets.get("nonexistent"))
+  end
+
+  test "list/0 returns built-in presets only" do
+    assert Enum.sort(Presets.list()) ==
+             Enum.sort([:default, :web32, :web16, :wifi, :apple_id, :security, :xkcd])
+  end
+
+  test "register/2 raises with supervision tree instructions" do
+    custom = Config.new!(num_words: 4)
+
+    assert_raise RuntimeError, ~r/supervision tree/, fn ->
+      Presets.register(:needs_agent, custom)
+    end
+  end
+
+  test "register/3 raises with supervision tree instructions" do
+    assert_raise RuntimeError, ~r/supervision tree/, fn ->
+      Presets.register(:needs_agent, :xkcd, num_words: 7)
+    end
+  end
+
+  test "ExkPasswd.generate/1 raises ArgumentError for unknown preset names" do
+    assert_raise ArgumentError, ~r/[Uu]nknown preset/, fn ->
+      ExkPasswd.generate(:no_such_preset)
+    end
+  end
+
+  test "ExkPasswd.generate/1 works with built-in presets" do
+    password = ExkPasswd.generate(:xkcd)
+    assert is_binary(password)
+    assert password != ""
   end
 end

@@ -5,6 +5,22 @@ defmodule ExkPasswd.Config.Presets do
   Built-in presets are pre-validated at compile time for zero runtime overhead.
   Custom presets can be registered at runtime for application-specific configurations.
 
+  ## Setup
+
+  Built-in presets work without any setup. Registering runtime presets requires
+  the registry Agent, so add it to your application's supervision tree:
+
+      def start(_type, _args) do
+        children = [
+          {ExkPasswd.Config.Presets, []}
+        ]
+
+        Supervisor.start_link(children, strategy: :one_for_one)
+      end
+
+  Without the Agent, `get/1` and `list/0` still work (resolving built-in presets
+  only) while `register/2` and `register/3` raise with setup instructions.
+
   ## Built-in Presets
 
   - `:default` - Balanced security and memorability (~59 bits entropy)
@@ -253,6 +269,7 @@ defmodule ExkPasswd.Config.Presets do
   """
   @spec register(atom(), Config.t()) :: :ok
   def register(name, %Config{} = config) when is_atom(name) do
+    ensure_registry_running!()
     Agent.update(__MODULE__, &Map.put(&1, name, config))
   end
 
@@ -308,7 +325,14 @@ defmodule ExkPasswd.Config.Presets do
   @spec list() :: [atom()]
   def list do
     builtin = Map.keys(@builtin_presets)
-    runtime = Agent.get(__MODULE__, &Map.keys(&1))
+
+    runtime =
+      if registry_running?() do
+        Agent.get(__MODULE__, &Map.keys(&1))
+      else
+        []
+      end
+
     Enum.uniq(builtin ++ runtime)
   end
 
@@ -331,10 +355,35 @@ defmodule ExkPasswd.Config.Presets do
   end
 
   defp get_runtime(name) when is_atom(name) do
-    Agent.get(__MODULE__, &Map.get(&1, name))
+    if registry_running?() do
+      Agent.get(__MODULE__, &Map.get(&1, name))
+    else
+      nil
+    end
   end
 
   defp get_runtime(_), do: nil
+
+  defp registry_running?, do: Process.whereis(__MODULE__) != nil
+
+  defp ensure_registry_running! do
+    if !registry_running?() do
+      raise RuntimeError, """
+      the ExkPasswd.Config.Presets registry is not running.
+
+      Registering runtime presets requires the registry Agent. Add it to your
+      application's supervision tree:
+
+          children = [
+            {ExkPasswd.Config.Presets, []}
+          ]
+
+      Built-in presets work without the registry.
+      """
+    end
+
+    :ok
+  end
 
   defp try_string_to_atom(string) do
     String.to_existing_atom(string)
