@@ -62,7 +62,7 @@ curl -sL https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt \
 
 ### Test Suite
 
-Run comprehensive security tests:
+Run the security test suite:
 
 ```bash
 # All security tests

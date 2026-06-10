@@ -436,7 +436,7 @@ ExkPasswd.generate_parallel(1000)
 
 #### Entropy Calculation
 
-Analyze password strength with comprehensive entropy analysis:
+Analyze password strength with blind and seen entropy metrics:
 
 ```elixir
 password = "45?clever?FOREST?mountain?89"
@@ -497,7 +497,7 @@ ExkPasswd.generate(config)
 #=> "45?cl3v3r?FOREST?m0unt@!n?89"
 
 # Example 1: Japanese Romaji Transform (Built-in)
-# ExkPasswd includes a production-ready Modified Hepburn romanization transform
+# ExkPasswd includes a Modified Hepburn romanization transform
 # with full support for modern Japanese including Katakana loanwords
 
 # Load Japanese dictionary (Hiragana and Katakana)

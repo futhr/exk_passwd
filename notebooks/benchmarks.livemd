@@ -9,7 +9,7 @@ Mix.install([
 
 ## Introduction
 
-This notebook provides comprehensive performance benchmarks for ExkPasswd.
+This notebook measures ExkPasswd performance: generation latency, batch throughput, and dictionary lookups.
 
 **Key Performance Features:**
 

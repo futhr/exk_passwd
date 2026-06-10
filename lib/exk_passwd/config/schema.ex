@@ -4,7 +4,7 @@ defmodule ExkPasswd.Config.Schema do
 
   ## Overview
 
-  This module provides comprehensive validation for all `ExkPasswd.Config` fields,
+  This module validates all `ExkPasswd.Config` fields,
   ensuring configurations are valid before password generation begins. Invalid
   configurations fail fast with descriptive error messages.
 

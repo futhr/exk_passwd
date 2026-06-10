@@ -89,7 +89,7 @@ defmodule ExkPasswd.Transform.Pinyin do
 
   @type t :: %__MODULE__{}
 
-  # Comprehensive Pinyin mapping based on Jun Da's frequency list
+  # Pinyin mapping based on Jun Da's frequency list
   # Top 500+ most frequent simplified Chinese characters
   # Using keyboard-compatible conventions: v for ü after l/n
   @pinyin_map_data %{

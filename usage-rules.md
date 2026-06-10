@@ -406,4 +406,4 @@ ExkPasswd (main API)
 
 ## Documentation
 
-All public functions have comprehensive documentation with examples. Use `h ExkPasswd.generate` in IEx or visit HexDocs for full reference.
+All public functions are documented with examples. Use `h ExkPasswd.generate` in IEx or visit HexDocs for full reference.

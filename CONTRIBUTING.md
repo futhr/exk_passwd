@@ -185,7 +185,7 @@ end
 * Use pattern matching over conditionals when possible
 * Keep functions under 20 lines
 * Use descriptive variable and function names
-* Write comprehensive `@moduledoc` and `@doc` documentation
+* Write `@moduledoc` and `@doc` documentation for every public module and function
 * Include doctests in documentation
 * Prefer pipelines over nested calls
 

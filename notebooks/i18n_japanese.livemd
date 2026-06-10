@@ -237,7 +237,7 @@ IO.puts("\n💡 These passwords use modern Japanese vocabulary that tech users w
 
 ## Mixed Script Support
 
-ExkPasswd handles both Hiragana and Katakana seamlessly:
+ExkPasswd handles Hiragana and Katakana in the same word list:
 
 ```elixir
 # Dictionary with mixed scripts

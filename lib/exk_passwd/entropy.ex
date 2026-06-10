@@ -2,7 +2,7 @@ defmodule ExkPasswd.Entropy do
   @moduledoc """
   Password entropy calculation and strength analysis.
 
-  This module provides comprehensive entropy metrics to assess password strength
+  This module provides entropy metrics to assess password strength
   from two perspectives:
 
   - **Blind Entropy**: Assumes attacker uses brute force with no knowledge of
@@ -60,7 +60,7 @@ defmodule ExkPasswd.Entropy do
   @guesses_per_second 1_000_000_000
 
   @doc """
-  Calculate comprehensive entropy metrics for a password and settings.
+  Calculate blind and seen entropy metrics for a password and settings.
 
   Returns detailed entropy analysis including both blind and seen entropy,
   strength status, crack time estimates, and breakdown of entropy sources.

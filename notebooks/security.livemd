@@ -46,7 +46,7 @@ IO.puts("Crack time (seen): #{entropy_result.seen_crack_time}")
 
 ## Strength Analysis
 
-Get a comprehensive strength analysis:
+Get a strength analysis:
 
 ```elixir
 config = ExkPasswd.Config.Presets.get(:security)

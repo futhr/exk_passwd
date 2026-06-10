@@ -11,7 +11,7 @@ ExkPasswd is an Elixir library for generating secure, memorable passwords using 
 - Simplicity: Keep the API clean and intuitive
 - Zero dependencies: Use only Elixir stdlib and :crypto
 - Well-tested: Maintain 95%+ test coverage
-- Well-documented: All public APIs must have comprehensive docs
+- Well-documented: All public APIs must have docs with examples
 
 ## Code Quality Standards
 
