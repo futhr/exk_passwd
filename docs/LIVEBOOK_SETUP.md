@@ -157,7 +157,7 @@ ExkPasswd is optimized for speed:
 - **Dictionary lookups:** O(1) via tuple-based indexing
 - **Case transforms:** Pre-computed variants (3x faster)
 - **Batch generation:** Buffered random bytes (1.5-3x faster for large batches)
-- **Custom dictionaries:** ETS-backed for O(1) lookups
+- **Custom dictionaries:** `:persistent_term`-backed for zero-copy reads
 
 Benchmarks verify these characteristics remain true as the codebase evolves.
 

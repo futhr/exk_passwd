@@ -32,7 +32,7 @@ lib/exk_passwd/
 │   ├── case_transform.ex
 │   └── substitution.ex
 ├── config.ex            # Configuration struct (schema-driven)
-├── dictionary.ex        # ETS-backed word storage (O(1) lookups)
+├── dictionary.ex        # Word storage (compile-time EFF list, persistent_term custom dicts)
 ├── password.ex          # Core password generation engine
 ├── batch.ex             # Optimized batch generation
 ├── token.ex             # Random number/symbol generation
@@ -61,7 +61,7 @@ IO.inspect(config, label: "Config struct")
 ```
 
 ```elixir
-# 2. Dictionary (ETS-backed for custom dictionaries, compile-time for :eff)
+# 2. Dictionary (persistent_term for custom dictionaries, compile-time for :eff)
 IO.puts("Dictionary size: #{ExkPasswd.Dictionary.size()}")
 IO.puts("Min word length: #{ExkPasswd.Dictionary.min_length()}")
 IO.puts("Max word length: #{ExkPasswd.Dictionary.max_length()}")

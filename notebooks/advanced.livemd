@@ -474,7 +474,7 @@ IO.puts("Bilingual password: #{bilingual_pwd}")
 
 ### Performance with Custom Dictionaries
 
-Custom dictionaries use ETS for O(1) lookups:
+Custom dictionaries use `:persistent_term` for zero-copy lookups:
 
 ```elixir
 # Load large dictionary and benchmark
@@ -488,7 +488,7 @@ end)
 IO.puts("Total count: #{Enum.count(passwords)}")
 
 IO.puts("100 passwords from 10k-word dictionary: #{time_us / 1000}ms")
-IO.puts("Performance: O(1) ETS lookups maintain constant time regardless of dictionary size")
+IO.puts("Performance: zero-copy persistent_term lookups stay constant-time regardless of dictionary size")
 ```
 
 ## Next Steps

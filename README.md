@@ -10,7 +10,7 @@
 [![Hex.pm](https://img.shields.io/hexpm/v/exk_passwd.svg)](https://hex.pm/packages/exk_passwd)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-purple.svg)](https://hexdocs.pm/exk_passwd)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.18-blueviolet.svg)](https://elixir-lang.org)
+[![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.16-blueviolet.svg)](https://elixir-lang.org)
 
 ---
 
@@ -74,7 +74,7 @@ Word-based passwords like `correct-horse-battery-staple` offer:
 - **Entropy Analysis** - Blind and seen entropy calculations
 - **Strength Feedback** - Password strength reports
 - **Character Substitutions** - Leetspeak-style transformations for additional entropy
-- **Custom Dictionaries** - Load and use your own word lists via ETS
+- **Custom Dictionaries** - Load and use your own word lists at runtime
 - **Batch Generation** - Optimized generation of multiple passwords
 - **Parallel Generation** - Multi-core support for large batches
 - **Pre-computed Transformations** - Cached case transformations for efficiency
@@ -368,7 +368,16 @@ ExkPasswd.Config.Presets.get(:nonexistent)
 
 #### `ExkPasswd.Config.Presets.register/2`
 
-Register a custom preset at runtime.
+Register a custom preset at runtime. Runtime registration requires the preset
+registry in your application's supervision tree (built-in presets work without
+it):
+
+```elixir
+# In your application supervisor
+children = [
+  {ExkPasswd.Config.Presets, []}
+]
+```
 
 ```elixir
 custom = ExkPasswd.Config.new!(num_words: 8, separator: "_")

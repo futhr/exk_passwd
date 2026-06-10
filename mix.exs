@@ -9,7 +9,6 @@ defmodule ExkPasswd.MixProject do
       app: :exk_passwd,
       version: @version,
       elixir: "~> 1.16",
-      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
@@ -43,7 +42,7 @@ defmodule ExkPasswd.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :crypto]
+      extra_applications: [:crypto]
     ]
   end
 
@@ -58,9 +57,6 @@ defmodule ExkPasswd.MixProject do
       ]
     ]
   end
-
-  defp elixirc_paths(:test), do: ["lib"]
-  defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
     [

@@ -139,7 +139,7 @@
           # ━━━ Not suitable for shared-state tests ━━━
           #
           {Credo.Check.Refactor.PassAsyncInTestCases,
-           "many tests share ETS state and cannot run async"},
+           "many tests share global dictionary/registry state and cannot run async"},
 
           #
           # ━━━ Too opinionated for this project ━━━

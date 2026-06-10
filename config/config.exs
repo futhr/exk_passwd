@@ -1,13 +1,8 @@
 import Config
 
-# Configuration for ExkPasswd
-# This is a library, so most configuration is done at runtime via Settings structs
-
-config :exk_passwd,
-  # Default password generation settings
-  default_length: 16,
-  min_length: 8,
-  max_length: 128
+# ExkPasswd is a library: all generation settings are passed explicitly via
+# ExkPasswd.Config structs, never read from application config. This file only
+# configures local development tooling.
 
 # Configure logger for minimal output
 config :logger,

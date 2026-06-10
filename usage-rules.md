@@ -138,6 +138,10 @@ ExkPasswd.Config.Presets.all()
 
 ### Register Custom Presets
 
+Runtime registration requires the preset registry in the application's
+supervision tree (`{ExkPasswd.Config.Presets, []}`); built-in presets work
+without it.
+
 ```elixir
 # Register a new preset
 custom = ExkPasswd.Config.new!(num_words: 8, separator: "_")
@@ -154,13 +158,20 @@ ExkPasswd.generate(:super_strong)
 
 ### Custom Dictionaries
 
+Custom dictionaries are stored in `:persistent_term`: they survive the loading
+process and reads are zero-copy, but each load triggers a global GC scan, so
+load once at application start rather than in hot paths.
+
 ```elixir
-# Load custom word list
+# Load custom word list (once, at startup)
 ExkPasswd.Dictionary.load_custom(:spanish, ["casa", "perro", "gato", "libro"])
 
 # Use custom dictionary
 config = ExkPasswd.Config.new!(dictionary: :spanish, num_words: 3)
 ExkPasswd.generate(config)
+
+# Remove when no longer needed
+ExkPasswd.Dictionary.delete_custom(:spanish)
 ```
 
 ### Transform Protocol (Extensibility)

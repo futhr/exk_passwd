@@ -157,7 +157,7 @@ lib/
 │   │   ├── presets.ex         # Built-in presets (Agent-based)
 │   │   └── schema.ex          # Configuration validation
 │   ├── password.ex            # Core password generation engine
-│   ├── dictionary.ex          # ETS-backed word storage (O(1) lookups)
+│   ├── dictionary.ex          # Word storage (compile-time EFF list, persistent_term custom dicts)
 │   ├── batch.ex               # Optimized batch generation
 │   ├── token.ex               # Random number/symbol generation
 │   ├── buffer.ex              # Buffered random bytes for performance
