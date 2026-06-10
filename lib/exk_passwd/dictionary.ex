@@ -10,7 +10,7 @@ defmodule ExkPasswd.Dictionary do
   1. **Tuple-based storage**: Words stored as tuples for constant-time indexed access
   2. **Pre-transformed cases**: Separate uppercase/lowercase/capitalized variants
   3. **Pre-computed ranges**: Common word length ranges pre-computed at compile time
-  4. **Custom dictionary support**: Runtime ETS-based storage for user dictionaries
+  4. **Custom dictionary support**: Runtime `:persistent_term` storage for user dictionaries
 
   ## Implementation
 
@@ -35,7 +35,12 @@ defmodule ExkPasswd.Dictionary do
   You can load custom dictionaries at runtime for specific use cases:
 
       ExkPasswd.Dictionary.load_custom(:spanish, ["casa", "perro", "gato", ...])
-      ExkPasswd.Dictionary.random_word_between(4, 8, :spanish)
+      ExkPasswd.Dictionary.random_word_between(4, 8, :none, :spanish)
+
+  Custom dictionaries are stored in `:persistent_term`, so they survive the
+  process that loaded them and reads are zero-copy. Loading (or deleting) a
+  dictionary triggers a global GC scan — load dictionaries once at application
+  start rather than in hot paths. Use `delete_custom/1` to remove one.
 
   ## Examples
 
@@ -123,42 +128,47 @@ defmodule ExkPasswd.Dictionary do
   @range_tuples_upper @to_range_tuples.(@words_by_length_upper)
   @range_tuples_capital @to_range_tuples.(@words_by_length_capital)
 
-  # ETS table name for custom dictionaries
-  @ets_table :exk_passwd_custom_dicts
-
   @doc """
-  Initialize ETS table for custom dictionaries.
+  No-op kept for backwards compatibility.
 
-  Called automatically when the application starts.
+  Earlier versions stored custom dictionaries in an ETS table that required
+  initialization. Custom dictionaries now live in `:persistent_term`, which
+  needs no setup, so calling this function is no longer necessary.
   """
+  @deprecated "Custom dictionaries no longer require initialization"
   @spec init() :: :ok
-  def init do
-    :ets.new(@ets_table, [:set, :public, :named_table, read_concurrency: true])
-    :ok
-  rescue
-    ArgumentError -> :ok
-  end
+  def init, do: :ok
 
   @doc """
   Load a custom dictionary for runtime use.
 
-  The dictionary will be stored in ETS and can be referenced by name
-  when generating passwords.
+  The dictionary is stored in `:persistent_term` and can be referenced by name
+  when generating passwords. Storage is process-independent: the dictionary
+  remains available even after the process that loaded it exits.
+
+  Loading a dictionary triggers a global GC scan (a property of
+  `:persistent_term` updates), so load dictionaries once at application start
+  rather than in hot paths.
 
   ## Parameters
 
   - `name` - Atom identifier for the dictionary
-  - `wordlist` - List of words (strings)
+  - `wordlist` - Non-empty list of non-empty words (strings)
 
   ## Examples
 
       iex> words = ["casa", "perro", "gato", "libro"]
       ...> ExkPasswd.Dictionary.load_custom(:spanish, words)
       :ok
+
+  Invalid word lists raise:
+
+      iex> ExkPasswd.Dictionary.load_custom(:bad, [])
+      ** (ArgumentError) wordlist must be a non-empty list of non-empty strings
   """
   @spec load_custom(atom(), [String.t()]) :: :ok
   def load_custom(name, wordlist) when is_atom(name) and is_list(wordlist) do
-    init()
+    validate_wordlist!(wordlist)
 
     {t_orig, r_orig} = build_variant(wordlist, & &1)
     {t_lower, r_lower} = build_variant(wordlist, &String.downcase/1)
@@ -181,7 +191,26 @@ defmodule ExkPasswd.Dictionary do
       }
     }
 
-    :ets.insert(@ets_table, {name, prepared})
+    :persistent_term.put(persistent_key(name), prepared)
+    :ok
+  end
+
+  @doc """
+  Delete a previously loaded custom dictionary.
+
+  Returns `:ok` whether or not the dictionary existed. Like `load_custom/2`,
+  this updates `:persistent_term` and triggers a global GC scan, so prefer
+  loading dictionaries once over repeated load/delete cycles.
+
+  ## Examples
+
+      iex> ExkPasswd.Dictionary.load_custom(:temporary, ["uno", "dos", "tres"])
+      ...> ExkPasswd.Dictionary.delete_custom(:temporary)
+      :ok
+  """
+  @spec delete_custom(atom()) :: :ok
+  def delete_custom(name) when is_atom(name) do
+    :persistent_term.erase(persistent_key(name))
     :ok
   end
 
@@ -237,6 +266,10 @@ defmodule ExkPasswd.Dictionary do
 
   Supports both default `:eff` dictionary and custom dictionaries.
 
+  Unknown custom dictionaries return `0` rather than raising. Callers such as
+  `ExkPasswd.Entropy` treat that as zero word entropy, which degrades
+  conservatively (entropy is understated, never overstated).
+
   ## Parameters
 
   - `min` - Minimum word length (inclusive)
@@ -262,15 +295,17 @@ defmodule ExkPasswd.Dictionary do
   def count_between(max, min, :eff), do: count_between(min, max, :eff)
 
   def count_between(min, max, dict_name) when is_atom(dict_name) do
-    case :ets.lookup(@ets_table, dict_name) do
-      [{^dict_name, data}] ->
+    case fetch_custom(dict_name) do
+      nil ->
+        # Unknown dictionaries count as empty rather than raising, so entropy
+        # calculations degrade conservatively (toward zero word entropy).
+        0
+
+      data ->
         case Map.get(data.ranges.original, {min, max}) do
           {_, count} -> count
           nil -> count_between_fallback(min, max, data.by_length.original)
         end
-
-      [] ->
-        0
     end
   end
 
@@ -319,6 +354,10 @@ defmodule ExkPasswd.Dictionary do
     range_tuples = get_range_tuples(case_transform)
 
     case Map.get(range_tuples, {min, max}) do
+      # Pre-computed bucket exists but holds no words: the range is genuinely empty
+      {_, 0} ->
+        nil
+
       {tuple, count} ->
         index = Random.integer(count)
         :erlang.element(index + 1, tuple)
@@ -336,12 +375,19 @@ defmodule ExkPasswd.Dictionary do
   # Custom dictionary support
   def random_word_between(min, max, case_transform, dict_name)
       when is_atom(dict_name) and dict_name != :eff do
-    case :ets.lookup(@ets_table, dict_name) do
-      [{^dict_name, data}] ->
+    case fetch_custom(dict_name) do
+      nil ->
+        nil
+
+      data ->
         case_key = case_transform_to_key(case_transform)
         ranges = get_in(data, [:ranges, case_key])
 
         case Map.get(ranges, {min, max}) do
+          # Pre-computed bucket exists but holds no words: the range is genuinely empty
+          {_, 0} ->
+            nil
+
           {tuple, count} ->
             index = Random.integer(count)
             :erlang.element(index + 1, tuple)
@@ -350,9 +396,6 @@ defmodule ExkPasswd.Dictionary do
             # Fallback: dynamically build tuple for uncommon ranges
             random_word_between_custom_fallback(min, max, case_key, data)
         end
-
-      [] ->
-        nil
     end
   end
 
@@ -504,6 +547,10 @@ defmodule ExkPasswd.Dictionary do
     range_tuples = get_range_tuples(case_transform)
 
     case Map.get(range_tuples, {min, max}) do
+      # Pre-computed bucket exists but holds no words: the range is genuinely empty
+      {_, 0} ->
+        {nil, random_state}
+
       {tuple, count} ->
         {index, new_state} = ExkPasswd.Buffer.random_integer(random_state, count)
         word = :erlang.element(index + 1, tuple)
@@ -522,12 +569,20 @@ defmodule ExkPasswd.Dictionary do
 
   def random_word_between_with_state(min, max, case_transform, dict_name, random_state)
       when is_atom(dict_name) and dict_name != :eff do
-    case :ets.lookup(@ets_table, dict_name) do
-      [{^dict_name, data}] ->
+    case fetch_custom(dict_name) do
+      nil ->
+        raise ArgumentError,
+              "Dictionary '#{dict_name}' not found. Load it first with load_custom/2"
+
+      data ->
         case_key = case_transform_to_key(case_transform)
         ranges = get_in(data, [:ranges, case_key])
 
         case Map.get(ranges, {min, max}) do
+          # Pre-computed bucket exists but holds no words: the range is genuinely empty
+          {_, 0} ->
+            {nil, random_state}
+
           {tuple, count} ->
             {index, new_state} = ExkPasswd.Buffer.random_integer(random_state, count)
             word = :erlang.element(index + 1, tuple)
@@ -537,10 +592,20 @@ defmodule ExkPasswd.Dictionary do
             word = random_word_between_custom_fallback(min, max, case_key, data)
             {word, random_state}
         end
-
-      [] ->
-        raise ArgumentError,
-              "Dictionary '#{dict_name}' not found. Load it first with load_custom/2"
     end
+  end
+
+  # Custom dictionaries are keyed per name so loads and deletes of one
+  # dictionary never touch the others.
+  defp persistent_key(name), do: {__MODULE__, name}
+
+  defp fetch_custom(name), do: :persistent_term.get(persistent_key(name), nil)
+
+  defp validate_wordlist!(wordlist) do
+    if wordlist == [] or Enum.any?(wordlist, &(not is_binary(&1) or &1 == "")) do
+      raise ArgumentError, "wordlist must be a non-empty list of non-empty strings"
+    end
+
+    :ok
   end
 end

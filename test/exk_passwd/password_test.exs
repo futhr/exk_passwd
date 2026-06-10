@@ -596,7 +596,6 @@ defmodule ExkPasswd.PasswordTest do
 
   describe "create/1 with invert case edge cases" do
     test "handles short words with invert" do
-      ExkPasswd.Dictionary.init()
       ExkPasswd.Dictionary.load_custom(:short_words, ["test", "word", "here", "four"])
 
       config =
@@ -730,13 +729,8 @@ defmodule ExkPasswd.PasswordTest do
     end
   end
 
-  describe "edge case: empty word with invert case" do
-    test "handles empty word in select_words_optimized with :invert" do
-      # This would test the nil case in String.next_codepoint
-      # In practice, dictionary shouldn't return empty strings, but we test the code path
-      ExkPasswd.Dictionary.init()
-      # Note: We can't easily force an empty word from dictionary, so we test indirectly
-      # The code has defensive nil handling at line 336: nil -> word
+  describe "edge case: invert case never sees an empty word" do
+    test "select_words_optimized with :invert produces a binary password" do
       config =
         Config.new!(
           case_transform: :invert,
@@ -748,8 +742,7 @@ defmodule ExkPasswd.PasswordTest do
       assert is_binary(password)
     end
 
-    test "handles empty word in select_words_with_state_by_case with :invert" do
-      # Similar for stateful version at line 234: nil -> word
+    test "select_words_with_state_by_case with :invert produces a binary password" do
       config =
         Config.new!(
           case_transform: :invert,
@@ -760,6 +753,56 @@ defmodule ExkPasswd.PasswordTest do
       state = Buffer.new(500)
       {password, _} = Password.create_with_state(config, state)
       assert is_binary(password)
+    end
+  end
+
+  describe "unsatisfiable dictionary configurations" do
+    test "create/1 raises ArgumentError for an unknown custom dictionary" do
+      config =
+        Config.new!(
+          num_words: 2,
+          dictionary: :never_loaded_dict,
+          word_length: 4..8,
+          word_length_bounds: 1..10
+        )
+
+      assert_raise ArgumentError, ~r/never_loaded_dict.*load_custom/s, fn ->
+        Password.create(config)
+      end
+    end
+
+    test "create/1 raises ArgumentError when no words exist in the requested range" do
+      ExkPasswd.Dictionary.load_custom(:gappy_dict, ["abc", "abcdefgh"])
+
+      config =
+        Config.new!(
+          num_words: 2,
+          dictionary: :gappy_dict,
+          word_length: 4..5,
+          word_length_bounds: 1..10
+        )
+
+      assert_raise ArgumentError, ~r/gappy_dict.*word_length 4\.\.5/s, fn ->
+        Password.create(config)
+      end
+    end
+
+    test "create_with_state/2 raises ArgumentError when no words exist in the requested range" do
+      ExkPasswd.Dictionary.load_custom(:gappy_dict_state, ["abc", "abcdefgh"])
+
+      config =
+        Config.new!(
+          num_words: 2,
+          dictionary: :gappy_dict_state,
+          word_length: 4..5,
+          word_length_bounds: 1..10
+        )
+
+      state = Buffer.new(500)
+
+      assert_raise ArgumentError, ~r/gappy_dict_state.*word_length 4\.\.5/s, fn ->
+        Password.create_with_state(config, state)
+      end
     end
   end
 end

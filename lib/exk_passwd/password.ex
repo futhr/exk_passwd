@@ -151,14 +151,7 @@ defmodule ExkPasswd.Password do
     index = config.num_words - remaining
     case_variant = if rem(index, 2) == 0, do: :lower, else: :upper
 
-    {word, random_state} =
-      Dictionary.random_word_between_with_state(
-        config.word_length.first,
-        config.word_length.last,
-        case_variant,
-        config.dictionary,
-        random_state
-      )
+    {word, random_state} = fetch_word_with_state(config, case_variant, random_state)
 
     select_words_with_state_by_case(:alternate, config, random_state, remaining - 1, [
       word | acc
@@ -169,50 +162,24 @@ defmodule ExkPasswd.Password do
     {is_upper, random_state} = Buffer.random_boolean(random_state)
     case_variant = if is_upper, do: :upper, else: :lower
 
-    {word, random_state} =
-      Dictionary.random_word_between_with_state(
-        config.word_length.first,
-        config.word_length.last,
-        case_variant,
-        config.dictionary,
-        random_state
-      )
+    {word, random_state} = fetch_word_with_state(config, case_variant, random_state)
 
     select_words_with_state_by_case(:random, config, random_state, remaining - 1, [word | acc])
   end
 
   # Handle :invert case separately as it requires post-processing
   defp select_words_with_state_by_case(:invert, config, random_state, remaining, acc) do
-    {word, random_state} =
-      Dictionary.random_word_between_with_state(
-        config.word_length.first,
-        config.word_length.last,
-        :none,
-        config.dictionary,
-        random_state
-      )
-
-    # Invert case: first letter lowercase, rest uppercase
-    # Dictionary words are guaranteed non-empty, so next_codepoint always succeeds
-    {head, rest} = String.next_codepoint(word)
-    inverted_word = String.downcase(head) <> String.upcase(rest)
+    {word, random_state} = fetch_word_with_state(config, :none, random_state)
 
     select_words_with_state_by_case(:invert, config, random_state, remaining - 1, [
-      inverted_word | acc
+      invert_case(word) | acc
     ])
   end
 
   # Consolidated handler for simple case transforms that map directly to dictionary variants
   defp select_words_with_state_by_case(case_transform, config, random_state, remaining, acc)
        when case_transform in [:capitalize, :upper, :lower, :none] do
-    {word, random_state} =
-      Dictionary.random_word_between_with_state(
-        config.word_length.first,
-        config.word_length.last,
-        case_transform,
-        config.dictionary,
-        random_state
-      )
+    {word, random_state} = fetch_word_with_state(config, case_transform, random_state)
 
     select_words_with_state_by_case(case_transform, config, random_state, remaining - 1, [
       word | acc
@@ -225,13 +192,7 @@ defmodule ExkPasswd.Password do
     # Alternate between lower and upper case words
     for i <- 0..(config.num_words - 1) do
       case_variant = if rem(i, 2) == 0, do: :lower, else: :upper
-
-      Dictionary.random_word_between(
-        config.word_length.first,
-        config.word_length.last,
-        case_variant,
-        config.dictionary
-      )
+      fetch_word(config, case_variant)
     end
   end
 
@@ -239,31 +200,14 @@ defmodule ExkPasswd.Password do
     # Each word randomly upper or lower
     for _ <- 1..config.num_words do
       case_variant = if Random.boolean(), do: :upper, else: :lower
-
-      Dictionary.random_word_between(
-        config.word_length.first,
-        config.word_length.last,
-        case_variant,
-        config.dictionary
-      )
+      fetch_word(config, case_variant)
     end
   end
 
   # Handle :invert case separately as it requires post-processing
   defp select_words_optimized(%Config{case_transform: :invert} = config) do
     for _ <- 1..config.num_words do
-      word =
-        Dictionary.random_word_between(
-          config.word_length.first,
-          config.word_length.last,
-          :none,
-          config.dictionary
-        )
-
-      # Invert case: first letter lowercase, rest uppercase
-      # Dictionary words are guaranteed non-empty, so next_codepoint always succeeds
-      {head, rest} = String.next_codepoint(word)
-      String.downcase(head) <> String.upcase(rest)
+      invert_case(fetch_word(config, :none))
     end
   end
 
@@ -271,13 +215,49 @@ defmodule ExkPasswd.Password do
   defp select_words_optimized(%Config{case_transform: case_transform} = config)
        when case_transform in [:capitalize, :upper, :lower, :none] do
     for _ <- 1..config.num_words do
-      Dictionary.random_word_between(
+      fetch_word(config, case_transform)
+    end
+  end
+
+  # Fetch a word and fail loudly when the dictionary cannot satisfy the config,
+  # instead of letting a nil word crash later with an unrelated error.
+  defp fetch_word(config, case_variant) do
+    Dictionary.random_word_between(
+      config.word_length.first,
+      config.word_length.last,
+      case_variant,
+      config.dictionary
+    )
+    |> validate_word!(config)
+  end
+
+  defp fetch_word_with_state(config, case_variant, random_state) do
+    {word, new_state} =
+      Dictionary.random_word_between_with_state(
         config.word_length.first,
         config.word_length.last,
-        case_transform,
-        config.dictionary
+        case_variant,
+        config.dictionary,
+        random_state
       )
-    end
+
+    {validate_word!(word, config), new_state}
+  end
+
+  defp validate_word!(nil, config) do
+    raise ArgumentError,
+          "no words available in dictionary #{inspect(config.dictionary)} for word_length " <>
+            "#{config.word_length.first}..#{config.word_length.last}. Load the dictionary " <>
+            "with ExkPasswd.Dictionary.load_custom/2 or adjust word_length."
+  end
+
+  defp validate_word!(word, _), do: word
+
+  # Invert case: first letter lowercase, rest uppercase.
+  # Dictionary words are validated non-empty, so next_codepoint always succeeds.
+  defp invert_case(word) do
+    {head, rest} = String.next_codepoint(word)
+    String.downcase(head) <> String.upcase(rest)
   end
 
   defp add_digits(password, config, separator) do

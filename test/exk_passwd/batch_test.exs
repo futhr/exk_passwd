@@ -107,7 +107,6 @@ defmodule ExkPasswd.BatchTest do
     test "handles collisions during unique generation" do
       # Use single-word dictionary to guarantee collisions
       # Only 1 possible password means every attempt after first is collision
-      ExkPasswd.Dictionary.init()
       ExkPasswd.Dictionary.load_custom(:single_word, ["test"])
 
       config =

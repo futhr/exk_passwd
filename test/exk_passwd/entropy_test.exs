@@ -155,7 +155,6 @@ defmodule ExkPasswd.EntropyTest do
     end
 
     test "handles config with atom dictionary" do
-      ExkPasswd.Dictionary.init()
       # :eff is the default dictionary
       config = Config.new!(num_words: 3, dictionary: :eff)
       result = Entropy.calculate_seen_detailed(config)
@@ -163,7 +162,6 @@ defmodule ExkPasswd.EntropyTest do
     end
 
     test "handles config with custom dictionary" do
-      ExkPasswd.Dictionary.init()
       ExkPasswd.Dictionary.load_custom(:test_entropy_dict, ["apple", "banana", "cherry", "date"])
 
       config =
@@ -435,8 +433,6 @@ defmodule ExkPasswd.EntropyTest do
     end
 
     test "handles config with custom dictionary atom" do
-      # Initialize ETS table and load a custom dictionary
-      ExkPasswd.Dictionary.init()
       words = ["alpha", "bravo", "charlie", "delta", "echo"]
       ExkPasswd.Dictionary.load_custom(:test_entropy_dict, words)
 
@@ -482,22 +478,19 @@ defmodule ExkPasswd.EntropyTest do
       assert result > 0
     end
 
-    test "handles empty custom dictionary" do
-      # Load an empty dictionary
-      ExkPasswd.Dictionary.load_custom(:empty_dict, [])
-
+    test "handles a dictionary that was never loaded" do
       config =
         Config.new!(
           num_words: 2,
           word_length: 4..8,
           separator: "-",
-          dictionary: :empty_dict
+          dictionary: :never_loaded_entropy_dict
         )
 
       result = Entropy.calculate_seen(config)
-      # Should handle zero word count gracefully (word entropy = 0, but other entropy may exist)
+      # Unknown dictionaries count as zero words, so word entropy degrades
+      # conservatively to 0 while separator/digit/padding entropy remain
       assert is_float(result)
-      # Result includes separator entropy, digit entropy, etc. - just verify it doesn't crash
       assert result >= 0.0
     end
   end

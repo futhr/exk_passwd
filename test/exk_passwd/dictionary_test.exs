@@ -6,18 +6,76 @@ defmodule ExkPasswd.DictionaryTest do
 
   alias ExkPasswd.{Buffer, Dictionary}
 
-  setup_all do
-    # Ensure ETS table is initialized
-    Dictionary.init()
-    :ok
+  describe "init/0" do
+    test "remains a safe no-op for backwards compatibility" do
+      # Called via apply/3 to avoid the compile-time deprecation warning
+      assert apply(Dictionary, :init, []) == :ok
+      assert apply(Dictionary, :init, []) == :ok
+    end
   end
 
-  describe "init/0" do
-    test "initializes ETS table" do
-      # Call init and verify table exists
-      Dictionary.init()
-      tables = :ets.all()
-      assert :exk_passwd_custom_dicts in tables
+  describe "custom dictionary storage" do
+    test "survives the death of the process that loaded it" do
+      Task.async(fn ->
+        Dictionary.load_custom(:loaded_by_dead_process, ["uno", "dos", "tres", "cuatro"])
+      end)
+      |> Task.await()
+
+      word = Dictionary.random_word_between(3, 6, :none, :loaded_by_dead_process)
+      assert word in ["uno", "dos", "tres", "cuatro"]
+    end
+
+    test "delete_custom/1 removes a loaded dictionary" do
+      Dictionary.load_custom(:short_lived, ["uno", "dos", "tres"])
+      assert Dictionary.count_between(3, 4, :short_lived) == 3
+
+      assert Dictionary.delete_custom(:short_lived) == :ok
+      assert Dictionary.count_between(3, 4, :short_lived) == 0
+      assert is_nil(Dictionary.random_word_between(3, 4, :none, :short_lived))
+    end
+
+    test "delete_custom/1 is idempotent for unknown dictionaries" do
+      assert Dictionary.delete_custom(:was_never_loaded) == :ok
+    end
+
+    test "load_custom/2 rejects an empty wordlist" do
+      assert_raise ArgumentError, ~r/non-empty list/, fn ->
+        Dictionary.load_custom(:invalid_empty, [])
+      end
+    end
+
+    test "load_custom/2 rejects empty-string and non-string entries" do
+      assert_raise ArgumentError, ~r/non-empty strings/, fn ->
+        Dictionary.load_custom(:invalid_blank, ["valid", ""])
+      end
+
+      assert_raise ArgumentError, ~r/non-empty strings/, fn ->
+        Dictionary.load_custom(:invalid_atom_entry, ["valid", :oops])
+      end
+    end
+  end
+
+  describe "empty pre-computed range buckets" do
+    test "random_word_between/4 returns nil for a gap range instead of crashing" do
+      # No words of length 4 or 5: the {4, 5} bucket is pre-computed but empty
+      Dictionary.load_custom(:gap_bucket_dict, ["abc", "abcdefgh"])
+
+      assert is_nil(Dictionary.random_word_between(4, 5, :none, :gap_bucket_dict))
+      assert is_nil(Dictionary.random_word_between(4, 5, :capitalize, :gap_bucket_dict))
+    end
+
+    test "random_word_between_with_state/5 returns {nil, state} for a gap range" do
+      Dictionary.load_custom(:gap_bucket_state_dict, ["abc", "abcdefgh"])
+      state = Buffer.new(100)
+
+      assert {nil, ^state} =
+               Dictionary.random_word_between_with_state(
+                 4,
+                 5,
+                 :none,
+                 :gap_bucket_state_dict,
+                 state
+               )
     end
   end
 
@@ -327,13 +385,10 @@ defmodule ExkPasswd.DictionaryTest do
       assert word in words2
     end
 
-    test "handles empty word list" do
-      result = Dictionary.load_custom(:empty_dict, [])
-      assert result == :ok
-
-      # Requesting word from empty dict should return empty string or handle gracefully
-      count = Dictionary.count_between(1, 10, :empty_dict)
-      assert count == 0
+    test "rejects an empty word list" do
+      assert_raise ArgumentError, ~r/non-empty list/, fn ->
+        Dictionary.load_custom(:empty_dict, [])
+      end
     end
 
     test "stores different case variants" do
@@ -519,13 +574,14 @@ defmodule ExkPasswd.DictionaryTest do
     end
   end
 
-  describe "init/0 idempotency" do
-    test "calling init multiple times is safe" do
-      # First call creates table
-      Dictionary.init()
-      # Second call should return :ok without error
-      result = Dictionary.init()
-      assert result == :ok
+  describe "load_custom/2 reload" do
+    test "reloading a dictionary replaces its contents" do
+      Dictionary.load_custom(:reloaded_dict, ["aaa", "bbb"])
+      assert Dictionary.count_between(3, 3, :reloaded_dict) == 2
+
+      Dictionary.load_custom(:reloaded_dict, ["cccc"])
+      assert Dictionary.count_between(3, 3, :reloaded_dict) == 0
+      assert Dictionary.count_between(4, 4, :reloaded_dict) == 1
     end
   end
 

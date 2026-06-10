@@ -4,12 +4,6 @@ defmodule ExkPasswd.EdgeCaseTest do
   use ExUnit.Case
 
   describe "Dictionary.random_word_between/4 with custom dictionary" do
-    setup do
-      # Initialize ETS table if not already done
-      ExkPasswd.Dictionary.init()
-      :ok
-    end
-
     test "returns nil for uncommon range in custom dictionary" do
       # Load a custom dict with limited word lengths
       ExkPasswd.Dictionary.load_custom(:test_dict_range, ["short", "words", "only"])
@@ -33,14 +27,19 @@ defmodule ExkPasswd.EdgeCaseTest do
     end
   end
 
-  describe "Dictionary.init/0 when already initialized" do
-    test "handles ETS table already existing" do
-      # First call creates table
-      ExkPasswd.Dictionary.init()
+  describe "ExkPasswd.generate/1 with unsatisfiable dictionaries" do
+    test "raises ArgumentError with a remedy for an unloaded custom dictionary" do
+      config =
+        ExkPasswd.Config.new!(
+          num_words: 3,
+          dictionary: :missing_in_action,
+          word_length: 4..8,
+          word_length_bounds: 1..10
+        )
 
-      # Second call should handle _table -> :ok path (line 166)
-      result = ExkPasswd.Dictionary.init()
-      assert result == :ok
+      assert_raise ArgumentError, ~r/missing_in_action.*load_custom/s, fn ->
+        ExkPasswd.generate(config)
+      end
     end
   end
 
