@@ -470,31 +470,26 @@ defmodule ExkPasswd.Dictionary do
   end
 
   # Helper function for building range tuples at runtime (for custom dictionaries)
+  # words_by_length is never empty: load_custom/2 validates wordlists up front
   defp build_range_tuples(words_by_length) do
-    # Determine actual min/max lengths in the dictionary
     lengths = Map.keys(words_by_length)
+    min_len = Enum.min(lengths)
+    max_len = Enum.max(lengths)
 
-    if Enum.empty?(lengths) do
-      %{}
-    else
-      min_len = Enum.min(lengths)
-      max_len = Enum.max(lengths)
+    # Precompute common ranges within the actual word lengths
+    # Limit to reasonable range size to avoid memory explosion
+    for min <- min_len..max_len,
+        max <- min..max_len,
+        max - min <= 10,
+        into: %{} do
+      words =
+        min..max
+        |> Enum.flat_map(fn len ->
+          # words_by_length contains lists from Enum.group_by
+          Map.get(words_by_length, len, [])
+        end)
 
-      # Precompute common ranges within the actual word lengths
-      # Limit to reasonable range size to avoid memory explosion
-      for min <- min_len..max_len,
-          max <- min..max_len,
-          max - min <= 10,
-          into: %{} do
-        words =
-          min..max
-          |> Enum.flat_map(fn len ->
-            # words_by_length contains lists from Enum.group_by
-            Map.get(words_by_length, len, [])
-          end)
-
-        {{min, max}, {List.to_tuple(words), length(words)}}
-      end
+      {{min, max}, {List.to_tuple(words), length(words)}}
     end
   end
 

@@ -85,7 +85,7 @@ The test suite simulates real attack scenarios:
 7. **Distribution analysis** - Word length, digits, case transforms
 8. **Parallel safety** - Process independence verification
 
-**Test Coverage**: 100% with 835 tests (136 doctests + 699 unit tests), all passing.
+**Test Coverage**: 100% with 859 tests (137 doctests + 722 unit tests), all passing.
 
 ## Security Considerations
 

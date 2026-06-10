@@ -77,6 +77,13 @@ defmodule ExkPasswd.DictionaryTest do
                  state
                )
     end
+
+    test "random_word_between_with_state/5 returns {nil, state} for an empty :eff range" do
+      state = Buffer.new(100)
+
+      assert {nil, ^state} =
+               Dictionary.random_word_between_with_state(10, 10, :none, :eff, state)
+    end
   end
 
   describe "all/0" do
