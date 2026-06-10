@@ -20,12 +20,17 @@ defmodule ExkPasswd.Dictionary do
 
   ## Word List Source
 
-  The word list uses the **EFF Large Wordlist** (7,826 words), developed by the
-  Electronic Frontier Foundation specifically for passphrase generation:
-  https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
+  The word list is the **EFF Large Wordlist** (7,772 of its 7,776 words),
+  developed by the Electronic Frontier Foundation specifically for passphrase
+  generation: https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases
+
+  The four hyphenated entries (`drop-down`, `felt-tip`, `t-shirt`, `yo-yo`)
+  are excluded so every word is strictly lowercase `a-z` and cannot collide
+  with separator characters. See `docs/SECURITY.md` for checksums and
+  provenance.
 
   This wordlist provides:
-  - **High entropy**: 7,826 words = ~12.93 bits per word
+  - **High entropy**: 7,772 words = ~12.92 bits per word
   - **Memorable words**: Common, easy-to-remember English words
   - **Typability**: No complex spellings or obscure words
   - **Safety**: No offensive or problematic words
@@ -45,7 +50,7 @@ defmodule ExkPasswd.Dictionary do
   ## Examples
 
       iex> ExkPasswd.Dictionary.size()
-      7826
+      7772
 
       iex> word = ExkPasswd.Dictionary.random_word_between(4, 8)
       ...> len = String.length(word)
@@ -161,10 +166,8 @@ defmodule ExkPasswd.Dictionary do
       ...> ExkPasswd.Dictionary.load_custom(:spanish, words)
       :ok
 
-  Invalid word lists raise:
-
-      iex> ExkPasswd.Dictionary.load_custom(:bad, [])
-      ** (ArgumentError) wordlist must be a non-empty list of non-empty strings
+  Empty word lists, empty strings, and non-string entries raise an
+  `ArgumentError`.
   """
   @spec load_custom(atom(), [String.t()]) :: :ok
   def load_custom(name, wordlist) when is_atom(name) and is_list(wordlist) do
@@ -234,7 +237,7 @@ defmodule ExkPasswd.Dictionary do
   ## Examples
 
       iex> ExkPasswd.Dictionary.size()
-      7826
+      7772
   """
   @spec size() :: pos_integer()
   def size, do: @word_count
@@ -256,7 +259,7 @@ defmodule ExkPasswd.Dictionary do
   ## Examples
 
       iex> ExkPasswd.Dictionary.max_length()
-      10
+      9
   """
   @spec max_length() :: pos_integer()
   def max_length, do: @max_length

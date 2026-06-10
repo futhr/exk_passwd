@@ -69,7 +69,7 @@ defmodule ExkPasswd.AdversarialTest do
 
       repetition_rate = word_repetitions / length(consecutive_pairs)
 
-      # Expected overlap ~0.015% for 3 words from 7826, allow up to 2%
+      # Expected overlap ~0.015% for 3 words from 7772, allow up to 2%
       assert repetition_rate < 0.02,
              "Consecutive passwords show correlation: #{Float.round(repetition_rate * 100, 1)}%"
     end

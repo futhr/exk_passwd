@@ -64,7 +64,7 @@ Word-based passwords like `correct-horse-battery-staple` offer:
 
 ### Core Features
 - **Cryptographically Secure** - Uses `:crypto.strong_rand_bytes/1` for all randomness
-- **EFF Large Wordlist** - 7,826 carefully curated words (12.9 bits entropy per word)
+- **EFF Large Wordlist** - 7,772 carefully curated words (12.9 bits entropy per word)
 - **Zero Runtime Dependencies** - Only uses Elixir stdlib and `:crypto`
 - **Multiple Presets** - 7 built-in presets for different use cases
 - **Fully Customizable** - Fine-grained control over all generation parameters
@@ -275,7 +275,9 @@ ExkPasswd's default preset generates passwords with **high entropy** while remai
 
 ### Dictionary & Security Model
 
-ExkPasswd uses the **EFF Large Wordlist** containing 7,826 carefully curated words:
+ExkPasswd uses the **EFF Large Wordlist** containing 7,772 carefully curated words
+(the canonical 7,776-word list minus its four hyphenated entries, so every word is
+strictly lowercase `a-z` — see [SECURITY.md](docs/SECURITY.md) for provenance):
 - **Memorability** - Common, recognizable English words
 - **Typability** - No complex spellings or rare words
 - **Length variety** - 3-9 characters per word

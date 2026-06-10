@@ -32,10 +32,31 @@ end
 
 ### Dictionary
 
-- Uses EFF Large Wordlist (7,826 words)
+- Uses the EFF Large Wordlist (7,772 words)
 - Pre-computed at compile time for O(1) access
 - All words verified reachable through statistical testing
 - No filtering bias detected
+
+#### Wordlist Provenance
+
+The shipped list (`priv/dict/eff_large.txt`) is derived from the canonical
+EFF Large Wordlist with a single, documented modification: the four
+hyphenated entries (`drop-down`, `felt-tip`, `t-shirt`, `yo-yo`) are removed
+so that every word is strictly lowercase `a-z` (3-9 characters) and cannot
+visually collide with separator characters. Removing 4 of 7,776 words
+changes per-word entropy by less than 0.001 bits (log2(7772) = 12.92).
+
+- Source: https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt
+- Source SHA-256: `addd35536511597a02fa0a9ff1e5284677b8883b83e986e43f15a3db996b903e`
+- Shipped SHA-256: `18586c092f641ecd1a471dd6ab35618ab69f0aa7483486424f7caf0996d06259`
+
+To audit, download the source list, strip the dice-roll column, drop the
+four hyphenated entries, and compare checksums:
+
+```sh
+curl -sL https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt \
+  | awk '{print $2}' | grep -E '^[a-z]+$' | shasum -a 256
+```
 
 ## Security Testing
 
@@ -73,7 +94,7 @@ The test suite simulates real attack scenarios:
 Theoretical entropy is calculated assuming:
 - Perfect uniform random selection
 - Known configuration parameters
-- EFF Large Wordlist (7,826 words)
+- EFF Large Wordlist (7,772 words)
 
 For 4-word password: ~52 bits of entropy (2^52 ≈ 4.5 quadrillion combinations)
 

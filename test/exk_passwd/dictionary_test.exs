@@ -38,12 +38,6 @@ defmodule ExkPasswd.DictionaryTest do
       assert Dictionary.delete_custom(:was_never_loaded) == :ok
     end
 
-    test "load_custom/2 rejects an empty wordlist" do
-      assert_raise ArgumentError, ~r/non-empty list/, fn ->
-        Dictionary.load_custom(:invalid_empty, [])
-      end
-    end
-
     test "load_custom/2 rejects empty-string and non-string entries" do
       assert_raise ArgumentError, ~r/non-empty strings/, fn ->
         Dictionary.load_custom(:invalid_blank, ["valid", ""])
@@ -56,6 +50,12 @@ defmodule ExkPasswd.DictionaryTest do
   end
 
   describe "empty pre-computed range buckets" do
+    test "random_word_between/4 returns nil for an empty :eff range" do
+      # The EFF list has no 10-letter words, but {10, 10} is a pre-computed bucket
+      assert is_nil(Dictionary.random_word_between(10, 10, :none, :eff))
+      assert Dictionary.count_between(10, 10, :eff) == 0
+    end
+
     test "random_word_between/4 returns nil for a gap range instead of crashing" do
       # No words of length 4 or 5: the {4, 5} bucket is pre-computed but empty
       Dictionary.load_custom(:gap_bucket_dict, ["abc", "abcdefgh"])
@@ -91,7 +91,7 @@ defmodule ExkPasswd.DictionaryTest do
   describe "size/0" do
     test "returns word count" do
       count = Dictionary.size()
-      assert count == 7826
+      assert count == 7772
     end
   end
 
@@ -386,8 +386,12 @@ defmodule ExkPasswd.DictionaryTest do
     end
 
     test "rejects an empty word list" do
+      # Built at runtime so the compiler's type checker does not flag the
+      # intentionally invalid literal call
+      empty_list = Enum.take(["word"], 0)
+
       assert_raise ArgumentError, ~r/non-empty list/, fn ->
-        Dictionary.load_custom(:empty_dict, [])
+        Dictionary.load_custom(:empty_dict, empty_list)
       end
     end
 

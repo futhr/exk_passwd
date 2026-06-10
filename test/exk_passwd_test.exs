@@ -57,8 +57,7 @@ defmodule ExkPasswdTest do
   describe "Config.Presets" do
     test "returns list of all presets" do
       presets = ExkPasswd.Config.Presets.all()
-      assert is_list(presets)
-      assert presets != []
+      assert length(presets) == 7
       assert Enum.all?(presets, &match?(%ExkPasswd.Config{}, &1))
     end
 

@@ -7,7 +7,7 @@ This document provides condensed guidance for AI agents working with ExkPasswd, 
 1. **Security First**: Always use cryptographically secure randomness via `:crypto.strong_rand_bytes/1`
 2. **Zero Dependencies**: Library uses only Elixir stdlib and `:crypto` module
 3. **Explicit Configuration**: Use Config structs, not application config
-4. **EFF Wordlist**: Uses 7,826-word EFF Large Wordlist for high entropy (12.9 bits/word)
+4. **EFF Wordlist**: Uses the 7,772-word EFF Large Wordlist for high entropy (12.9 bits/word)
 
 ## Primary API Functions
 
@@ -206,9 +206,9 @@ ExkPasswd.Dictionary.random_word_between(4, 8, :capitalize)
 ExkPasswd.Dictionary.random_word_between(4, 8, :upper, :eff)
 
 # Dictionary info
-ExkPasswd.Dictionary.size()         #=> 7826
+ExkPasswd.Dictionary.size()         #=> 7772
 ExkPasswd.Dictionary.min_length()   #=> 3
-ExkPasswd.Dictionary.max_length()   #=> 10
+ExkPasswd.Dictionary.max_length()   #=> 9
 ExkPasswd.Dictionary.count_between(4, 8, :eff)
 ```
 
