@@ -400,5 +400,65 @@ defmodule ExkPasswd.Transform.PinyinTest do
       assert ExkPasswd.Transform.apply(@transform, "吗", nil) == "ma"
       assert ExkPasswd.Transform.apply(@transform, "呢", nil) == "ne"
     end
+
+    test "tone-only homophones documented in the moduledoc all map to ma" do
+      # The moduledoc claims 妈麻马骂 all become "ma"
+      for char <- ["妈", "麻", "马", "骂"] do
+        assert ExkPasswd.Transform.apply(@transform, char, nil) == "ma"
+      end
+    end
+
+    test "polyphones use their most common reading consistently" do
+      # 乐 maps to "le" (as in 快乐), so 音乐 renders "yinle" rather than the
+      # linguistically correct "yinyue" — a documented limitation
+      assert ExkPasswd.Transform.apply(@transform, "快乐", nil) == "kuaile"
+      assert ExkPasswd.Transform.apply(@transform, "音乐", nil) == "yinle"
+      # 行 maps to "xing" (as in 旅行), 长 to "chang" (as in 长城)
+      assert ExkPasswd.Transform.apply(@transform, "旅行", nil) == "lvxing"
+      assert ExkPasswd.Transform.apply(@transform, "学习", nil) == "xuexi"
+    end
+  end
+
+  describe "documentation example coverage" do
+    test "every hanzi word quoted in the Chinese notebook romanizes to pure ASCII" do
+      notebook = Path.expand("../../../notebooks/i18n_chinese.livemd", __DIR__)
+
+      words =
+        notebook
+        |> File.read!()
+        |> then(&Regex.scan(~r/"([\p{Han}]+)"/u, &1, capture: :all_but_first))
+        |> List.flatten()
+        |> Enum.uniq()
+
+      # Guard against the scan regex rotting silently
+      assert length(words) >= 20
+
+      for word <- words do
+        result = ExkPasswd.Transform.apply(@transform, word, nil)
+
+        assert result =~ ~r/^[a-z]+$/,
+               "#{word} romanizes to #{inspect(result)}, which is not pure ASCII — " <>
+                 "add the missing character(s) to the Pinyin map"
+      end
+    end
+
+    test "every hanzi word quoted in the README romanizes to pure ASCII" do
+      readme = Path.expand("../../../README.md", __DIR__)
+
+      words =
+        readme
+        |> File.read!()
+        |> then(&Regex.scan(~r/"([\p{Han}]+)"/u, &1, capture: :all_but_first))
+        |> List.flatten()
+        |> Enum.uniq()
+
+      for word <- words do
+        result = ExkPasswd.Transform.apply(@transform, word, nil)
+
+        assert result =~ ~r/^[a-z]+$/,
+               "#{word} romanizes to #{inspect(result)}, which is not pure ASCII — " <>
+                 "add the missing character(s) to the Pinyin map"
+      end
+    end
   end
 end

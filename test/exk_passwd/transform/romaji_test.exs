@@ -831,4 +831,31 @@ defmodule ExkPasswd.Transform.RomajiTest do
       refute Romaji.small_vowel?("か")
     end
   end
+
+  describe "documentation example coverage" do
+    test "every kana word quoted in the Japanese notebook romanizes to pure ASCII" do
+      notebook = Path.expand("../../../notebooks/i18n_japanese.livemd", __DIR__)
+
+      # ー (U+30FC) has script Common, so it needs listing alongside the kana scripts
+      words =
+        notebook
+        |> File.read!()
+        |> then(&Regex.scan(~r/"([\p{Hiragana}\p{Katakana}ー]+)"/u, &1, capture: :all_but_first))
+        |> List.flatten()
+        |> Enum.uniq()
+
+      # Guard against the scan regex rotting silently
+      assert length(words) >= 20
+
+      transform = %ExkPasswd.Transform.Romaji{}
+
+      for word <- words do
+        result = ExkPasswd.Transform.apply(transform, word, nil)
+
+        assert result =~ ~r/^[a-z]+$/,
+               "#{word} romanizes to #{inspect(result)}, which is not pure ASCII — " <>
+                 "add the missing kana to the Romaji map"
+      end
+    end
+  end
 end

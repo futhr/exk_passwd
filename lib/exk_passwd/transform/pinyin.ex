@@ -390,7 +390,7 @@ defmodule ExkPasswd.Transform.Pinyin do
     "指" => "zhi",
     "政" => "zheng",
 
-    # 301-400 frequency (果却半存 already above)
+    # 301-400 frequency (却 already above; 果半存 in the coverage section below)
     "切" => "qie",
     "白" => "bai",
     "步" => "bu",
@@ -651,7 +651,8 @@ defmodule ExkPasswd.Transform.Pinyin do
     "辣" => "la",
     "咸" => "xian",
 
-    # Common verbs (additional - 推拿放还等帮教学写跳叫问 already in frequency list)
+    # Common verbs (additional - 推拿放还等帮教学写叫问 already in frequency list;
+    # 跳 in the coverage section below)
     "吃" => "chi",
     "喝" => "he",
     "睡" => "shui",
@@ -726,7 +727,7 @@ defmodule ExkPasswd.Transform.Pinyin do
     "香" => "xiang",
     "臭" => "chou",
 
-    # Numbers (additional - 半 already in frequency list)
+    # Numbers (additional - 半 in the coverage section below)
     "二" => "er",
     "三" => "san",
     "零" => "ling",
@@ -788,7 +789,27 @@ defmodule ExkPasswd.Transform.Pinyin do
 
     # Technology
     "网" => "wang",
-    "件" => "jian"
+    "件" => "jian",
+
+    # Coverage for documentation and notebook examples
+    # (multi-character words: 花朵, 树木, 希望, 学习, 音乐, 多音字, 妈麻马骂, 北京)
+    "朵" => "duo",
+    "木" => "mu",
+    "希" => "xi",
+    "习" => "xi",
+    "音" => "yin",
+    "字" => "zi",
+    "妈" => "ma",
+    "麻" => "ma",
+    "骂" => "ma",
+    "京" => "jing",
+    # ü after l is written as v (keyboard convention): 旅行 → lvxing
+    "旅" => "lv",
+    # Common characters absent from the frequency sections above
+    "果" => "guo",
+    "半" => "ban",
+    "存" => "cun",
+    "跳" => "tiao"
   }
 
   @doc """

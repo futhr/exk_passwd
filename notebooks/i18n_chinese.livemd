@@ -168,7 +168,7 @@ test_words = [
   {"女人", "nvren"},      # ü after n → v
   {"旅行", "lvxing"},     # ü after l → v
   {"学习", "xuexi"},      # ü after x → u
-  {"音乐", "yinyue"}      # ü after y → u
+  {"下雨", "xiayu"}       # ü after y → u
 ]
 
 IO.puts("\n=== Pinyin Transform Test ===\n")
@@ -179,6 +179,14 @@ for {chinese, expected} <- test_words do
   IO.puts("#{match} #{chinese} → #{result} (expected: #{expected})")
 end
 ```
+
+> **Polyphone limitation (多音字)**: each character maps to its single most
+> common pronunciation, so context-dependent readings are not disambiguated.
+> For example 乐 always renders as `le` (as in 快乐 → `kuaile`), so 音乐
+> renders as `yinle` rather than the linguistically correct `yinyue`. For
+> password generation this is fine — output only needs to be *consistent*,
+> not phonetically perfect. See the Polyphone Handling section in the
+> `ExkPasswd.Transform.Pinyin` module docs.
 
 ## Hanzi Detection Helpers
 
@@ -201,8 +209,19 @@ IO.puts("hanzi?(\"あ\") = #{Pinyin.hanzi?("あ")}  # Hiragana")
 # Character coverage
 map_size = map_size(Pinyin.pinyin_map())
 IO.puts("\nPinyin map contains #{map_size} characters")
-IO.puts("Covers top 500 most frequent Chinese characters")
+IO.puts("Covers the top 500 most frequent Chinese characters, plus additional common ones")
 ```
+
+> **Tip**: characters outside the mapping pass through unchanged, which would
+> leave non-ASCII characters in your password. Before using a custom word
+> list, verify it converts cleanly:
+>
+> ```elixir
+> Enum.filter(chinese_words, fn word ->
+>   ExkPasswd.Transform.apply(%Pinyin{}, word, nil) =~ ~r/[^a-z]/
+> end)
+> # => [] when every word is fully covered
+> ```
 
 ## Customization Examples
 
