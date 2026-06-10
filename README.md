@@ -88,7 +88,7 @@ Add `exk_passwd` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:exk_passwd, "~> 0.1.1"}
+    {:exk_passwd, "~> 0.2.0"}
   ]
 end
 ```

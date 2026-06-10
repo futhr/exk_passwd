@@ -5,6 +5,23 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.2.0](https://github.com/futhr/exk_passwd/compare/v0.1.1...v0.2.0) (2026-06-10)
+
+
+
+
+### Bug Fixes:
+
+* dictionary: restore canonical EFF Large Wordlist (7,772 words, checksums in SECURITY.md; password output distribution changes) by futhr
+
+* pinyin: add missing characters used by documentation examples (朵木希习音字妈麻骂旅果半存跳京) by futhr
+
+* presets: degrade gracefully when the registry Agent is not running by futhr
+
+* dictionary: store custom dictionaries in persistent_term instead of caller-owned ETS; adds delete_custom/1, wordlist validation, and clear errors for unsatisfiable configs by futhr
+
+* relax chi-square test to 99.99% confidence level by Tobias Bohwalli
+
 ## [v0.1.1](https://github.com/futhr/exk_passwd/compare/v0.1.0...v0.1.1) (2026-04-03)
 
 
