@@ -1,89 +1,21 @@
 # ExkPasswd
 
-> ExkPasswd generates strong passwords by combining random words with numbers, symbols, and various transformations. This creates passwords that are both cryptographically secure and easier to remember than random character strings.
-
----
+ExkPasswd is an Elixir library for generating memorable passwords from random
+words. It uses `:crypto.strong_rand_bytes/1`, has no runtime dependencies, and
+supports custom dictionaries and word transforms.
 
 [![Test Suite](https://github.com/futhr/exk_passwd/workflows/Test%20Suite/badge.svg)](https://github.com/futhr/exk_passwd/actions)
-[![codecov](https://codecov.io/gh/futhr/exk_passwd/graph/badge.svg?token=HXDYFULIMN)](https://codecov.io/gh/futhr/exk_passwd)
-[![Doc Coverage](https://img.shields.io/badge/doc%20coverage-100%25-brightgreen.svg)](https://github.com/futhr/exk_passwd)
 [![Hex.pm](https://img.shields.io/hexpm/v/exk_passwd.svg)](https://hex.pm/packages/exk_passwd)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-purple.svg)](https://hexdocs.pm/exk_passwd)
-[![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
+[![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](LICENSE.md)
 [![Elixir](https://img.shields.io/badge/elixir-%3E%3D1.16-blueviolet.svg)](https://elixir-lang.org)
 
----
-
-## Try It Interactively
-
-Explore ExkPasswd with interactive Livebook notebooks:
-
-[![Run in Livebook](https://livebook.dev/badge/v1/blue.svg)](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffuthr%2Fexk_passwd%2Fmain%2Fnotebooks%2Fquickstart.livemd)
-
-* **[Quick Start](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffuthr%2Fexk_passwd%2Fmain%2Fnotebooks%2Fquickstart.livemd)** - Basic usage and examples
-* **[Advanced Usage](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffuthr%2Fexk_passwd%2Fmain%2Fnotebooks%2Fadvanced.livemd)** - Custom configurations and transformations
-* **[Security Analysis](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffuthr%2Fexk_passwd%2Fmain%2Fnotebooks%2Fsecurity.livemd)** - Entropy, strength, and cryptographic properties
-* **[Benchmarks](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffuthr%2Fexk_passwd%2Fmain%2Fnotebooks%2Fbenchmarks.livemd)** - Performance metrics and comparisons
-* **[Chinese i18n](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffuthr%2Fexk_passwd%2Fmain%2Fnotebooks%2Fi18n_chinese.livemd)** - 中文密码生成 (Chinese password generation with Pinyin)
-* **[Japanese i18n](https://livebook.dev/run?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffuthr%2Fexk_passwd%2Fmain%2Fnotebooks%2Fi18n_japanese.livemd)** - 日本語パスワード生成 (Japanese password generation with Romaji)
-
----
-
-## History & Inspiration
-
-The concept of using random words for passwords was popularized by [Randall Munroe's XKCD comic #936](https://xkcd.com/936/), which illustrated why long, memorable passphrases can be more effective than short, complex passwords.
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/futhr/exk_passwd/main/priv/static/xkcd.png" alt="XKCD Password Strength Comic" width="740">
-  <br>
-  <em>XKCD #936: Password Strength - "Through 20 years of effort, we've successfully trained everyone to use passwords that are hard for humans to remember, but easy for computers to guess."</em>
-</p>
-
-This comic inspired [Bart Busschots](https://www.bartbusschots.ie/) to create the original Perl module [Crypt::HSXKPasswd](https://github.com/bbusschots/hsxkpasswd), which implements a secure and flexible password generation system based on this principle. The concept was later ported to JavaScript, and subsequently to Elixir by [Michael Westbay](https://github.com/westbaystars).
-
-ExkPasswd builds upon this foundation with a ground-up rewrite in Elixir, enhanced with the [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) for maximum security and memorability, cryptographically secure random number generation, and modern Elixir features.
-
----
-
-## Why Word-Based Passwords?
-
-Traditional password advice suggests random strings like `x4$9Kp2m`, but these have problems:
-- **Hard to remember** → people write them down (insecure)
-- **Hard to type** → increased friction and errors
-- **Short to be memorable** → limited entropy
-
-Word-based passwords like `correct-horse-battery-staple` offer:
-- **Easy to remember** (no need to write down)
-- **Easy to type** (real words)
-- **Long enough for high entropy** (more characters = exponentially more secure)
-- **Still unpredictable** when generated with cryptographic randomness
-
----
-
-## Features
-
-### Core Features
-- **Cryptographically Secure** - Uses `:crypto.strong_rand_bytes/1` for all randomness
-- **EFF Large Wordlist** - 7,772 carefully curated words (12.9 bits entropy per word)
-- **Zero Runtime Dependencies** - Only uses Elixir stdlib and `:crypto`
-- **Multiple Presets** - 7 built-in presets for different use cases
-- **Fully Customizable** - Fine-grained control over all generation parameters
-
-### Advanced Features
-- **Efficient Performance** - Tuple-based constant-time word lookups
-- **Entropy Analysis** - Blind and seen entropy calculations
-- **Strength Feedback** - Password strength reports
-- **Character Substitutions** - Leetspeak-style transformations for additional entropy
-- **Custom Dictionaries** - Load and use your own word lists at runtime
-- **Batch Generation** - Optimized generation of multiple passwords
-- **Parallel Generation** - Multi-core support for large batches
-- **Pre-computed Transformations** - Cached case transformations for efficiency
-
----
+The design follows the XKPasswd idea: choose independent words with a secure
+random source, then add separators, digits, or transformations when a target
+system requires them. Security comes from the number of reachable random
+outcomes—not from hiding the dictionary or making the result look complicated.
 
 ## Installation
-
-Add `exk_passwd` to your dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -93,651 +25,235 @@ def deps do
 end
 ```
 
-Then run:
-
-```bash
-mix deps.get
-```
-
----
-
-## Quick Start
-
-### Basic Usage
+## Quick start
 
 ```elixir
-# Generate a password with default settings
+# Default preset
 ExkPasswd.generate()
-#=> "45?clever?FOREST?mountain?89"
 
-# Use a preset
+# Five-word passphrase
 ExkPasswd.generate(:xkcd)
-#=> "correct-horse-battery-staple-forest-cloud"
+ExkPasswd.generate("xkcd")
 
-# Use preset as string
-ExkPasswd.generate("wifi")
-#=> "2847-happy-CLOUD-forest-WINTER-gentle-SUMMER-4839???????????????????"
-```
+# Preset with overrides
+ExkPasswd.generate(:xkcd, num_words: 6)
 
-### Custom Configuration
-
-```elixir
-# Using keyword list
-ExkPasswd.generate(
-  num_words: 4,
-  word_length: 5..7,
-  case_transform: :capitalize,
-  separator: "-",
-  digits: {3, 3},
-  padding: %{char: "!", before: 1, after: 1}
-)
-#=> "!389-Happy-Forest-Guitar-Cloud-472!"
-
-# Or create a Config struct
-config = ExkPasswd.Config.new!(
-  num_words: 4,
-  word_length: 5..7,
-  case_transform: :capitalize,
-  separator: "-",
-  digits: {3, 3},
-  padding: %{char: "!", before: 1, after: 1}
-)
+# A custom configuration
+config =
+  ExkPasswd.Config.new!(
+    num_words: 4,
+    word_length: 5..7,
+    case_transform: :capitalize,
+    separator: "-",
+    digits: {2, 2},
+    padding: %{char: "!", before: 1, after: 1}
+  )
 
 ExkPasswd.generate(config)
-#=> "!389-Happy-Forest-Guitar-Cloud-472!"
 ```
 
----
+Configuration constructors reject unknown, duplicate, and malformed options.
+Public generation functions also validate directly assembled `%Config{}`
+structs before using them.
 
-## Available Presets
+## Presets
 
-### `:default`
-Balanced security and memorability. 3 words with alternating case, random separator, 2 digits before/after, and 2 padding characters.
+The entropy figures below are approximate seen min-entropy for the current EFF
+dictionary and preset definitions. They assume an attacker knows the generator,
+dictionary, and configuration.
 
-```elixir
-ExkPasswd.generate(:default)
-#=> "45?clever?FOREST?mountain?89"
-```
+| Preset | Purpose | Approx. seen entropy |
+| --- | --- | ---: |
+| `:default` | Three words, digits, separators, and padding | 59.4 bits |
+| `:xkcd` | Five hyphen-separated words | 67.9 bits |
+| `:web32` | Output no longer than 32 characters | 65.0 bits |
+| `:web16` | Compatibility with a 16-character maximum | 37.0 bits |
+| `:wifi` | 63 printable ASCII characters for a WPA/WPA2 passphrase | 105.2 bits |
+| `:apple_id` | Meets Apple Account character-composition rules | 54.7 bits |
+| `:security` | Fake answers for legacy security-question fields | 77.1 bits |
 
-### `:xkcd`
-Similar to the famous XKCD comic. 5 words, lowercase, separated by hyphens, no padding. Great balance of security and memorability.
+`web16` is a compatibility fallback, not a general recommendation. The
+`security` preset produces random fake answers; knowledge-based authentication
+itself is not recommended by current NIST guidance.
 
-```elixir
-ExkPasswd.generate(:xkcd)
-#=> "correct-horse-battery-staple-amazing"
-```
+The Wi-Fi preset emits 63 printable ASCII characters. WPA/WPA2-Personal accepts
+an 8–63 character ASCII passphrase; a 64-character value has a different meaning
+when it is a hexadecimal raw PSK. See the [`wpa-psk(8)` manual](https://man.openbsd.org/wpa-psk).
 
-### `:web32`
-For websites allowing up to 32 characters. 4 words, compact format.
+Apple currently requires at least eight characters, upper- and lowercase
+letters, and a number. The preset guarantees those properties, but Apple may
+also reject common or otherwise policy-blocked passwords. See
+[Apple's current account guidance](https://support.apple.com/en-mide/102614).
 
-```elixir
-ExkPasswd.generate(:web32)
-#=> "!29-word-CLOUD-tree-HAPPY-847@"
-```
-
-### `:web16`
-For websites with 16 character limits. **Not recommended** - too short for good security. Only use if absolutely required.
-
-```elixir
-ExkPasswd.generate(:web16)
-#=> "word!TREE@word#4"
-```
-
-### `:wifi`
-63-character WPA2 keys (most routers allow 64, but some only 63).
+## Configuration
 
 ```elixir
-ExkPasswd.generate(:wifi)
-#=> "2847-happy-CLOUD-forest-WINTER-gentle-SUMMER-4839???????????????????"
-```
-
-### `:apple_id`
-Meets Apple ID password requirements. Uses only symbols from iOS keyboard for easy mobile typing.
-
-```elixir
-ExkPasswd.generate(:apple_id)
-#=> ":45-Word-CLOUD-Forest-89:"
-```
-
-### `:security`
-For fake security question answers. Natural sentence-like format.
-
-```elixir
-ExkPasswd.generate(:security)
-#=> "word cloud forest happy guitar mountain."
-```
-
----
-
-## Configuration Options
-
-All configuration is done via the `ExkPasswd.Config` struct, or by passing keyword lists:
-
-```elixir
-# Using keyword list (recommended)
-ExkPasswd.generate(
-  num_words: 3,              # Number of words (1-10)
-  word_length: 4..8,         # Word length range
-  case_transform: :alternate, # :none | :alternate | :capitalize | :invert | :lower | :upper | :random
-  separator: "-",            # Separator between words (string or random from charset)
-  digits: {2, 2},            # {before, after} - digits before/after words (0-5 each)
-  padding: %{                # Padding configuration
-    char: "!",               # Padding character (string or random from charset)
-    before: 2,               # Padding chars before (0-5)
-    after: 2,                # Padding chars after (0-5)
-    to_length: 0             # If > 0, pad/truncate to exact length (overrides before/after)
+ExkPasswd.Config.new!(
+  num_words: 3,                # 1..10
+  word_length: 4..8,           # ascending range, maximum 50
+  case_transform: :alternate,  # :none, :alternate, :capitalize, :invert,
+                               # :lower, :upper, or :random
+  separator: "-",              # one value or a set of possible symbols
+  digits: {2, 2},              # before and after, each 0..5
+  padding: %{
+    char: "!@#",
+    before: 1,
+    after: 1,
+    to_length: 0               # positive values set a minimum; never truncates
   },
-  dictionary: :eff,          # :eff (default) | custom atom for loaded dictionaries
-  meta: %{                   # Metadata and extensions
-    transforms: []           # Custom Transform protocol implementations
-  }
-)
-
-# Or create Config struct explicitly
-config = ExkPasswd.Config.new!(
-  num_words: 3,
-  word_length: 4..8,
-  separator: "-"
+  substitutions: %{"a" => "@", "e" => "3"},
+  substitution_mode: :none,    # :none, :always, or :random
+  dictionary: :eff,
+  meta: %{transforms: []}
 )
 ```
 
-### Case Transformations
+Separators and padding characters accept punctuation and symbols, not letters or
+digits. A separator or padding string with several graphemes is treated as a set
+from which one value is selected.
 
-- `:none` - No transformation (words as-is from dictionary)
-- `:alternate` - Alternating case: `word`, `WORD`, `word`, `WORD`
-- `:capitalize` - Capitalize first letter: `Word`, `Word`, `Word`
-- `:invert` - Invert case: `wORD` (lowercase first, uppercase rest)
-- `:lower` - All lowercase: `word`, `word`, `word`
-- `:upper` - All uppercase: `WORD`, `WORD`, `WORD`
-- `:random` - Each word randomly uppercase or lowercase
+`padding.to_length` is a minimum output length. If the generated password is
+already longer, ExkPasswd returns it intact. Silent truncation would discard
+random words or digits and overstate the resulting security.
 
----
+## Custom dictionaries
 
-## Security
-
-### Cryptographic Randomness
-
-All random operations use `:crypto.strong_rand_bytes/1`, which provides cryptographically secure randomness backed by your operating system's secure random number generator. This ensures passwords are unpredictable and suitable for security-critical applications.
-
-**Never use `Enum.random/1` or the `:rand` module for password generation** - they use predictable pseudo-random number generators.
-
-### Password Strength
-
-Password strength is measured in **bits of entropy**:
-
-- **< 28 bits**: Very weak (avoid)
-- **28-35 bits**: Weak (acceptable only for low-value accounts)
-- **36-59 bits**: Fair (acceptable for most accounts)
-- **60-127 bits**: Strong (recommended for sensitive accounts)
-- **128+ bits**: Very strong (suitable for encryption keys)
-
-ExkPasswd's default preset generates passwords with **high entropy** while remaining memorable.
-
-### Dictionary & Security Model
-
-ExkPasswd uses the **EFF Large Wordlist** containing 7,772 carefully curated words
-(the canonical 7,776-word list minus its four hyphenated entries, so every word is
-strictly lowercase `a-z` — see [SECURITY.md](docs/SECURITY.md) for provenance):
-- **Memorability** - Common, recognizable English words
-- **Typability** - No complex spellings or rare words
-- **Length variety** - 3-9 characters per word
-- **Safety** - No offensive or problematic words
-- **High entropy** - 12.9 bits of entropy per word
-
-**Security comes from entropy and cryptographic randomness, not from secret words.**
-
-The EFF wordlist provides exceptional security:
-- **4 words**: ~51.6 bits (adequate for most accounts)
-- **5 words**: ~64.5 bits (strong)
-- **6 words**: ~77.5 bits (very strong - EFF recommendation)
-- **7+ words**: ~90+ bits (excellent, suitable for master passwords)
-
-All random selection uses `:crypto.strong_rand_bytes/1` for cryptographic security, ensuring passwords are unpredictable even if the word list is known.
-
-**References:**
-- [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases)
-- [Original Perl Implementation](https://github.com/bbusschots/hsxkpasswd)
-
----
-
-## API Reference
-
-### Main Functions
-
-#### `ExkPasswd.generate/0`
-
-Generates a password using default settings.
+The bundled EFF list is a convenient default, not a restriction. Applications
+can provide a dictionary for any language or domain:
 
 ```elixir
-ExkPasswd.generate()
-#=> "45?clever?FOREST?mountain?89"
-```
+words = ["casa", "perro", "gato", "libro", "nube"]
+ExkPasswd.Dictionary.load_custom(:spanish, words)
 
-#### `ExkPasswd.generate/1`
-
-Generates a password with a preset (atom), keyword list, or Config struct.
-
-```elixir
-# With preset atom
-ExkPasswd.generate(:xkcd)
-#=> "correct-horse-battery-staple-amazing"
-
-# With keyword list (new!)
-ExkPasswd.generate(num_words: 2, separator: "_")
-#=> "45_HAPPY_forest_23"
-
-# With Config struct
-config = ExkPasswd.Config.new!(num_words: 2, separator: "_")
-ExkPasswd.generate(config)
-#=> "45_HAPPY_forest_23"
-```
-
-#### `ExkPasswd.generate/2`
-
-Generates a password with a preset and keyword list overrides.
-
-```elixir
-# Start with xkcd preset, override num_words
-ExkPasswd.generate(:xkcd, num_words: 7)
-#=> "correct-horse-battery-staple-amazing-forest-cloud"
-```
-
-#### `ExkPasswd.Config.Presets.all/0`
-
-Returns list of all available preset configurations.
-
-```elixir
-ExkPasswd.Config.Presets.all()
-#=> [%ExkPasswd.Config{...}, ...]
-```
-
-#### `ExkPasswd.Config.Presets.get/1`
-
-Gets a specific preset by name (atom or string).
-
-```elixir
-ExkPasswd.Config.Presets.get(:xkcd)
-#=> %ExkPasswd.Config{...}
-
-ExkPasswd.Config.Presets.get("wifi")
-#=> %ExkPasswd.Config{...}
-
-ExkPasswd.Config.Presets.get(:nonexistent)
-#=> nil
-```
-
-#### `ExkPasswd.Config.Presets.register/2`
-
-Register a custom preset at runtime. Runtime registration requires the preset
-registry in your application's supervision tree (built-in presets work without
-it):
-
-```elixir
-# In your application supervisor
-children = [
-  {ExkPasswd.Config.Presets, []}
-]
-```
-
-```elixir
-custom = ExkPasswd.Config.new!(num_words: 8, separator: "_")
-ExkPasswd.Config.Presets.register(:super_strong, custom)
-
-# Now use it
-ExkPasswd.generate(:super_strong)
-#=> "45_word_CLOUD_forest_HAPPY_guitar_MOUNTAIN_test_89"
-```
-
-### Config Validation
-
-#### `ExkPasswd.Config.new/1`
-
-Creates and validates a Config struct, returns `{:ok, config}` or `{:error, message}`.
-
-```elixir
-ExkPasswd.Config.new(num_words: 4)
-#=> {:ok, %ExkPasswd.Config{num_words: 4, ...}}
-
-ExkPasswd.Config.new(num_words: 0)
-#=> {:error, "num_words must be between 1 and 10, got: 0"}
-```
-
-#### `ExkPasswd.Config.new!/1`
-
-Like `new/1` but raises `ArgumentError` on failure.
-
-```elixir
-ExkPasswd.Config.new!(num_words: 4)
-#=> %ExkPasswd.Config{num_words: 4, ...}
-
-ExkPasswd.Config.new!(num_words: 0)
-#=> ** (ArgumentError) num_words must be between 1 and 10, got: 0
-```
-
-### Advanced Features
-
-#### Batch Generation
-
-Generate multiple passwords efficiently:
-
-```elixir
-# Generate 100 passwords (optimized)
-ExkPasswd.generate_batch(100)
-#=> ["45?clever?FOREST?...", "23@happy@CLOUD@...", ...]
-
-# Generate unique passwords only
-ExkPasswd.generate_unique_batch(50)
-#=> Guarantees all 50 passwords are unique
-
-# Parallel generation (uses all CPU cores)
-ExkPasswd.generate_parallel(1000)
-#=> Fastest for large batches
-```
-
-#### Entropy Calculation
-
-Analyze password strength with blind and seen entropy metrics:
-
-```elixir
-password = "45?clever?FOREST?mountain?89"
-config = ExkPasswd.Config.new!()
-
-# Calculate entropy
-ExkPasswd.calculate_entropy(password, config)
-#=> %{
-#     blind: 125.4,  # Brute-force resistance in bits
-#     seen: 72.3,    # Knowledge-based attack resistance
-#     status: :good, # :excellent | :good | :fair | :weak
-#     blind_crack_time: "5.4 billion years",
-#     seen_crack_time: "75.2 millennia",
-#     details: %{...}  # Detailed breakdown
-#   }
-```
-
-#### Strength Analysis
-
-Get user-friendly strength feedback:
-
-```elixir
-password = "correct-horse-battery-staple"
-config = ExkPasswd.Config.new!(num_words: 4)
-
-# Get strength rating
-ExkPasswd.strength_rating(password, config)
-#=> :good
-
-# Get detailed analysis
-ExkPasswd.analyze_strength(password, config)
-#=> %{
-#     rating: :good,
-#     score: 72,  # 0-100 scale
-#     entropy_bits: 51.6
-#   }
-```
-
-#### Transform Protocol (Extensibility)
-
-ExkPasswd supports custom transformations via the Transform protocol:
-
-```elixir
-# Use built-in substitution transform
-config = ExkPasswd.Config.new!(
-  num_words: 3,
-  meta: %{
-    transforms: [
-      %ExkPasswd.Transform.Substitution{
-        map: %{"a" => "@", "e" => "3", "i" => "!", "o" => "0", "s" => "$"},
-        mode: :random  # Randomly apply per word for extra entropy
-      }
-    ]
-  }
-)
+config =
+  ExkPasswd.Config.new!(
+    dictionary: :spanish,
+    word_length: 4..5,
+    num_words: 4,
+    separator: "-"
+  )
 
 ExkPasswd.generate(config)
-#=> "45?cl3v3r?FOREST?m0unt@!n?89"
-
-# Example 1: Japanese Romaji Transform (Built-in)
-# ExkPasswd includes a Modified Hepburn romanization transform
-# with full support for modern Japanese including Katakana loanwords
-
-# Load Japanese dictionary (Hiragana and Katakana)
-ExkPasswd.Dictionary.load_custom(:japanese, [
-  "さくら", "やま", "うみ", "そら", "おちゃ", "きょうと",  # Traditional Hiragana
-  "コーヒー", "ファイル", "ウィンドウ", "パーティー"      # Modern Katakana loanwords
-])
-
-config = ExkPasswd.Config.new!(
-  num_words: 3,
-  dictionary: :japanese,
-  word_length: 2..8,
-  word_length_bounds: 1..15,
-  separator: "-",
-  meta: %{
-    transforms: [%ExkPasswd.Transform.Romaji{}]
-  }
-)
-
-ExkPasswd.generate(config)
-#=> "45-sakura-koohii-fairu-89"  # さくら, コーヒー, ファイル romanized
-# Features:
-# - Modified Hepburn with Wāpuro IME conventions (きょうと → kyouto, おちゃ → ocha)
-# - Sokuon gemination (がっこう → gakkou, まっちゃ → matcha)
-# - Palatalization (しゃしん → shashin, ちゃ → cha)
-# - N before labials (さんぽ → sampo, しんぶん → shimbun)
-# - Long vowel markers (コーヒー → koohii, ラーメン → raamen)
-# - Extended Katakana (ファイル → fairu, ウィンドウ → windou, ヴァイオリン → vaiorin)
-# - Full Unicode support for Hiragana, Katakana, and extended sounds
-
-# Example 2: NATO Phonetic Alphabet Transform
-defmodule MyApp.PhoneticTransform do
-  @moduledoc """
-  Converts password words to NATO phonetic alphabet for unambiguous verbal communication.
-
-  Useful for passwords communicated over radio, phone, or in high-noise
-  environments where clarity is critical (aviation, military, emergency response).
-  """
-  defstruct [:format]  # :full | :abbreviated
-
-  @nato_phonetic %{
-    "a" => "Alpha", "b" => "Bravo", "c" => "Charlie", "d" => "Delta",
-    "e" => "Echo", "f" => "Foxtrot", "g" => "Golf", "h" => "Hotel",
-    "i" => "India", "j" => "Juliet", "k" => "Kilo", "l" => "Lima",
-    "m" => "Mike", "n" => "November", "o" => "Oscar", "p" => "Papa",
-    "q" => "Quebec", "r" => "Romeo", "s" => "Sierra", "t" => "Tango",
-    "u" => "Uniform", "v" => "Victor", "w" => "Whiskey", "x" => "X-ray",
-    "y" => "Yankee", "z" => "Zulu"
-  }
-
-  defimpl ExkPasswd.Transform do
-    def apply(%{format: format}, word, _config) do
-      word
-      |> String.downcase()
-      |> String.graphemes()
-      |> Enum.map(fn char ->
-        phonetic = Map.get(@nato_phonetic, char, char)
-        if format == :abbreviated, do: String.slice(phonetic, 0, 3), else: phonetic
-      end)
-      |> Enum.join("-")
-    end
-
-    def entropy_bits(%{format: _}, _config) do
-      # Phonetic transform is deterministic, no entropy change
-      # Primary benefit is unambiguous verbal communication
-      0.0
-    end
-  end
-end
-
-# Use NATO phonetic for radio communication
-config = ExkPasswd.Config.new!(
-  num_words: 2,
-  word_length: 4..5,
-  meta: %{
-    transforms: [%MyApp.PhoneticTransform{format: :abbreviated}]
-  }
-)
-
-ExkPasswd.generate(config)
-#=> "Cha-Ech-Ech-Kil-Oscar (spoken: Charlie-Echo-Echo-Kilo-Oscar)"
 ```
 
-See `ExkPasswd.Transform` documentation for more examples including:
-- Prefix/suffix transforms
-- Case transforms
-- Unicode normalization
-- Chaining multiple transforms
+Custom words must be non-empty valid UTF-8 strings. ExkPasswd normalizes them to
+NFC and rejects duplicates after normalization. Case-transformed duplicates are
+stored once so selection remains uniform over reachable outputs.
 
-#### Custom Dictionaries
+Custom dictionaries live in `:persistent_term`. Load them during application
+startup rather than in a request path: writes to `:persistent_term` trigger a
+global garbage-collection scan. The caller remains responsible for dictionary
+quality, size, memorability, and suitability for the intended users.
 
-Use your own word lists:
+## Substitutions and transforms
+
+Simple substitutions can be configured directly:
 
 ```elixir
-# Load custom dictionary
-custom_words = ["apple", "banana", "cherry", "date", "elderberry"]
-ExkPasswd.Dictionary.load_custom(:fruits, custom_words)
-
-# Use custom dictionary
-config = ExkPasswd.Config.new!(
-  num_words: 3,
-  dictionary: :fruits
-)
+config =
+  ExkPasswd.Config.new!(
+    substitutions: %{"a" => "@", "e" => "3", "o" => "0"},
+    substitution_mode: :random
+  )
 
 ExkPasswd.generate(config)
-#=> "45?apple?CHERRY?date?89"
 ```
 
----
+Random substitution adds entropy only when the substituted and original outputs
+are distinct. Deterministic substitutions may reduce the output space by making
+different dictionary words collide; the entropy calculation accounts for that.
+
+More involved transformations implement `ExkPasswd.Transform` and go in
+`config.meta.transforms`:
+
+```elixir
+ExkPasswd.Dictionary.load_custom(:japanese, ["さくら", "やま", "うみ", "そら"])
+
+config =
+  ExkPasswd.Config.new!(
+    dictionary: :japanese,
+    word_length: 2..6,
+    word_length_bounds: 1..10,
+    case_transform: :none,
+    meta: %{transforms: [%ExkPasswd.Transform.Romaji{}]}
+  )
+```
+
+Built-in Pinyin and Romaji transforms are deterministic and may be many-to-one.
+The seen-entropy model counts their reachable outputs rather than assuming every
+source word remains distinguishable. Unmapped characters pass through unchanged,
+so validate a language dictionary before relying on ASCII output.
+
+## Batch generation
+
+```elixir
+config = ExkPasswd.Config.Presets.get(:default)
+
+ExkPasswd.Batch.generate_batch(100, config)
+ExkPasswd.Batch.generate_unique_batch(100, config, max_attempts: 10_000)
+ExkPasswd.Batch.generate_parallel(10_000, config, workers: 4)
+```
+
+The batch path buffers secure random bytes. Whether it is faster than individual
+generation depends on batch size, runtime version, and hardware; use the included
+Benchee scripts for measurements on the target system. Unique generation raises
+if it cannot find the requested number of distinct outputs within `max_attempts`.
+
+## Entropy and strength reports
+
+```elixir
+config = ExkPasswd.Config.Presets.get(:xkcd)
+password = ExkPasswd.generate(config)
+
+ExkPasswd.Entropy.calculate(password, config)
+ExkPasswd.Strength.analyze(password, config)
+```
+
+The report contains two different quantities:
+
+- `seen` is conservative min-entropy over the configured generator's reachable
+  outputs. It includes known case, substitution, Pinyin, and Romaji collisions.
+- `blind` is a character-class search-space heuristic for the observed string.
+  It is not measured entropy and should not be used to infer how a human-chosen
+  password was generated.
+
+The `weak`, `fair`, `good`, and `excellent` bands are project-defined convenience
+labels. Crack-time strings use a simple one-billion-guesses-per-second comparison
+model; real rates depend on online throttling or the password-hashing scheme.
+
+Current NIST guidance emphasizes length, blocklists, rate limiting, and avoiding
+composition rules for user-chosen passwords. OWASP also says passwords must not
+be silently truncated. See [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html)
+and the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html).
+
+## Interactive examples
+
+- [Quick start](notebooks/quickstart.livemd)
+- [Advanced configuration](notebooks/advanced.livemd)
+- [Security model](notebooks/security.livemd)
+- [Chinese/Pinyin](notebooks/i18n_chinese.livemd)
+- [Japanese/Romaji](notebooks/i18n_japanese.livemd)
+- [Benchmarks](notebooks/benchmarks.livemd)
+- [Contributing](notebooks/contributing.livemd)
 
 ## Development
 
-### Quick Reference
-
 ```bash
-# Setup
-mix setup              # Install and compile dependencies
-
-# Testing
-mix test               # Run tests with coverage
-mix test.watch         # Run tests in watch mode
-
-# Code Quality
-mix format             # Format code
-mix credo --strict     # Run linter
-mix check              # Run format, credo, and tests
-mix check.all          # Run all checks including dialyzer
-
-# Benchmarks
-mix bench              # Run all benchmarks
-mix bench.password     # Benchmark password generation
-mix bench.dict         # Benchmark dictionary operations
-
-# Documentation
-mix docs               # Generate documentation
-
-# Security
-mix hex.audit          # Check for vulnerable dependencies
-mix deps.audit         # Run mix_audit security scan
+mix setup
+mix format
+mix credo --strict
+mix test
+mix coveralls.html
+mix dialyzer
+mix doctor
+mix docs
+mix deps.audit
 ```
 
-### Running Tests
-
-```bash
-mix test               # Run all tests
-mix coveralls.html     # Run with coverage
-mix test.watch         # Run in watch mode
-```
-
-### Code Quality
-
-```bash
-mix format             # Format code
-mix credo --strict     # Run Credo analysis
-mix dialyzer           # Run Dialyzer
-mix check              # Run all checks (format, credo, tests)
-mix check.all          # Run all checks including dialyzer
-```
-
-### Building Documentation
-
-```bash
-mix docs               # Generate documentation
-open doc/index.html    # ..then open in browser
-```
-
-### Running Benchmarks
-
-```bash
-mix bench              # Run all benchmarks
-mix bench.password     # Password generation benchmarks
-mix bench.dict         # Dictionary operations benchmarks
-mix bench.batch        # Batch generation benchmarks
-```
-
-Benchmarks measure:
-- Password generation performance across different presets
-- Dictionary lookup performance (constant-time tuple indexing)
-- Case transformation overhead
-- Batch vs individual generation performance
-
-**Benchmark Results:**
-- [Password Generation Benchmarks](bench/output/password_generation.md)
-- [Dictionary Benchmarks](bench/output/dictionary.md)
-- [Batch Generation Benchmarks](bench/output/batch.md)
-
----
-
-## Contributing
-
-We welcome contributions!
-
-### Development Setup
-
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/futhr/exk_passwd.git`
-3. Install dependencies: `mix deps.get`
-4. Run tests: `mix test`
-5. Make your changes
-6. Submit a pull request
-
----
-
-## Releasing
-
-This project uses [git_ops](https://hex.pm/packages/git_ops) for automated releases.
-
-```bash
-mix release              # Bumps version, updates CHANGELOG, commits, and tags
-git push --follow-tags   # Pushes commit and tag
-```
-
-CI (`publish.yml`) triggers on `v*` tag → runs checks → `mix hex.publish`
-
----
+Benchmark scripts are available as `mix bench.password`, `mix bench.dict`,
+`mix bench.batch`, and `mix bench.all`. Results are local measurements, not API
+guarantees.
 
 ## License
 
-BSD-2-Clause License - see [LICENSE](LICENSE.md) file for details.
-
----
-
-## Resources
-
-- [Documentation](https://github.com/futhr/exk_passwd)
-- [GitHub Repository](https://github.com/futhr/exk_passwd)
-- [Issue Tracker](https://github.com/futhr/exk_passwd/issues)
-- [Changelog](CHANGELOG.md)
-- [Original Perl Module](https://github.com/bbusschots/hsxkpasswd)
-- [XKCD Comic #936](https://xkcd.com/936/)
-
----
-
-## Acknowledgments
-
-- Original concept from the [XKCD "Password Strength" comic](https://xkcd.com/936/)
-- Based on [Crypt::HSXKPasswd](https://github.com/bbusschots/hsxkpasswd) by Bart Busschots
-- Based on [westbaystars/exk_passwd](https://github.com/westbaystars/exk_passwd) by Michael Westbay
-- Word list from the [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) by the Electronic Frontier Foundation
-
----
-
-**Built with Elixir ❤️ Secure by Design**
+BSD 2-Clause. See [LICENSE.md](LICENSE.md).

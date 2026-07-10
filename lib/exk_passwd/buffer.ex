@@ -6,10 +6,8 @@ defmodule ExkPasswd.Buffer do
   performing many operations by pre-allocating a buffer of cryptographically
   secure random bytes and consuming them as needed.
 
-  ## Performance
-
-  By reducing the number of `:crypto.strong_rand_bytes/1` syscalls, this
-  can provide 2-3x speedup for batch password generation.
+  Buffering reduces calls to `:crypto.strong_rand_bytes/1`. Whether that improves
+  end-to-end throughput depends on workload, runtime, and hardware.
 
   ## Security
 
@@ -34,7 +32,7 @@ defmodule ExkPasswd.Buffer do
       true
   """
 
-  # 10KB buffer reduces crypto syscalls by ~100x for typical batch sizes
+  # A moderate default amortizes refills without retaining a large binary.
   @default_buffer_size 10_000
   # Use at least four bytes for common ranges, and expand for larger ranges.
   @bytes_per_int 4

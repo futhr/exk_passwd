@@ -22,6 +22,13 @@ File.mkdir_p!("bench/output")
     {5, 2, 2}
   end
 
+word_count_configs = Map.new(3..6, &{&1, Config.new!(num_words: &1)})
+
+case_configs =
+  Map.new([:lower, :upper, :capitalize, :alternate, :random], fn mode ->
+    {mode, Config.new!(case_transform: mode)}
+  end)
+
 Benchee.run(
   %{
     # Core generation functions
@@ -39,16 +46,16 @@ Benchee.run(
 
     # Password creation with different word counts
     "create() 3 words" => fn ->
-      Password.create(Config.new!(num_words: 3))
+      Password.create(word_count_configs[3])
     end,
     "create() 4 words" => fn ->
-      Password.create(Config.new!(num_words: 4))
+      Password.create(word_count_configs[4])
     end,
     "create() 5 words" => fn ->
-      Password.create(Config.new!(num_words: 5))
+      Password.create(word_count_configs[5])
     end,
     "create() 6 words" => fn ->
-      Password.create(Config.new!(num_words: 6))
+      Password.create(word_count_configs[6])
     end,
 
     # Token generation
@@ -57,19 +64,19 @@ Benchee.run(
 
     # Case transformations
     "transform :lower" => fn ->
-      Password.create(Config.new!(case_transform: :lower))
+      Password.create(case_configs.lower)
     end,
     "transform :upper" => fn ->
-      Password.create(Config.new!(case_transform: :upper))
+      Password.create(case_configs.upper)
     end,
     "transform :capitalize" => fn ->
-      Password.create(Config.new!(case_transform: :capitalize))
+      Password.create(case_configs.capitalize)
     end,
     "transform :alternate" => fn ->
-      Password.create(Config.new!(case_transform: :alternate))
+      Password.create(case_configs.alternate)
     end,
     "transform :random" => fn ->
-      Password.create(Config.new!(case_transform: :random))
+      Password.create(case_configs.random)
     end
   },
   time: time,

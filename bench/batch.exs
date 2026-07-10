@@ -61,8 +61,5 @@ Benchee.run(
 
 IO.puts("\n")
 IO.puts("=== Batch Generation Analysis ===")
-IO.puts("Batch generation uses buffered random bytes for improved performance.")
-IO.puts("Expected speedup: 1.5-3x for large batches (1000+ passwords)")
-IO.puts("")
-IO.puts("Key insight: Reducing :crypto.strong_rand_bytes/1 calls")
-IO.puts("significantly improves throughput for bulk generation.")
+IO.puts("Batch generation uses buffered random bytes to reduce crypto-source calls.")
+IO.puts("Compare the measured rows; batching is not guaranteed to win at every size.")

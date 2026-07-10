@@ -33,9 +33,10 @@ defmodule ExkPasswd.Transform.Pinyin do
 
   ## Coverage
 
-  This module includes **500+ of the most frequent Chinese characters** based on
-  Jun Da's Modern Chinese Character Frequency List, covering approximately 95%
-  of characters encountered in everyday Chinese text.
+  The module contains 674 Simplified Chinese character mappings. It is a useful
+  starter table, not a complete frequency list: an audit against Jun Da's top
+  500 found 87 missing characters and approximately 75.6% corpus coverage.
+  Validate every application dictionary before relying on ASCII-only output.
 
   ## Romanization Style
 
@@ -65,9 +66,10 @@ defmodule ExkPasswd.Transform.Pinyin do
   - 了: le (particle), liǎo (finish)
   - 长: cháng (long), zhǎng (grow)
 
-  This module uses the **most common pronunciation** for each character.
-  For password generation, this is acceptable as the goal is keyboard compatibility,
-  not linguistic precision.
+  This module uses one fixed reading for each character. Most are the primary
+  Unihan Mandarin reading; a few use a defensible alternate. The transform does
+  not inspect surrounding characters, so it prioritizes stable keyboard output
+  over linguistic precision.
 
   ## Hanzi Detection
 
@@ -79,7 +81,7 @@ defmodule ExkPasswd.Transform.Pinyin do
 
   ## Limitations
 
-  - Polyphone disambiguation uses most common pronunciation only
+  - Polyphonic characters use one fixed, context-independent reading
   - Characters not in the mapping are passed through unchanged
   - No apostrophe insertion for syllable boundaries (xi'an → xian)
   - Simplified Chinese characters only (Traditional may work for shared characters)
@@ -89,8 +91,7 @@ defmodule ExkPasswd.Transform.Pinyin do
 
   @type t :: %__MODULE__{}
 
-  # Pinyin mapping based on Jun Da's frequency list
-  # Top 500+ most frequent simplified Chinese characters
+  # Starter mapping assembled from frequent and commonly useful characters.
   # Using keyboard-compatible conventions: v for ü after l/n
   @pinyin_map_data %{
     # Top 100 most frequent characters
@@ -479,7 +480,7 @@ defmodule ExkPasswd.Transform.Pinyin do
     "约" => "yue",
     "收" => "shou",
 
-    # 401-500+ frequency and common useful characters
+    # Additional frequent and commonly useful characters
     "权" => "quan",
     "土" => "tu",
     "石" => "shi",
@@ -938,9 +939,10 @@ defmodule ExkPasswd.Transform.Pinyin do
     @doc """
     Returns entropy contribution of Pinyin transform.
 
-    Pinyin conversion is deterministic (one-to-one mapping), so it contributes
-    no additional entropy. Security comes from the random word selection, not
-    from the romanization.
+    Pinyin conversion is deterministic, so it contributes no additional
+    randomness. It is many-to-one: toneless syllables and polyphonic-character
+    choices can make distinct source words collide. `ExkPasswd.Entropy` counts
+    reachable built-in transform outputs when estimating seen min-entropy.
 
     **Note**: Toneless pinyin has inherently lower entropy than character-based
     passwords since ~10,000 characters map to only 410 unique syllables.

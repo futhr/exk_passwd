@@ -293,8 +293,7 @@ defmodule ExkPasswd.Transform.RomajiTest do
       assert ExkPasswd.Transform.apply(@transform, "かぜ", nil) == "kaze"
     end
 
-    test "converts user-reported test cases correctly from ANALYSIS.md" do
-      # From ANALYSIS.md line 63-68 - these were originally broken with simple character mapping
+    test "converts context-sensitive regression cases" do
       # ほっかいどう → hokaidou (expected: hokkaido) - FIXED with sokuon handling
       result = ExkPasswd.Transform.apply(@transform, "ほっかいどう", nil)
       assert result == "hokkaidou" or result == "hokkaido"

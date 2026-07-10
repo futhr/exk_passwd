@@ -2,8 +2,7 @@
 #
 # Run with: mix run bench/dictionary.exs
 #
-# This benchmarks dictionary lookup and filtering operations to ensure
-# the compile-time indexing provides the expected O(1) performance.
+# This benchmarks dictionary lookup and filtering operations.
 
 alias ExkPasswd.Dictionary
 
@@ -25,17 +24,17 @@ File.mkdir_p!("bench/output")
 Benchee.run(
   %{
     # Basic operations
-    "size() - O(1)" => fn -> Dictionary.size() end,
-    "min_length() - O(1)" => fn -> Dictionary.min_length() end,
-    "max_length() - O(1)" => fn -> Dictionary.max_length() end,
-    "all() - O(1)" => fn -> Dictionary.all() end,
+    "size()" => fn -> Dictionary.size() end,
+    "min_length()" => fn -> Dictionary.min_length() end,
+    "max_length()" => fn -> Dictionary.max_length() end,
+    "all()" => fn -> Dictionary.all() end,
 
     # Count operations
     "count_between(4, 8)" => fn -> Dictionary.count_between(4, 8) end,
     "count_between(3, 5)" => fn -> Dictionary.count_between(3, 5) end,
     "count_between(3, 10)" => fn -> Dictionary.count_between(3, 10) end,
 
-    # Random selection - O(1) lookup + O(1) crypto random
+    # Common ranges use precomputed tuples; other ranges use a by-length fallback.
     "random_word_between(4, 6)" => fn -> Dictionary.random_word_between(4, 6) end,
     "random_word_between(4, 8)" => fn -> Dictionary.random_word_between(4, 8) end,
     "random_word_between(3, 10)" => fn -> Dictionary.random_word_between(3, 10) end
@@ -67,5 +66,5 @@ IO.puts("\nWord count by range:")
   IO.puts("  Length #{min}-#{max}: #{count} words")
 end)
 
-IO.puts("\nDictionary uses ETS for O(1) custom dictionary lookups")
-IO.puts("and optimized range-based word selection for performance")
+IO.puts("\nThe built-in dictionary uses compile-time indexes.")
+IO.puts("Custom dictionaries use :persistent_term and by-length indexes.")

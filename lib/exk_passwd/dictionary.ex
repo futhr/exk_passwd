@@ -1,22 +1,16 @@
 defmodule ExkPasswd.Dictionary do
   @moduledoc """
-  Dictionary word list management with compile-time optimizations.
+  Manages the bundled EFF word list and application-supplied dictionaries.
 
-  This module provides constant-time random word selection through tuple-based storage
-  and pre-transformed case variants.
+  Common EFF length ranges and case variants are compiled into tuples for direct
+  indexed selection. Other ranges are assembled from a small by-length index.
 
   ## Optimizations
 
-  1. **Tuple-based storage**: Words stored as tuples for constant-time indexed access
+  1. **Tuple-based storage**: Precomputed ranges support direct indexed access
   2. **Pre-transformed cases**: Separate uppercase/lowercase/capitalized variants
   3. **Pre-computed ranges**: Common word length ranges pre-computed at compile time
   4. **Custom dictionary support**: Runtime `:persistent_term` storage for user dictionaries
-
-  ## Implementation
-
-  - Word selection: Constant-time tuple indexing
-  - Case transformation: Pre-computed variants eliminate runtime transformation
-  - Memory cost: ~200KB additional for pre-computed variants
 
   ## Word List Source
 
@@ -29,11 +23,8 @@ defmodule ExkPasswd.Dictionary do
   with separator characters. See `docs/SECURITY.md` for checksums and
   provenance.
 
-  This wordlist provides:
-  - **High entropy**: 7,772 words = ~12.92 bits per word
-  - **Memorable words**: Common, easy-to-remember English words
-  - **Typability**: No complex spellings or obscure words
-  - **Safety**: No offensive or problematic words
+  Selecting uniformly from all 7,772 entries would provide about 12.92 bits per
+  word. A configured length range usually selects from a smaller subset.
 
   ## Custom Dictionaries
 
@@ -311,7 +302,7 @@ defmodule ExkPasswd.Dictionary do
   def count_between(min, max, :eff) when min <= max do
     case Map.get(@range_tuples_original, {min, max}) do
       {_, count} -> count
-      nil -> count_between_fallback(min, max, @words_by_length_original)
+      nil -> count_between_fallback(min, max, @words_by_length_tuples_original)
     end
   end
 
@@ -336,8 +327,8 @@ defmodule ExkPasswd.Dictionary do
     lower = min(min, max)
     upper = max(min, max)
 
-    Enum.reduce(by_length, 0, fn {length, bucket}, acc ->
-      if length >= lower and length <= upper, do: acc + bucket_size(bucket), else: acc
+    Enum.reduce(by_length, 0, fn {length, {_, count}}, acc ->
+      if length >= lower and length <= upper, do: acc + count, else: acc
     end)
   end
 
@@ -353,6 +344,12 @@ defmodule ExkPasswd.Dictionary do
   - `max` - Maximum word length, inclusive
   - `case_transform` - One of `:none`, `:lower`, `:upper`, or `:capitalize`
   - `dict` - `:eff` or the name of a loaded custom dictionary
+
+  ## Examples
+
+      iex> words = ExkPasswd.Dictionary.words_between(4, 4)
+      ...> length(words) > 0 and Enum.all?(words, &(String.length(&1) == 4))
+      true
   """
   @spec words_between(pos_integer(), pos_integer(), atom(), atom()) :: [String.t()]
   def words_between(min, max, case_transform \\ :none, dict \\ :eff)
@@ -390,7 +387,8 @@ defmodule ExkPasswd.Dictionary do
   @doc """
   Returns a random word between min and max length with optional case transformation.
 
-  Uses tuple-based constant-time lookups for efficient word selection.
+  Uses a precomputed tuple for common EFF ranges and a by-length fallback for
+  other ranges.
 
   ## Parameters
 
@@ -706,9 +704,6 @@ defmodule ExkPasswd.Dictionary do
 
     {List.to_tuple(words), length(words)}
   end
-
-  defp bucket_size({_, count}), do: count
-  defp bucket_size(words) when is_list(words), do: length(words)
 
   defp random_word_between_with_state_fallback(min, max, by_length, random_state) do
     case tuple_between(by_length, min, max) do

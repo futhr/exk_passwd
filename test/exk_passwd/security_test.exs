@@ -380,12 +380,11 @@ defmodule ExkPasswd.SecurityTest do
       end
     end
 
-    test "passwords meet NIST guidelines for entropy" do
-      # NIST recommends 80+ bits for high-value passwords
+    test "high-word-count configuration meets the project entropy target" do
       config = Config.new!(num_words: 5, digits: {2, 2})
       entropy = ExkPasswd.Entropy.calculate_seen(config)
 
-      assert entropy >= 70, "Entropy #{entropy} bits below recommended 70+ bits"
+      assert entropy >= 70, "Entropy #{entropy} bits below the test target of 70 bits"
     end
   end
 end

@@ -1,20 +1,14 @@
 defmodule ExkPasswd.Password do
   @moduledoc """
-  Password generation with optimized performance.
+  Orchestrates password generation from a validated configuration.
 
   This module orchestrates the password generation process using:
-  1. Constant-time word selection from tuple-based dictionary
-  2. Pre-transformed case variants (eliminates runtime transformation)
-  3. Character substitutions (leetspeak) for increased complexity
+  1. Indexed word selection from the configured dictionary
+  2. Pre-transformed case variants for common modes
+  3. Optional character substitutions
   4. Configurable dictionary support (default EFF or custom)
 
   All random operations use cryptographically secure random number generation.
-
-  ## Implementation
-
-  - **Word selection**: Tuple-based constant-time access
-  - **Case transformation**: Pre-computed variants eliminate runtime processing
-  - **Efficient generation**: Optimized dictionary lookups and transformations
 
   ## Security
 
@@ -39,8 +33,8 @@ defmodule ExkPasswd.Password do
   @doc """
   Create a password based on the config either passed in or the default config.
 
-  Uses cryptographically secure random generation for all randomness and
-  tuple-based constant-time word selection for efficient generation.
+  Validates the config and uses cryptographically secure random generation for
+  every random choice made by the built-in pipeline.
 
   ## Parameters
 

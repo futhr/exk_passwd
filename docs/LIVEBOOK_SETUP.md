@@ -1,169 +1,55 @@
-# Livebook & Benchmarking
+# Livebook and benchmarks
 
-ExkPasswd provides interactive Livebook notebooks for learning, experimentation, and performance analysis.
+The repository includes executable examples for learning and local measurement:
 
-## What is Livebook?
+- [Quick start](../notebooks/quickstart.livemd)
+- [Advanced configuration](../notebooks/advanced.livemd)
+- [Security model](../notebooks/security.livemd)
+- [Chinese/Pinyin](../notebooks/i18n_chinese.livemd)
+- [Japanese/Romaji](../notebooks/i18n_japanese.livemd)
+- [Benchmarks](../notebooks/benchmarks.livemd)
+- [Contributing](../notebooks/contributing.livemd)
 
-[Livebook](https://livebook.dev/) is an interactive notebook platform for Elixir. Think Jupyter notebooks, but native to Elixir with live code execution, visualizations, and collaborative features.
+## Run locally
 
-## Available Notebooks
+Install or open [Livebook](https://livebook.dev/), then open a `.livemd` file
+from the `notebooks` directory. Each user-facing notebook installs the Hex
+release it documents. The contributing notebook instead points at the parent
+checkout so local edits are visible.
 
-ExkPasswd includes five interactive notebooks:
+## Benchmark scripts
 
-### 📘 [Quick Start](notebooks/quickstart.livemd)
-
-Get started with ExkPasswd basics:
-- Generate passwords with presets
-- Create custom configurations
-- Batch generation
-- Strength analysis
-
-**For:** New users and quick reference
-
-### 📗 [Advanced Usage](notebooks/advanced.livemd)
-
-Deep dive into advanced features:
-- Fine-grained configuration control
-- Character substitutions (leetspeak)
-- Custom dictionaries and internationalization
-- Transform protocol usage
-
-**For:** Users building custom password policies
-
-### 📕 [Security Analysis](notebooks/security.livemd)
-
-Understand password security:
-- Entropy calculations explained
-- Strength ratings and crack time estimates
-- Preset security comparisons
-- Cryptographic randomness verification
-
-**For:** Security-conscious users and auditors
-
-### 📊 [Benchmarks](notebooks/benchmarks.livemd)
-
-Performance metrics and analysis:
-- Password generation speed
-- Dictionary O(1) lookup verification
-- Batch vs individual generation comparison
-- Memory usage analysis
-
-**For:** Performance optimization and verification
-
-### 🛠️ [Contributing Guide](notebooks/contributing.livemd)
-
-Interactive developer onboarding:
-- Architecture exploration with live code
-- Test changes without running full test suite
-- Create custom presets and transforms
-- Performance testing your changes
-
-**For:** Contributors and developers
-
-## Running Notebooks
-
-### Option 1: Run in Browser (Easiest)
-
-Click any "Run in Livebook" badge in the README or notebook files to run directly in your browser without installation.
-
-### Option 2: Local Livebook
-
-1. **Install Livebook:**
-   ```bash
-   mix escript.install hex livebook
-   ```
-
-2. **Start Livebook server:**
-   ```bash
-   livebook server
-   ```
-
-3. **Open a notebook:**
-   - Navigate to the ExkPasswd directory
-   - Open any `.livemd` file from `notebooks/`
-
-### Option 3: Livebook Desktop
-
-Download [Livebook Desktop](https://livebook.dev/#install) for a native app experience.
-
-## Benchmarks
-
-ExkPasswd includes standalone benchmark scripts for CI/automation:
-
-### Running Benchmarks
+The command-line Benchee suites are:
 
 ```bash
-# All benchmarks
+mix bench.password
+mix bench.dict
+mix bench.batch
 mix bench.all
-
-# Individual benchmarks
-mix bench.password  # Password generation performance
-mix bench.dict      # Dictionary operation performance
-mix bench.batch     # Batch generation performance
 ```
 
-### Benchmark Scripts
+Normal mode uses multi-second warmup and measurement windows. `CI=true` selects
+short windows and smaller batch sizes so CI can verify that the scripts compile
+and run:
 
-- **`bench/password_generation.exs`** - Core generation, presets, transforms
-- **`bench/dictionary.exs`** - Dictionary operations (O(1) verification)
-- **`bench/batch.exs`** - Batch vs individual generation comparison
-
-### CI vs Local Mode
-
-Benchmarks automatically adapt to their environment:
-
-**CI Mode (when `CI=true`):**
-- Fast verification (~30 seconds total)
-- Verifies benchmarks compile and run
-- Shorter durations: `time: 0.5s, warmup: 0.1s`
-- Smaller batch sizes: `[10, 100]`
-
-**Local Mode (default):**
-- Accurate performance measurement (~5+ minutes)
-- Full benchmark durations: `time: 5s, warmup: 2s`
-- Large batch sizes: `[100, 1000, 10_000]`
-
-**Running in CI mode locally:**
 ```bash
 CI=true mix bench.all
 ```
 
-## Why Two Approaches?
+CI-mode output is a smoke test, not a stable performance measurement. Even full
+local results vary with runtime versions, CPU frequency, temperature, scheduler
+load, and power settings. Keep that environment metadata with published values.
 
-**Livebook Notebooks (Interactive)**
-- Learn by doing with live code execution
-- Experiment with configurations safely
-- Run on your own hardware for accurate results
-- Great for exploration and education
+## Interpreting results
 
-**Benchmark Scripts (Automation)**
-- Run in CI to catch API breaking changes
-- Fast verification without performance measurement
-- Scripted for automation and regression testing
-- No GUI required
+- Common EFF word ranges use precomputed tuples, but uncommon/custom ranges may
+  assemble candidates from a by-length index.
+- Buffered batch generation reduces crypto calls, but it is not guaranteed to
+  outperform individual generation at every batch size.
+- Seen-entropy analysis enumerates reachable transformed outputs to find
+  collisions and is expected to cost more than one password generation.
+- Very short operations can show large relative deviation because timer and
+  scheduler noise dominate the measured work.
 
-## CI Integration
-
-Benchmarks run automatically in GitHub Actions on every push and pull request via `.github/workflows/benchmarks.yml`.
-
-**Purpose:** Verify benchmarks compile and run successfully, catching API breaking changes that would break benchmark code.
-
-**Not for:** Performance regression detection (too noisy on CI hardware).
-
-## Performance Characteristics
-
-ExkPasswd is optimized for speed:
-
-- **Dictionary lookups:** O(1) via tuple-based indexing
-- **Case transforms:** Pre-computed variants (3x faster)
-- **Batch generation:** Buffered random bytes (1.5-3x faster for large batches)
-- **Custom dictionaries:** `:persistent_term`-backed for zero-copy reads
-
-Benchmarks verify these characteristics remain true as the codebase evolves.
-
-## Resources
-
-- [Livebook Documentation](https://livebook.dev/)
-- [Benchee Documentation](https://hexdocs.pm/benchee)
-- [ExkPasswd Documentation](https://hexdocs.pm/exk_passwd)
-- [Contributing Guide](../CONTRIBUTING.md)
+Regenerate checked-in reports only from a clean checkout after correctness gates
+pass. Do not turn one machine's results into a general speedup claim.

@@ -80,7 +80,7 @@ defmodule ExkPasswd.Transform.Substitution do
 
     @spec entropy_bits(ExkPasswd.Transform.Substitution.t(), ExkPasswd.Config.t()) :: float()
     def entropy_bits(%{mode: :random}, config) do
-      # Each word adds 1 bit (substituted or not)
+      # Nominal branch entropy. Entropy analysis checks whether outputs differ.
       config.num_words * 1.0
     end
 

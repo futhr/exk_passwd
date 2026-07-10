@@ -339,8 +339,8 @@ defmodule ExkPasswd.Transform.PinyinTest do
 
     test "has substantial coverage" do
       map = Pinyin.pinyin_map()
-      # Should have 500+ characters
-      assert map_size(map) >= 500
+      # The starter map should retain its audited broad character coverage.
+      assert map_size(map) == 674
     end
   end
 

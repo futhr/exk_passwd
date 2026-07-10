@@ -96,7 +96,7 @@ defmodule ExkPasswd.Strength do
     analyze(password, settings).rating
   end
 
-  # Rating thresholds based on NIST/OWASP entropy recommendations
+  # Project-defined convenience bands; these are not NIST/OWASP thresholds.
   defp entropy_to_rating(entropy) when entropy >= 78, do: :excellent
   defp entropy_to_rating(entropy) when entropy >= 52, do: :good
   defp entropy_to_rating(entropy) when entropy >= 40, do: :fair

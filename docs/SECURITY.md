@@ -1,215 +1,163 @@
-# Security
+# Security model
 
-## Overview
+ExkPasswd generates passwords from independently selected words and tokens. Its
+security assumptions are deliberately public: an attacker may know the library,
+dictionary, preset, and every configuration value except the random choices.
 
-ExkPasswd is designed with security as the highest priority. This document outlines the security measures, testing methodology, and known considerations.
+## Randomness
 
-## Cryptographic Guarantees
+All random choices ultimately use `:crypto.strong_rand_bytes/1`. Integer ranges
+use rejection sampling, including buffered batch generation, so reducing a byte
+value modulo a non-power-of-two range does not bias some outcomes.
 
-### Random Number Generation
+The generator never uses `:rand`, `Enum.random/1`, timestamps, process IDs, or a
+user-provided seed for password material.
 
-All randomness uses `:crypto.strong_rand_bytes/1` with **rejection sampling** to eliminate modulo bias:
+This guarantees use of the Erlang/OTP cryptographic random source and unbiased
+range reduction. It does not guarantee that a host with a compromised operating
+system, runtime, or hardware random source remains secure.
 
-```elixir
-# Unbiased random integer generation
-def integer(max) do
-  range_size = 0x1_0000_0000  # 2^32
-  threshold = range_size - rem(range_size, max)
-  integer_unbiased(max, threshold)
-end
+## Bundled dictionary
 
-defp integer_unbiased(max, threshold) do
-  value = :crypto.strong_rand_bytes(4) |> :binary.decode_unsigned()
-  if value < threshold, do: rem(value, max), else: integer_unbiased(max, threshold)
-end
+`priv/dict/eff_large.txt` is derived from the EFF Large Wordlist. Four entries
+containing hyphens are omitted so a hyphen can be used as a separator without
+making word boundaries ambiguous:
+
+- `drop-down`
+- `felt-tip`
+- `t-shirt`
+- `yo-yo`
+
+The resulting file contains 7,772 lowercase ASCII words. Its SHA-256 digest is:
+
+```text
+18586c092f641ecd1a471dd6ab35618ab69f0aa7483486424f7caf0996d06259
 ```
 
-**Benefits**:
-- Perfectly uniform distribution (no modulo bias)
-- Cryptographically secure randomness
-- Verified via chi-square statistical tests
-- Zero performance impact (rejection rate < 0.001%)
-
-### Dictionary
-
-- Uses the EFF Large Wordlist (7,772 words)
-- Pre-computed at compile time for O(1) access
-- All words verified reachable through statistical testing
-- No filtering bias detected
-
-#### Wordlist Provenance
-
-The shipped list (`priv/dict/eff_large.txt`) is derived from the canonical
-EFF Large Wordlist with a single, documented modification: the four
-hyphenated entries (`drop-down`, `felt-tip`, `t-shirt`, `yo-yo`) are removed
-so that every word is strictly lowercase `a-z` (3-9 characters) and cannot
-visually collide with separator characters. Removing 4 of 7,776 words
-changes per-word entropy by less than 0.001 bits (log2(7772) = 12.92).
-
-- Source: https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt
-- Source SHA-256: `addd35536511597a02fa0a9ff1e5284677b8883b83e986e43f15a3db996b903e`
-- Shipped SHA-256: `18586c092f641ecd1a471dd6ab35618ab69f0aa7483486424f7caf0996d06259`
-
-To audit, download the source list, strip the dice-roll column, drop the
-four hyphenated entries, and compare checksums:
-
-```sh
-curl -sL https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt \
-  | awk '{print $2}' | grep -E '^[a-z]+$' | shasum -a 256
-```
-
-## Security Testing
-
-### Test Suite
-
-Run the security test suite:
+Verify it with:
 
 ```bash
-# All security tests
-mix test test/exk_passwd/security_test.exs
-
-# Adversarial attack simulations
-mix test test/exk_passwd/adversarial_test.exs
+shasum -a 256 priv/dict/eff_large.txt
 ```
 
-### Adversarial Testing
+Selecting from all 7,772 entries would provide `log2(7772) ≈ 12.92` bits per
+word. Presets restrict word length, so their effective pool can be smaller; use
+`ExkPasswd.Entropy.calculate_seen/1` for a configuration-specific estimate.
 
-The test suite simulates real attack scenarios:
+The bundled list is convenient provisioning. Applications may load any suitable
+dictionary with `ExkPasswd.Dictionary.load_custom/2`. Custom words are normalized
+to NFC, duplicates are rejected, and case-output duplicates are stored once.
+Dictionary authors remain responsible for language coverage, offensive content,
+memorability, and resource usage.
 
-1. **Statistical bias detection** - Chi-square tests for uniformity
-2. **Collision resistance** - Birthday attack validation
-3. **State correlation** - Batch generation independence
-4. **Dictionary coverage** - Complete word space accessibility
-5. **Entropy validation** - Collision rate analysis
-6. **Pattern detection** - ML-resistant password structure
-7. **Distribution analysis** - Word length, digits, case transforms
-8. **Parallel safety** - Process independence verification
+## Entropy calculation
 
-**Test Coverage**: 100% with 859 tests (137 doctests + 722 unit tests), all passing.
+`seen` entropy assumes the attacker knows the generator. It is calculated as
+min-entropy over reachable outputs, not by adding complexity points. The model:
 
-## Security Considerations
+- counts only dictionary entries in the configured length range;
+- accounts for collisions caused by case conversion and substitutions;
+- accounts for deterministic Pinyin and Romaji collisions;
+- credits random casing or substitution only when it creates distinct outputs;
+- gives unverifiable random custom transforms no entropy credit;
+- treats digits, the selected separator, and fixed symbol padding as independent
+  choices where the implementation actually makes such choices.
 
-### Entropy Calculations
+Minimum-length padding receives no entropy credit because some generated values
+may already meet the minimum and receive no padding. This is conservative.
 
-Theoretical entropy is calculated assuming:
-- Perfect uniform random selection
-- Known configuration parameters
-- EFF Large Wordlist (7,772 words)
+`blind` is a character-class brute-force search-space heuristic. It is useful for
+contrasting naive brute force with a generator-aware attack, but it is not the
+entropy of an observed string.
 
-For 4-word password: ~52 bits of entropy (2^52 ≈ 4.5 quadrillion combinations)
+Crack-time text assumes one billion guesses per second and an average search of
+half the candidate space. Actual rates vary enormously with online throttling,
+MFA, password hashing, attacker hardware, and breach conditions.
 
-### Preset Configurations
+## Transform caveats
 
-Public presets (`:default`, `:xkcd`, `:wifi`, etc.) have predictable structure.
+Romanization is often many-to-one. For example, the supplied toneless Pinyin
+mapping converts both `是` and `事` to `shi`. A deterministic transform therefore
+adds no randomness and can reduce the output space. The entropy calculator
+enumerates built-in deterministic outputs to capture those collisions.
 
-**Recommendation**: Use custom `Config` for high-security applications:
+Pinyin is character-based and does not disambiguate context-dependent readings.
+Romaji supports kana, not Kanji morphological analysis. Unmapped characters pass
+through unchanged. Validate every custom language dictionary if the destination
+requires ASCII:
 
 ```elixir
-config = Config.new!(
-  num_words: 5,
-  separator: "+",
-  word_length: 6..9,
-  case_transform: :random,
-  digits: {3, 3}
-)
+transform = %ExkPasswd.Transform.Pinyin{}
 
-password = ExkPasswd.generate(config)
+unmapped =
+  Enum.filter(words, fn word ->
+    ExkPasswd.Transform.apply(transform, word, nil) =~ ~r/[^a-z]/
+  end)
 ```
 
-### Known Limitations
+## Output length
 
-1. **Preset fingerprinting** - Passwords generated with public presets can be identified by structure
-2. **Dictionary knowledge** - Attackers knowing the EFF wordlist reduces search space
-3. **Configuration leakage** - Password structure reveals some configuration parameters
+`padding.to_length` sets a minimum. ExkPasswd never truncates a generated
+password to meet a smaller limit, because truncation can discard entire random
+components and invalidate entropy estimates. Choose a configuration whose
+maximum natural length fits the destination instead.
 
-These are **inherent to structured passphrases**, not implementation bugs.
+The `web16`, `web32`, and `wifi` presets are constructed so their natural maxima
+fit their advertised limits. The Wi-Fi preset emits 63 printable ASCII
+characters, the passphrase maximum accepted by WPA/WPA2-Personal tooling. A
+64-character hexadecimal value represents a raw PSK rather than a 64-character
+passphrase.
 
-**Mitigation**: Users should use custom configurations for sensitive applications.
+## What this library does not solve
 
-## Vulnerability Disclosure
+Password generation is only one part of authentication security. ExkPasswd does
+not:
 
-If you discover a security vulnerability:
+- check generated or user-supplied values against breach blocklists;
+- store, hash, transmit, rotate, or synchronize passwords;
+- protect against phishing, keylogging, clipboard monitoring, or endpoint
+  compromise;
+- provide rate limiting or multi-factor authentication;
+- assess whether a destination silently normalizes or truncates input.
 
-1. **DO NOT** open a public GitHub issue
-2. Email security concerns to the maintainers
-3. Include clear reproduction steps
-4. Allow reasonable time for a fix before disclosure
+Use a modern password manager and a memory-hard password hash where applicable.
+Enable MFA for important accounts. Test the exact password field before relying
+on Unicode, whitespace, or uncommon punctuation.
 
-## Testing Methodology
+## Current guidance
 
-### Chi-Square Test
+NIST SP 800-63B emphasizes password length, blocklists, rate limiting, and
+allowing long passphrases. It advises verifiers not to impose composition rules
+on user-chosen passwords. OWASP likewise recommends long-password support and
+explicitly says not to silently truncate passwords.
 
-Validates uniform distribution of random values:
+These are verifier guidelines, not entropy thresholds for this library. The
+rating bands returned by ExkPasswd are project-defined convenience labels.
 
-```elixir
-chi_square = Enum.reduce(frequencies, 0, fn {_, observed}, acc ->
-  acc + :math.pow(observed - expected, 2) / expected
-end)
+- [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html)
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+- [EFF random-passphrase wordlists](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases)
 
-# For df degrees of freedom at 99.9% confidence:
-critical_value = df + :math.sqrt(2 * df) * 3.29
-assert chi_square < critical_value
+## Verification
+
+Run the security-focused tests and normal quality gates with:
+
+```bash
+mix test test/exk_passwd/security_test.exs test/exk_passwd/adversarial_test.exs
+mix test
+mix coveralls.html
+mix credo --strict
+mix dialyzer
+mix deps.audit
 ```
 
-### Collision Rate Analysis
+Statistical tests are regression smoke tests. Passing them does not prove that a
+random-number generator is cryptographically secure; that property comes from
+the reviewed use of `:crypto.strong_rand_bytes/1` and unbiased sampling.
 
-Validates entropy claims via birthday paradox:
+## Reporting a vulnerability
 
-```elixir
-# Generate samples, check collision rate
-unique = Enum.uniq(passwords) |> length()
-collision_rate = (total - unique) / total
-
-# Should be near 0 for high-entropy passwords
-assert collision_rate < 0.001
-```
-
-## Best Practices
-
-### For Library Users
-
-1. **Use custom configs** for sensitive applications (avoid public presets)
-2. **Increase word count** for higher security (6+ words recommended)
-3. **Add randomization** to separators and padding when possible
-4. **Monitor entropy** using `ExkPasswd.Entropy.calculate/2` or `ExkPasswd.Strength.analyze/2`
-
-### For Contributors
-
-1. **Never use `:rand` module** - always use `ExkPasswd.Random`
-2. **Avoid Enum.random/1** - not cryptographically secure
-3. **Run security tests** before committing: `mix test test/exk_passwd/security_test.exs`
-4. **Maintain test coverage** 95%+ overall, 100% for crypto code
-
-## Compliance
-
-### NIST Guidelines
-
-ExkPasswd follows NIST SP 800-63B recommendations:
-
-- ✅ Minimum 64 bits entropy for high-value passwords (achieved with 5+ words)
-- ✅ Cryptographically secure random number generation
-- ✅ No weak patterns or predictable structures
-- ✅ Resistance to dictionary attacks (large word space)
-
-### OWASP Recommendations
-
-- ✅ Use of secure random number generator
-- ✅ Sufficient entropy for password generation
-- ✅ No hardcoded secrets or predictable patterns
-- ✅ Regular security testing and validation
-
-## References
-
-- [EFF Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases)
-- [NIST SP 800-63B](https://pages.nist.gov/800-63-3/sp800-63b.html)
-- [OWASP Password Guidelines](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
-- [Modulo Bias Explained](https://research.kudelskisecurity.com/2020/07/28/the-definitive-guide-to-modulo-bias-and-how-to-avoid-it/)
-- [Rejection Sampling](https://en.wikipedia.org/wiki/Rejection_sampling)
-
-## Contact
-
-For security-related questions or concerns, please contact the maintainers through the project's GitHub repository.
-
----
-
-**Last Updated**: 2026-04-03
+Please use GitHub's private security-advisory flow for the repository. Include a
+minimal reproducer, affected versions, expected impact, and any suggested
+mitigation. Avoid publishing exploitable details before a fix is available.

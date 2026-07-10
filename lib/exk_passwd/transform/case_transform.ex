@@ -7,7 +7,7 @@ defmodule ExkPasswd.Transform.CaseTransform do
   - `:lower` - All lowercase
   - `:capitalize` - First letter uppercase
   - `:invert` - First letter lowercase, rest uppercase
-  - `:random` - Randomly upper or lower (adds entropy)
+  - `:random` - Randomly upper or lower; this adds entropy only when the outputs differ
   - `:none` - No transformation
 
   ## Examples
@@ -54,7 +54,7 @@ defmodule ExkPasswd.Transform.CaseTransform do
 
     @spec entropy_bits(ExkPasswd.Transform.CaseTransform.t(), ExkPasswd.Config.t()) :: float()
     def entropy_bits(%{mode: :random}, config) do
-      # Each word adds 1 bit of entropy (upper or lower)
+      # Nominal branch entropy. Entropy analysis checks whether outputs differ.
       config.num_words * 1.0
     end
 

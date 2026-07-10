@@ -1,344 +1,142 @@
-# ExkPasswd Security Analysis
+# ExkPasswd security model
 
 ```elixir
 Mix.install([
-  {:exk_passwd, "~> 0.1.0"},
-  {:kino, "~> 0.12"}
+  {:exk_passwd, "~> 0.2.0"}
 ])
 ```
 
-## Introduction
+This notebook separates generator-aware min-entropy from a naive brute-force
+search-space estimate. Neither number predicts a specific online service or
+password hash.
 
-This notebook explores the security aspects of ExkPasswd-generated passwords:
+## Compare the built-in presets
 
-* **Entropy** - How much randomness/unpredictability
-* **Strength ratings** - Weak, moderate, strong, very strong
-* **Crack time estimates** - How long to brute force
-* **Comparison** - Different configurations and their security
+```elixir
+presets = [:default, :xkcd, :web32, :web16, :wifi, :apple_id, :security]
 
-## What is Entropy?
+for preset <- presets do
+  config = ExkPasswd.Config.Presets.get(preset)
+  password = ExkPasswd.generate(config)
+  report = ExkPasswd.Entropy.calculate(password, config)
 
-**Entropy** measures the unpredictability of a password in bits. Higher is better.
+  %{
+    preset: preset,
+    length: String.length(password),
+    seen_min_entropy: Float.round(report.seen, 1),
+    blind_estimate: Float.round(report.blind, 1),
+    rating: report.status
+  }
+end
+```
 
-* Each bit doubles the number of possibilities
-* 40 bits = 1 trillion possibilities
-* 60 bits = 1 quintillion possibilities
-* 128 bits = effectively uncrackable
+The project rating bands are convenience labels; they are not NIST or OWASP
+thresholds. Current NIST guidance focuses on verifier behavior such as minimum
+length, blocklists, rate limiting, and avoiding composition rules for
+user-chosen passwords.
 
-<!-- livebook:{"break_markdown":true} -->
-
-### Calculating Entropy
-
-ExkPasswd provides built-in entropy calculation:
+## Inspect an entropy breakdown
 
 ```elixir
 config = ExkPasswd.Config.Presets.get(:default)
-password = ExkPasswd.generate(config)
-entropy_result = ExkPasswd.Entropy.calculate(password, config)
-
-IO.puts("Password: #{password}")
-IO.puts("Blind Entropy: #{Float.round(entropy_result.blind, 2)} bits")
-IO.puts("Seen Entropy: #{Float.round(entropy_result.seen, 2)} bits")
-IO.puts("Status: #{entropy_result.status}")
-IO.puts("Crack time (blind): #{entropy_result.blind_crack_time}")
-IO.puts("Crack time (seen): #{entropy_result.seen_crack_time}")
+ExkPasswd.Entropy.calculate_seen_detailed(config)
 ```
 
-## Strength Analysis
+The calculation assumes the attacker knows the dictionary and configuration.
+It includes known output collisions and only credits random decisions that can
+produce distinct values.
 
-Get a strength analysis:
-
-```elixir
-config = ExkPasswd.Config.Presets.get(:security)
-password = ExkPasswd.generate(config)
-strength = ExkPasswd.Strength.analyze(password, config)
-
-IO.puts("Password: #{password}")
-IO.puts("Rating: #{strength.rating}")
-IO.puts("Score: #{strength.score}/100")
-IO.puts("Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
-IO.puts("Length: #{String.length(password)} characters")
-```
-
-## Comparing Presets
-
-Let's compare the security of different presets:
+## Word-count effect
 
 ```elixir
-presets = [:xkcd, :web32, :wifi, :security, :appleid, :default]
-
-results =
-  for preset <- presets do
-    config = ExkPasswd.Config.Presets.get(preset)
-    password = ExkPasswd.generate(config)
-    strength = ExkPasswd.Strength.analyze(password, config)
-
-    %{
-      preset: preset,
-      password: password,
-      length: String.length(password),
-      entropy: Float.round(strength.entropy_bits, 1),
-      rating: strength.rating,
-      score: strength.score
-    }
-  end
-
-# Display as table
-IO.puts("\n| Preset | Length | Entropy | Rating | Score |")
-IO.puts("|--------|--------|---------|--------|-------|")
-
-for r <- results do
-  IO.puts(
-    "| #{r.preset} | #{r.length} | #{r.entropy} bits | #{r.rating} | #{r.score}/100 |"
-  )
-end
-
-:ok
-```
-
-## Word Count Impact
-
-How does the number of words affect security?
-
-```elixir
-alias ExkPasswd.Config
-
-word_counts = [2, 3, 4, 5, 6]
-
-IO.puts("\n=== Impact of Word Count on Security ===\n")
-
-for count <- word_counts do
-  config = Config.new!(num_words: count, case_transform: :lower, separator: "-")
-  password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password, config)
-
-  IO.puts("#{count} words: #{password}")
-  IO.puts("  Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
-  IO.puts("  Rating: #{strength.rating}")
-  IO.puts("  Score: #{strength.score}/100\n")
-end
-
-:ok
-```
-
-## Word Length Impact
-
-Does using longer words make passwords more secure?
-
-```elixir
-length_configs = [
-  {3, 4, "very short"},
-  {4, 6, "short"},
-  {6, 8, "medium"},
-  {8, 10, "long"},
-  {10, 12, "very long"}
-]
-
-IO.puts("\n=== Impact of Word Length on Security ===\n")
-
-for {min, max, label} <- length_configs do
+for count <- 2..6 do
   config =
-    Config.new!(
-      num_words: 3,
-      word_length: min..max,
-      separator: "-"
+    ExkPasswd.Config.new!(
+      num_words: count,
+      case_transform: :lower,
+      separator: "-",
+      digits: {0, 0},
+      padding: %{char: "", before: 0, after: 0, to_length: 0}
     )
 
-  password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password, config)
-
-  IO.puts("#{label} words (#{min}-#{max} chars): #{password}")
-  IO.puts("  Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
-  IO.puts("  Rating: #{strength.rating}\n")
-end
-
-:ok
-```
-
-## Case Transform Impact
-
-How do case transformations affect security?
-
-```elixir
-transforms = [
-  :lower,
-  :upper,
-  :capitalize,
-  :alternate,
-  :random,
-  :invert
-]
-
-IO.puts("\n=== Impact of Case Transform on Security ===\n")
-
-for transform <- transforms do
-  config = Config.new!(num_words: 3, case_transform: transform, separator: "-")
-  password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password, config)
-
-  IO.puts("#{transform}: #{password}")
-  IO.puts("  Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
-  IO.puts("  Rating: #{strength.rating}\n")
-end
-
-:ok
-```
-
-## Padding Impact
-
-How much does adding numbers and symbols help?
-
-```elixir
-padding_configs = [
-  {0, 0, 0, 0, "No padding"},
-  {2, 0, 0, 0, "2 digits before"},
-  {2, 2, 0, 0, "2 digits before & after"},
-  {3, 3, 0, 0, "3 digits before & after"},
-  {2, 2, 1, 1, "Digits + symbols"}
-]
-
-IO.puts("\n=== Impact of Padding on Security ===\n")
-
-for {db, da, sb, sa, label} <- padding_configs do
-  config =
-    Config.new!(
-      num_words: 3,
-      digits: {db, da},
-      padding: %{char: "!@#$%^&*", before: sb, after: sa, to_length: 0}
-    )
-
-  password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password, config)
-
-  IO.puts("#{label}: #{password}")
-  IO.puts("  Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
-  IO.puts("  Rating: #{strength.rating}\n")
-end
-
-:ok
-```
-
-## Cryptographic Randomness
-
-ExkPasswd uses `:crypto.strong_rand_bytes/1` for all random operations. This is:
-
-* **Cryptographically secure** - Unpredictable even with knowledge of previous outputs
-* **High-quality** - Passes statistical randomness tests
-* **OS-provided** - Uses the operating system's entropy pool
-
-<!-- livebook:{"break_markdown":true} -->
-
-Let's verify randomness by generating many passwords and checking for duplicates:
-
-```elixir
-# Generate 10,000 passwords and check uniqueness
-count = 10_000
-passwords = ExkPasswd.Batch.generate_batch(count, :default)
-unique_count = Enum.uniq(passwords) |> length()
-duplicate_count = count - unique_count
-
-IO.puts("Generated: #{count} passwords")
-IO.puts("Unique: #{unique_count}")
-IO.puts("Duplicates: #{duplicate_count}")
-IO.puts("Uniqueness: #{Float.round(unique_count / count * 100, 2)}%")
-
-if duplicate_count == 0 do
-  IO.puts("\n✓ Perfect! No collisions detected.")
-else
-  IO.puts("\n⚠ Some duplicates found (expected with high volumes)")
+  {count, Float.round(ExkPasswd.Entropy.calculate_seen(config), 2)}
 end
 ```
 
-## Security Recommendations
+More independent selections from the same pool increase the configured output
+space linearly in bits. Longer words do not automatically help: restricting the
+length range can reduce the number of eligible dictionary entries.
 
-Based on this analysis:
-
-<!-- livebook:{"break_markdown":true} -->
-
-### Minimum Security
-
-For basic security (personal accounts, low-risk):
+## A collision caused by a transform
 
 ```elixir
-basic_config = Config.new!(num_words: 3, digits: {0, 2})
-basic_pwd = ExkPasswd.generate(basic_config)
-basic_strength = ExkPasswd.Strength.analyze(basic_pwd, basic_config)
+ExkPasswd.Dictionary.load_custom(:pinyin_collision_demo, ["是", "事"])
 
-IO.puts("Basic security config:")
-IO.puts("Password: #{basic_pwd}")
-IO.puts("Entropy: #{Float.round(basic_strength.entropy_bits, 2)} bits (aim for 50+)")
-```
-
-### Strong Security
-
-For important accounts (email, banking, work):
-
-```elixir
-strong_config =
-  Config.new!(
-    num_words: 4,
-    case_transform: :capitalize,
-    digits: {2, 2}
+config =
+  ExkPasswd.Config.new!(
+    num_words: 1,
+    dictionary: :pinyin_collision_demo,
+    word_length: 1..1,
+    word_length_bounds: 1..10,
+    case_transform: :none,
+    separator: "",
+    digits: {0, 0},
+    padding: %{char: "", before: 0, after: 0, to_length: 0},
+    meta: %{transforms: [%ExkPasswd.Transform.Pinyin{}]}
   )
 
-strong_pwd = ExkPasswd.generate(strong_config)
-strong_strength = ExkPasswd.Strength.analyze(strong_pwd, strong_config)
-
-IO.puts("Strong security config:")
-IO.puts("Password: #{strong_pwd}")
-IO.puts("Entropy: #{Float.round(strong_strength.entropy_bits, 2)} bits (aim for 70+)")
+passwords = for _ <- 1..10, do: ExkPasswd.generate(config)
+{Enum.uniq(passwords), ExkPasswd.Entropy.calculate_seen_detailed(config)}
 ```
 
-### Maximum Security
+Both source characters become `shi`, so the transformed word contributes zero
+bits. Deterministic complexity is not randomness.
 
-For critical systems (servers, encryption keys, admin accounts):
-
-```elixir
-max_config = ExkPasswd.Config.Presets.get(:security)
-max_pwd = ExkPasswd.generate(max_config)
-max_strength = ExkPasswd.Strength.analyze(max_pwd, max_config)
-
-IO.puts("Maximum security config:")
-IO.puts("Password: #{max_pwd}")
-IO.puts("Entropy: #{Float.round(max_strength.entropy_bits, 2)} bits (aim for 100+)")
-```
-
-## Interactive Security Explorer
-
-Try different configurations and see their security impact:
+## Minimum-length padding does not discard entropy
 
 ```elixir
-# Modify these values and re-run to experiment
-my_config =
-  Config.new(
-    num_words: 4,
-    word_length_min: 5,
-    word_length_max: 8,
-    case_transform: :capitalize,
-    separator: "-",
-    digits: {2, 2},
-    padding: %{char: "!@#$", before: 0, after: 1, to_length: 0}
+config =
+  ExkPasswd.Config.new!(
+    num_words: 5,
+    word_length: 8..9,
+    padding: %{char: "=", before: 0, after: 0, to_length: 16}
   )
 
-password = ExkPasswd.generate(my_config)
-strength = ExkPasswd.Strength.analyze(password, my_config)
-
-IO.puts("Your password: #{password}")
-IO.puts("\n=== Security Analysis ===")
-IO.puts("Length: #{String.length(password)} characters")
-IO.puts("Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
-IO.puts("Rating: #{strength.rating}")
-IO.puts("Score: #{strength.score}/100")
+password = ExkPasswd.generate(config)
+{String.length(password), password}
 ```
 
-## Next Steps
+The output remains longer than 16; ExkPasswd never silently truncates generated
+words or digits.
 
-* [Benchmarks](benchmarks.livemd) - Performance analysis
-* [Advanced Usage](advanced.livemd) - Configuration details
-* [Quick Start](quickstart.livemd) - Back to basics
+## Uniqueness is not a randomness proof
 
-## Further Reading
+```elixir
+config = ExkPasswd.Config.Presets.get(:xkcd)
+passwords = ExkPasswd.Batch.generate_batch(2_000, config)
 
-* [NIST Digital Identity Guidelines](https://pages.nist.gov/800-63-3/)
-* [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
-* [XKCD #936](https://xkcd.com/936/) - The original inspiration
+%{
+  generated: length(passwords),
+  unique: length(Enum.uniq(passwords))
+}
+```
+
+Few collisions are expected in a large output space, but this experiment cannot
+prove cryptographic security or uniformity. Those properties depend on reviewed
+use of `:crypto.strong_rand_bytes/1` and rejection sampling.
+
+## Operational guidance
+
+- Use a password manager and a unique password per account.
+- Enable MFA for important accounts.
+- Test a destination's real length and character handling.
+- Do not silently truncate passwords during storage or verification.
+- Check user-chosen passwords against a breached/common-password blocklist at the
+  verifier; ExkPasswd does not perform that network- or dataset-dependent step.
+- Use a slow, memory-hard password hash for stored credentials.
+
+Further reading:
+
+- [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html)
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)

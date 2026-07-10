@@ -87,6 +87,13 @@ defmodule ExkPasswd.DictionaryTest do
       assert Dictionary.random_word_between(100_000, 100_000, :none, :sparse_extreme) == long_word
     end
 
+    test "loads a dictionary whose words are all above configured length bounds" do
+      long_word = String.duplicate("界", 51)
+      assert :ok = Dictionary.load_custom(:only_long_words, [long_word])
+      assert Dictionary.words_between(1, 50, :none, :only_long_words) == []
+      assert Dictionary.words_between(51, 51, :none, :only_long_words) == [long_word]
+    end
+
     test "deduplicates case-transformed output choices" do
       Dictionary.load_custom(:case_collision, ["Apple", "apple"])
 
@@ -130,6 +137,38 @@ defmodule ExkPasswd.DictionaryTest do
 
       assert {nil, ^state} =
                Dictionary.random_word_between_with_state(10, 10, :none, :eff, state)
+    end
+
+    test "empty custom fallbacks return no words without consuming state" do
+      Dictionary.load_custom(:empty_fallback_dict, ["abc"])
+      state = Buffer.new(100)
+
+      assert Dictionary.words_between(10, 20, :none, :empty_fallback_dict) == []
+
+      assert {nil, ^state} =
+               Dictionary.random_word_between_with_state(
+                 10,
+                 20,
+                 :none,
+                 :empty_fallback_dict,
+                 state
+               )
+    end
+
+    test "public selection functions reject unsupported arguments" do
+      state = Buffer.new(100)
+
+      assert_raise ArgumentError, fn ->
+        apply(Dictionary, :words_between, [4, 8, :random, :eff])
+      end
+
+      assert_raise ArgumentError, fn ->
+        apply(Dictionary, :random_word_between, [4, 8, :random, :eff])
+      end
+
+      assert_raise ArgumentError, fn ->
+        apply(Dictionary, :random_word_between_with_state, [4, 8, :random, :eff, state])
+      end
     end
   end
 

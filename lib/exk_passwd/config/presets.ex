@@ -2,7 +2,7 @@ defmodule ExkPasswd.Config.Presets do
   @moduledoc """
   Preset registry with compile-time and runtime preset support.
 
-  Built-in presets are pre-validated at compile time for zero runtime overhead.
+  Built-in presets are constructed and validated when the module is compiled.
   Custom presets can be registered at runtime for application-specific configurations.
 
   ## Setup
@@ -23,13 +23,13 @@ defmodule ExkPasswd.Config.Presets do
 
   ## Built-in Presets
 
-  - `:default` - Balanced security and memorability (~59 bits entropy)
+  - `:default` - Three words with digits, separators, and padding (~59 bits)
   - `:web32` - For websites allowing up to 32 characters (~65 bits)
-  - `:web16` - For websites with 16 character limit (~42 bits - ⚠️ low security)
-  - `:wifi` - 63 character WPA2 keys (~85 bits)
+  - `:web16` - Compatibility fallback for a 16-character limit (~37 bits)
+  - `:wifi` - 63 printable ASCII characters for WPA/WPA2 passphrases (~105 bits)
   - `:apple_id` - Meets Apple ID requirements (~55 bits)
   - `:security` - For security questions (~77 bits)
-  - `:xkcd` - Similar to the famous XKCD comic (~65 bits)
+  - `:xkcd` - Five hyphen-separated words (~68 bits)
 
   ## Examples
 
@@ -139,8 +139,8 @@ defmodule ExkPasswd.Config.Presets do
         meta: %{
           name: "wifi",
           description:
-            "A preset for generating 63 character long WPA2 keys " <>
-              "(most routers allow 64 characters, but some only 63, hence the odd length)."
+            "A preset generating a 63-character printable ASCII WPA/WPA2 passphrase. " <>
+              "A 64-character hexadecimal value represents a raw PSK instead."
         }
       ),
     apple_id:

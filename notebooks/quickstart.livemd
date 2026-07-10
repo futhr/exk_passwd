@@ -1,134 +1,88 @@
-# ExkPasswd Quick Start
+# ExkPasswd quick start
 
 ```elixir
 Mix.install([
-  # {:exk_passwd, "~> 0.1.0"}
-  {:exk_passwd, git: "https://github.com/futhr/exk_passwd.git"}
-  # {:exk_passwd, path: "/path/to/exk_passwd"}
+  {:exk_passwd, "~> 0.2.0"}
 ])
 ```
 
-## Introduction
+ExkPasswd combines independent random words with optional digits, separators,
+padding, and transforms. All password material comes from the Erlang/OTP
+cryptographic random source.
 
-Welcome to **ExkPasswd** - a secure, memorable password generator using the XKPasswd method!
-
-XKPasswd creates strong passwords by combining:
-
-* Random words (easy to remember)
-* Numbers and symbols (hard to crack)
-* Configurable transformations (customizable strength)
-
-This interactive notebook lets you explore ExkPasswd and generate passwords right in your browser.
-
-## Basic Usage
-
-The simplest way to generate a password:
+## Generate a password
 
 ```elixir
 ExkPasswd.generate()
 ```
 
-Run the cell above multiple times - you'll get a different password each time! All randomness uses cryptographically secure sources.
-
-## Using Presets
-
-ExkPasswd includes several built-in presets for common use cases:
+Built-in presets cover a few common compatibility targets:
 
 ```elixir
-# XKCD-style: 4 lowercase words with hyphens
-ExkPasswd.generate(:xkcd)
-```
-
-```elixir
-# Web-friendly: 32 character max length
-ExkPasswd.generate(:web32)
-```
-
-```elixir
-# WiFi: Maximum 63 characters for WPA2
-ExkPasswd.generate(:wifi)
-```
-
-```elixir
-# Security: Maximum strength with 6 words
-ExkPasswd.generate(:security)
-```
-
-```elixir
-# Apple ID: Meets Apple's requirements
-ExkPasswd.generate(:apple_id)
-```
-
-## Exploring Available Presets
-
-See all available presets:
-
-```elixir
-ExkPasswd.Config.Presets.start_link(nil)
-ExkPasswd.Config.Presets.list()
-```
-
-Get details about a specific preset:
-
-```elixir
-ExkPasswd.Config.Presets.get(:xkcd)
-```
-
-## Generate Multiple Passwords
-
-Need several passwords at once? Use batch generation:
-
-```elixir
-config = ExkPasswd.Config.Presets.get(:default)
-ExkPasswd.Batch.generate_batch(5, config)
-```
-
-Batch generation is optimized for performance - it's faster than generating passwords one at a time!
-
-## Password Strength
-
-Check the strength of generated passwords:
-
-```elixir
-config = ExkPasswd.Config.Presets.get(:security)
-password = ExkPasswd.generate(config)
-strength = ExkPasswd.Strength.analyze(password, config)
-
-IO.puts("Password: #{password}")
-IO.puts("Strength: #{strength.rating}")
-IO.puts("Entropy: #{Float.round(strength.entropy_bits, 2)} bits")
-# IO.puts("Crack time: #{strength.crack_time_display}")
-```
-
-## Interactive Playground
-
-Try modifying these examples:
-
-```elixir
-# Generate 10 different preset passwords and compare them
-presets = [:xkcd, :web32, :wifi, :security, :apple_id]
-
-for preset <- presets do
-  config = ExkPasswd.Config.Presets.get(preset)
-  password = ExkPasswd.generate(config)
-  strength = ExkPasswd.Strength.analyze(password, config)
-
-  IO.puts("#{preset}: #{password}")
-  IO.puts("  → #{strength.rating} (#{Float.round(strength.entropy_bits, 1)} bits)")
-  IO.puts("")
+for preset <- [:default, :xkcd, :web32, :wifi, :apple_id, :security] do
+  {preset, ExkPasswd.generate(preset)}
 end
-
-:ok
 ```
 
-## Next Steps
+`web16` is available for sites with a strict 16-character maximum, but its
+output space is much smaller than the other presets.
 
-* [Advanced Usage](advanced.livemd) - Custom configurations and transformations
-* [Security Analysis](security.livemd) - Deep dive into entropy and strength
-* [Benchmarks](benchmarks.livemd) - Performance metrics and comparisons
+## Create a configuration
 
-## Learn More
+```elixir
+config =
+  ExkPasswd.Config.new!(
+    num_words: 4,
+    word_length: 5..7,
+    case_transform: :capitalize,
+    separator: "-",
+    digits: {2, 2},
+    padding: %{char: "!@#", before: 1, after: 1, to_length: 0}
+  )
 
-* [GitHub Repository](https://github.com/futhr/exk_passwd)
-* [Documentation](https://hexdocs.pm/exk_passwd)
-* [XKCD Comic #936](https://xkcd.com/936/) - The inspiration for this method
+ExkPasswd.generate(config)
+```
+
+Invalid options return a tagged error with `new/1` or raise `ArgumentError` with
+`new!/1`:
+
+```elixir
+ExkPasswd.Config.new(num_words: 0)
+```
+
+## Generate a batch
+
+```elixir
+config = ExkPasswd.Config.Presets.get(:xkcd)
+
+passwords = ExkPasswd.Batch.generate_batch(5, config)
+{passwords, length(Enum.uniq(passwords))}
+```
+
+Use `generate_unique_batch/3` when distinct values are a requirement. It raises
+if the configured output space cannot satisfy the request within the attempt
+limit.
+
+## Inspect the security estimate
+
+```elixir
+password = ExkPasswd.generate(config)
+report = ExkPasswd.Entropy.calculate(password, config)
+
+%{
+  password: password,
+  seen_min_entropy: Float.round(report.seen, 2),
+  blind_search_space_estimate: Float.round(report.blind, 2),
+  rating: report.status
+}
+```
+
+`seen` assumes an attacker knows the generator and configuration. `blind` is a
+character-class brute-force heuristic, not measured entropy.
+
+## Continue
+
+- [Advanced configuration](advanced.livemd)
+- [Security model](security.livemd)
+- [Chinese/Pinyin](i18n_chinese.livemd)
+- [Japanese/Romaji](i18n_japanese.livemd)

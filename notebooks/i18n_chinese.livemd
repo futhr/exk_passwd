@@ -1,295 +1,169 @@
-# Chinese Password Generation with ExkPasswd
+# 中文密码与拼音输出
 
 ```elixir
 Mix.install([
-  {:exk_passwd, "~> 0.1.0"}
+  {:exk_passwd, "~> 0.2.0"}
 ])
 ```
 
-## Introduction
+This notebook uses Chinese words as the memorable source and emits toneless
+ASCII Pinyin. The bundled transform is intentionally small and deterministic;
+validate every word in a real dictionary before use.
 
-This notebook demonstrates how to generate **memorable Chinese passwords** that output as **ASCII Pinyin** for universal keyboard compatibility.
-
-### The Problem
-
-Most password systems worldwide (including in China) require ASCII-only passwords, but:
-- Chinese users want memorable passwords in their native language
-- Typing Chinese characters requires specific input methods
-- International travel means accessing accounts on non-Chinese keyboards
-
-### The Solution
-
-1. **Dictionary**: Chinese words (memorable for Chinese speakers)
-2. **Transform**: Pinyin romanization (ASCII output, 500+ characters supported)
-3. **Result**: Typeable on any keyboard, memorable in Chinese
-
-**Features:**
-- Covers 500+ most frequent Chinese characters (Jun Da frequency list)
-- IME-compatible ü/v mapping (`lv`, `nv` but `ju`, `xu`, `yu`)
-- Helper functions: `contains_hanzi?/1`, `hanzi?/1`
-
----
-
-## Setup: Load Chinese Dictionary
+## Load an example dictionary
 
 ```elixir
-# Common Chinese words for passwords
 chinese_words = [
-  "中国",  # China
-  "世界",  # World
-  "你好",  # Hello
-  "朋友",  # Friend
-  "爱情",  # Love
-  "家人",  # Family
-  "快乐",  # Happy
-  "美好",  # Beautiful
-  "春天",  # Spring
-  "夏天",  # Summer
-  "秋天",  # Autumn
-  "冬天",  # Winter
-  "太阳",  # Sun
-  "月亮",  # Moon
-  "星星",  # Stars
-  "山水",  # Mountains and water
-  "花朵",  # Flowers
-  "树木",  # Trees
-  "和平",  # Peace
-  "希望"   # Hope
+  "中国", # China
+  "世界", # world
+  "你好", # hello
+  "朋友", # friend
+  "爱情", # love
+  "家人", # family
+  "快乐", # happiness
+  "美好", # beautiful/good
+  "春天", # spring
+  "夏天", # summer
+  "秋天", # autumn
+  "冬天", # winter
+  "太阳", # sun
+  "月亮", # moon
+  "星星", # stars
+  "山水", # landscape
+  "花朵", # flowers
+  "树木", # trees
+  "和平", # peace
+  "希望"  # hope
 ]
 
-# Load into ExkPasswd
-ExkPasswd.Dictionary.load_custom(:chinese, chinese_words)
-
-IO.puts("✓ Loaded #{length(chinese_words)} Chinese words")
+:ok = ExkPasswd.Dictionary.load_custom(:chinese_demo, chinese_words)
 ```
 
-## Configure Password Generation
+The example has only 20 choices. It demonstrates the API; it is not a
+production-sized password dictionary.
+
+## Verify the conversion
 
 ```elixir
-config = ExkPasswd.Config.new!(
-  # Use Chinese dictionary
-  dictionary: :chinese,
+transform = %ExkPasswd.Transform.Pinyin{}
 
-  # Chinese words are typically 2 characters
-  word_length: 2..2,
+converted =
+  Map.new(chinese_words, fn word ->
+    {word, ExkPasswd.Transform.apply(transform, word, nil)}
+  end)
 
-  # Override English default (4-10) to allow shorter words
-  word_length_bounds: 1..10,
+unmapped = Enum.filter(converted, fn {_source, output} -> output =~ ~r/[^a-z]/ end)
+collisions = converted |> Map.values() |> Enum.frequencies() |> Enum.filter(fn {_, n} -> n > 1 end)
 
-  # Use 3 words for good memorability and security
-  num_words: 3,
-
-  # ASCII separator (compatible everywhere)
-  separator: "-",
-
-  # Add digits for additional entropy
-  digits: {2, 2},
-
-  # No padding (keep it clean)
-  padding: %{char: "", before: 0, after: 0, to_length: 0},
-
-  # No case transforms (Chinese has no uppercase/lowercase)
-  case_transform: :none,
-
-  # Apply Pinyin transform for ASCII output
-  meta: %{
-    transforms: [%ExkPasswd.Transform.Pinyin{}]
-  }
-)
-
-IO.puts("✓ Configuration created")
+%{converted: converted, unmapped: unmapped, collisions: collisions}
 ```
 
-## Generate Passwords
+Require `unmapped == []` when ASCII output is a hard requirement. Review
+`collisions` as well: toneless Pinyin is many-to-one, so different source words
+can become the same password component.
+
+## Generate passwords
 
 ```elixir
-IO.puts("\n=== Generated Passwords ===\n")
+config =
+  ExkPasswd.Config.new!(
+    dictionary: :chinese_demo,
+    word_length: 2..2,
+    word_length_bounds: 1..10,
+    num_words: 3,
+    separator: "-",
+    digits: {2, 2},
+    padding: %{char: "", before: 0, after: 0, to_length: 0},
+    case_transform: :none,
+    meta: %{transforms: [transform]}
+  )
 
-for i <- 1..10 do
-  password = ExkPasswd.generate(config)
-  IO.puts("#{i}. #{password}")
-end
+for _ <- 1..10, do: ExkPasswd.generate(config)
 ```
 
-## How It Works
+Examples have the shape `45-zhongguo-shijie-nihao-89`. The Chinese meaning is
+the memory aid; the stored password is the ASCII output.
 
-The generation process:
-
-```mermaid
-graph LR
-    A[Chinese Words] --> B[Random Selection]
-    B --> C[中国-世界-你好]
-    C --> D[Pinyin Transform]
-    D --> E[zhongguo-shijie-nihao]
-    E --> F[Add Digits]
-    F --> G[45-zhongguo-shijie-nihao-89]
-```
-
-**Internal representation:** `中国-世界-你好`
-**Output:** `45-zhongguo-shijie-nihao-89`
-
-✅ **Memorable:** Chinese speaker remembers the meaning
-✅ **Compatible:** Works on any keyboard, any system
-✅ **Secure:** Cryptographically random word selection
-
-## Security Analysis
+## Entropy of this example
 
 ```elixir
-sample_password = ExkPasswd.generate(config)
+details = ExkPasswd.Entropy.calculate_seen_detailed(config)
 
-IO.puts("\n=== Security Analysis ===")
-IO.puts("Sample password: #{sample_password}")
-IO.puts("")
-IO.puts("Dictionary size: #{length(chinese_words)} words")
-IO.puts("Entropy per word: #{Float.round(:math.log2(length(chinese_words)), 2)} bits")
-IO.puts("Total word entropy: #{Float.round(:math.log2(length(chinese_words)) * 3, 2)} bits")
-IO.puts("Additional entropy: Digits (2 before + 2 after) = ~13.3 bits")
-IO.puts("Total entropy: ~#{Float.round(:math.log2(length(chinese_words)) * 3 + 13.3, 1)} bits")
-IO.puts("")
-IO.puts("Status: Good security for most accounts")
-IO.puts("Recommendation: Add more words to dictionary for higher security")
+%{
+  word_entropy: Float.round(details.word_entropy, 2),
+  digit_entropy: Float.round(details.digit_entropy, 2),
+  total: Float.round(details.total, 2),
+  rating: ExkPasswd.Strength.rating(ExkPasswd.generate(config), config)
+}
 ```
 
-## Test Pinyin Transform
-
-Test the Pinyin transform directly:
+With 20 unique transformed choices, three words and four digits provide about
+26.25 bits. That is intentionally shown as a weak example. Increasing only the
+number of selected words helps, but a substantially larger, reviewed dictionary
+is the better starting point.
 
 ```elixir
-alias ExkPasswd.Transform.Pinyin
+larger_config = ExkPasswd.Config.merge!(config, num_words: 5, digits: {3, 3})
+Float.round(ExkPasswd.Entropy.calculate_seen(larger_config), 2)
+```
 
-transform = %Pinyin{}
+The 5-word/6-digit variant is about 41.54 bits for this tiny dictionary. Do not
+describe it as stronger than the calculation supports.
 
-test_words = [
+## Pronunciation checks
+
+```elixir
+examples = [
   {"中国", "zhongguo"},
   {"世界", "shijie"},
   {"你好", "nihao"},
   {"朋友", "pengyou"},
   {"春天", "chuntian"},
-  {"女人", "nvren"},      # ü after n → v
-  {"旅行", "lvxing"},     # ü after l → v
-  {"学习", "xuexi"},      # ü after x → u
-  {"下雨", "xiayu"}       # ü after y → u
+  {"女人", "nvren"},
+  {"旅行", "lvxing"},
+  {"学习", "xuexi"},
+  {"下雨", "xiayu"}
 ]
 
-IO.puts("\n=== Pinyin Transform Test ===\n")
-
-for {chinese, expected} <- test_words do
-  result = ExkPasswd.Transform.apply(transform, chinese, nil)
-  match = if result == expected, do: "✓", else: "✗"
-  IO.puts("#{match} #{chinese} → #{result} (expected: #{expected})")
+for {source, expected} <- examples do
+  actual = ExkPasswd.Transform.apply(transform, source, nil)
+  {source, actual, actual == expected}
 end
 ```
 
-> **Polyphone limitation (多音字)**: each character maps to its single most
-> common pronunciation, so context-dependent readings are not disambiguated.
-> For example 乐 always renders as `le` (as in 快乐 → `kuaile`), so 音乐
-> renders as `yinle` rather than the linguistically correct `yinyue`. For
-> password generation this is fine — output only needs to be *consistent*,
-> not phonetically perfect. See the Polyphone Handling section in the
-> `ExkPasswd.Transform.Pinyin` module docs.
+The `v` spelling for `ü` after `n` and `l` follows common keyboard input
+conventions (`nv`, `lv`). After `j`, `q`, `x`, and `y`, Pinyin orthography uses
+`u` (`ju`, `qu`, `xu`, `yu`).
 
-## Hanzi Detection Helpers
+## Important linguistic limitations
 
-The Pinyin module provides helper functions for detecting Chinese characters:
+- Conversion is character-by-character and omits tones.
+- Context-dependent readings are not disambiguated. For example, 乐 is always
+  mapped to `le`, so 音乐 becomes `yinle` rather than `yinyue`.
+- The map currently contains 674 characters. It is not the top 500 entries of
+  Jun Da's frequency list: an audit found 87 of those top 500 characters absent.
+- Against the audited frequency data, the mapped characters cover about 75.6%
+  of corpus occurrences, not 95%.
+- Traditional characters and rare simplified characters often pass through.
+
+The 674 supplied mappings were checked against Unicode Unihan `kMandarin`
+primary readings; 671 match directly, while 地 (`di`), 长 (`chang`), and 嗯
+(`en`) use defensible alternate readings. That check supports the entries that
+exist, not a broad coverage claim.
+
+## Detection helpers
 
 ```elixir
 alias ExkPasswd.Transform.Pinyin
 
-IO.puts("\n=== Hanzi Detection ===\n")
-
-# Check if text contains Chinese characters
-IO.puts("contains_hanzi?(\"Hello世界\") = #{Pinyin.contains_hanzi?("Hello世界")}")
-IO.puts("contains_hanzi?(\"Hello World\") = #{Pinyin.contains_hanzi?("Hello World")}")
-
-# Check if a single character is Hanzi
-IO.puts("\nhanzi?(\"中\") = #{Pinyin.hanzi?("中")}")
-IO.puts("hanzi?(\"A\") = #{Pinyin.hanzi?("A")}")
-IO.puts("hanzi?(\"あ\") = #{Pinyin.hanzi?("あ")}  # Hiragana")
-
-# Character coverage
-map_size = map_size(Pinyin.pinyin_map())
-IO.puts("\nPinyin map contains #{map_size} characters")
-IO.puts("Covers the top 500 most frequent Chinese characters, plus additional common ones")
+%{
+  map_size: map_size(Pinyin.pinyin_map()),
+  contains_hanzi: Pinyin.contains_hanzi?("Hello世界"),
+  single_hanzi: Pinyin.hanzi?("中"),
+  latin_is_hanzi: Pinyin.hanzi?("A")
+}
 ```
 
-> **Tip**: characters outside the mapping pass through unchanged, which would
-> leave non-ASCII characters in your password. Before using a custom word
-> list, verify it converts cleanly:
->
-> ```elixir
-> Enum.filter(chinese_words, fn word ->
->   ExkPasswd.Transform.apply(%Pinyin{}, word, nil) =~ ~r/[^a-z]/
-> end)
-> # => [] when every word is fully covered
-> ```
-
-## Customization Examples
-
-### More Words for Higher Security
-
-```elixir
-config_secure = ExkPasswd.Config.new!(
-  dictionary: :chinese,
-  word_length: 2..2,
-  word_length_bounds: 1..10,
-  num_words: 5,  # More words = more entropy
-  separator: "-",
-  digits: {3, 3},  # More digits
-  padding: %{char: "", before: 0, after: 0, to_length: 0},
-  case_transform: :none,
-  meta: %{transforms: [%ExkPasswd.Transform.Pinyin{}]}
-)
-
-IO.puts("High security password:")
-IO.puts(ExkPasswd.generate(config_secure))
-```
-
-### Shorter for Website Limits
-
-```elixir
-config_short = ExkPasswd.Config.new!(
-  dictionary: :chinese,
-  word_length: 2..2,
-  word_length_bounds: 1..10,
-  num_words: 2,  # Fewer words
-  separator: "",  # No separator
-  digits: {2, 2},
-  padding: %{char: "", before: 0, after: 0, to_length: 0},
-  case_transform: :none,
-  meta: %{transforms: [%ExkPasswd.Transform.Pinyin{}]}
-)
-
-IO.puts("Short password:")
-IO.puts(ExkPasswd.generate(config_short))
-```
-
-## Real-World Usage
-
-### Example: Chinese User Traveling
-
-**Scenario:** Li Wei is traveling to the US and needs to access Alipay on a hotel computer.
-
-**Without ExkPasswd:**
-- Password: `中国世界2023!`
-- Problem: Hotel computer has no Chinese input method ❌
-
-**With ExkPasswd:**
-- Password: `45-zhongguo-shijie-nihao-89`
-- Memorized as: "中国世界你好" (China World Hello)
-- Types on QWERTY: Easy! ✅
-
----
-
-## Key Takeaways
-
-1. **Most systems require ASCII** - Even Chinese banks use ASCII-only passwords
-2. **Memorability + Compatibility** - Chinese words transformed to Pinyin
-3. **Cryptographically secure** - Random selection, not predictable
-4. **Works everywhere** - Any keyboard, any system, any country
-
-## Next Steps
-
-- Add more Chinese words to your dictionary for higher entropy
-- Try Japanese with Romaji: See `notebooks/i18n_japanese.livemd`
-- Build custom transforms for other languages
-- Integrate into your password manager workflow
+For a production integration, add a reviewed application-specific dictionary,
+assert ASCII conversion and output uniqueness during deployment, and calculate
+entropy from the final configured transform pipeline.

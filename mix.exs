@@ -13,9 +13,6 @@ defmodule ExkPasswd.MixProject do
       deps: deps(),
       aliases: aliases(),
 
-      # Supress consolidate_protocols warnings in dev environment
-      consolidate_protocols: Mix.env() != :dev,
-
       # Hex package
       description: description(),
       package: package(),

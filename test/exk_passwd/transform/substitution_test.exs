@@ -173,10 +173,8 @@ defmodule ExkPasswd.Transform.SubstitutionTest do
     end
   end
 
-  describe "Substitution integration via meta transforms (ANALYSIS.md issue)" do
+  describe "Substitution integration via meta transforms" do
     test "substitutions work via Config meta field" do
-      # From ANALYSIS.md lines 256-300
-      # Demonstrates correct usage of substitutions via meta transforms
       config =
         Config.new!(
           num_words: 3,

@@ -23,10 +23,12 @@ defmodule ExkPasswd.Entropy do
 
   ExkPasswd uses these project-defined bands for its convenience rating:
 
-  - **< 40 bits**: Weak - DO NOT USE (crackable in minutes/hours)
-  - **40-52 bits**: Fair - Minimal acceptable (crackable in days/months)
-  - **52-78 bits**: Good - Recommended for most uses (years to centuries)
-  - **78+ bits**: Excellent - High security (millennia+)
+  - **< 40 bits**: Weak
+  - **40-52 bits**: Fair
+  - **52-78 bits**: Good
+  - **78+ bits**: Excellent
+
+  These names are presentation labels, not standards-based suitability claims.
 
   ## Examples
 
@@ -59,7 +61,7 @@ defmodule ExkPasswd.Entropy do
   @entropy_min_good 52
   @entropy_min_fair 40
 
-  # Crack time estimation: billion guesses per second (modern GPU)
+  # Simple comparison rate; real online and offline rates vary widely.
   @guesses_per_second 1_000_000_000
 
   @doc """
@@ -290,7 +292,8 @@ defmodule ExkPasswd.Entropy do
   @doc """
   Estimate time to crack password based on entropy.
 
-  Assumes 1 billion guesses per second (modern GPU capability).
+  Uses a comparison rate of one billion guesses per second and an average search
+  of half the space. This is not a prediction for a particular verifier or hash.
 
   ## Parameters
 

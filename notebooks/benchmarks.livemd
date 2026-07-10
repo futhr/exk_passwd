@@ -1,317 +1,114 @@
-# ExkPasswd Performance Benchmarks
+# Benchmark ExkPasswd on your system
 
 ```elixir
 Mix.install([
-  {:exk_passwd, "~> 0.1.0"},
-  {:benchee, "~> 1.3"}
+  {:exk_passwd, "~> 0.2.0"},
+  {:benchee, "~> 1.5"}
 ])
 ```
 
-## Introduction
+Microbenchmarks are local measurements, not API guarantees. Keep runtime,
+hardware, power mode, and benchmark configuration with any published result.
 
-This notebook measures ExkPasswd performance: generation latency, batch throughput, and dictionary lookups.
-
-**Key Performance Features:**
-
-* **O(1) dictionary lookups** - Compile-time indexed word lists
-* **Batch optimization** - Buffered random bytes for bulk generation
-* **Zero allocations** - Efficient string building
-* **Pure Elixir** - No external dependencies
-
-Run these benchmarks on your hardware to see real-world performance!
-
-## Basic Generation Performance
-
-Benchmark the main `generate/0` and `generate/1` functions:
+## Single-password generation
 
 ```elixir
-Benchee.run(
-  %{
-    "generate()" => fn -> ExkPasswd.generate() end,
-    "generate(:default)" => fn -> ExkPasswd.generate(:default) end,
-    "generate(:xkcd)" => fn -> ExkPasswd.generate(:xkcd) end,
-    "generate(:web32)" => fn -> ExkPasswd.generate(:web32) end,
-    "generate(:wifi)" => fn -> ExkPasswd.generate(:wifi) end,
-    "generate(:security)" => fn -> ExkPasswd.generate(:security) end
-  },
-  time: 3,
-  memory_time: 1,
-  warmup: 1
-)
-```
-
-## Dictionary Operations
-
-Test the compile-time indexed dictionary performance (should be O(1)):
-
-```elixir
-alias ExkPasswd.Dictionary
-
-Benchee.run(
-  %{
-    "Dictionary.size()" => fn -> Dictionary.size() end,
-    "Dictionary.min_length()" => fn -> Dictionary.min_length() end,
-    "Dictionary.max_length()" => fn -> Dictionary.max_length() end,
-    "Dictionary.all()" => fn -> Dictionary.all() end,
-    "Dictionary.words_of_length(5)" => fn -> Dictionary.words_of_length(5) end,
-    "Dictionary.words_of_length(8)" => fn -> Dictionary.words_of_length(8) end,
-    "Dictionary.words_between(4, 8)" => fn -> Dictionary.words_between(4, 8) end,
-    "Dictionary.random_word(5)" => fn -> Dictionary.random_word(5) end,
-    "Dictionary.random_word(8)" => fn -> Dictionary.random_word(8) end,
-    "Dictionary.random_word_between(4, 8)" => fn ->
-      Dictionary.random_word_between(4, 8)
-    end
-  },
-  time: 2,
-  memory_time: 1,
-  warmup: 1
-)
-```
-
-## Batch vs Individual Generation
-
-Compare batch generation (with buffered random) to individual generation:
-
-```elixir
-alias ExkPasswd.{Batch, Config}
-
-settings = Config.preset(:default)
-
-Benchee.run(
-  %{
-    "individual: 100 passwords" => fn ->
-      for _ <- 1..100, do: ExkPasswd.generate(settings)
-    end,
-    "batch: 100 passwords" => fn ->
-      Batch.generate_batch(100, settings)
-    end,
-    "individual: 1000 passwords" => fn ->
-      for _ <- 1..1000, do: ExkPasswd.generate(settings)
-    end,
-    "batch: 1000 passwords" => fn ->
-      Batch.generate_batch(1000, settings)
-    end,
-    "individual: 10000 passwords" => fn ->
-      for _ <- 1..10_000, do: ExkPasswd.generate(settings)
-    end,
-    "batch: 10000 passwords" => fn ->
-      Batch.generate_batch(10_000, settings)
-    end
-  },
-  time: 3,
-  memory_time: 2,
-  warmup: 1
-)
-```
-
-## Case Transform Performance
-
-Test different case transformations:
-
-```elixir
-alias ExkPasswd.Config
-
-case_configs = %{
-  "lower" => Config.new!(num_words: 4, case_transform: :lower),
-  "upper" => Config.new!(num_words: 4, case_transform: :upper),
-  "capitalize" => Config.new!(num_words: 4, case_transform: :capitalize),
-  "alternate" => Config.new!(num_words: 4, case_transform: :alternate),
-  "random" => Config.new!(num_words: 4, case_transform: :random),
-  "invert" => Config.new!(num_words: 4, case_transform: :invert)
+configs = %{
+  default: ExkPasswd.Config.Presets.get(:default),
+  xkcd: ExkPasswd.Config.Presets.get(:xkcd),
+  wifi: ExkPasswd.Config.Presets.get(:wifi)
 }
 
-scenarios =
-  for {name, config} <- case_configs, into: %{} do
-    {"transform: #{name}", fn -> ExkPasswd.generate(config) end}
-  end
-
-Benchee.run(scenarios, time: 2, memory_time: 1, warmup: 1)
+Benchee.run(
+  Map.new(configs, fn {name, config} ->
+    {Atom.to_string(name), fn -> ExkPasswd.generate(config) end}
+  end),
+  warmup: 1,
+  time: 2,
+  memory_time: 1
+)
 ```
 
-## Word Count Impact
-
-How does the number of words affect performance?
+## Batch versus individual generation
 
 ```elixir
-word_count_scenarios =
-  for count <- 2..6, into: %{} do
-    config = Config.new!(num_words: count)
-    {"#{count} words", fn -> ExkPasswd.generate(config) end}
-  end
-
-Benchee.run(word_count_scenarios, time: 2, memory_time: 1, warmup: 1)
-```
-
-## Padding Performance
-
-Test the impact of different padding configurations:
-
-```elixir
-padding_scenarios = %{
-  "no padding" => fn ->
-    ExkPasswd.generate(Config.new!(num_words: 3, digits: {0, 0}, padding: %{before: 0, after: 0}))
-  end,
-  "2 digits" => fn ->
-    ExkPasswd.generate(Config.new!(num_words: 3, digits: {2, 0}))
-  end,
-  "2+2 digits" => fn ->
-    ExkPasswd.generate(Config.new!(num_words: 3, digits: {2, 2}))
-  end,
-  "digits + symbols" => fn ->
-    ExkPasswd.generate(
-      Config.new!(
-        num_words: 3,
-        digits: {2, 2},
-        padding: %{char: "!@#$%^&*", before: 1, after: 1, to_length: 0}
-      )
-    )
-  end
-}
-
-Benchee.run(padding_scenarios, time: 2, memory_time: 1, warmup: 1)
-```
-
-## Strength Analysis Performance
-
-How fast is password strength analysis?
-
-```elixir
-# Pre-generate passwords
-test_configs = [
-  ExkPasswd.Config.Presets.get(:xkcd),
-  ExkPasswd.Config.Presets.get(:web32),
-  ExkPasswd.Config.Presets.get(:wifi),
-  ExkPasswd.Config.Presets.get(:security)
-]
-
-test_passwords = Enum.map(test_configs, &ExkPasswd.generate/1)
+config = ExkPasswd.Config.Presets.get(:default)
 
 Benchee.run(
   %{
-    "Strength.analyze(xkcd)" => fn ->
-      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 0), Enum.at(test_configs, 0))
+    "individual 1,000" => fn ->
+      for _ <- 1..1_000, do: ExkPasswd.generate(config)
     end,
-    "Strength.analyze(web32)" => fn ->
-      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 1), Enum.at(test_configs, 1))
-    end,
-    "Strength.analyze(wifi)" => fn ->
-      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 2), Enum.at(test_configs, 2))
-    end,
-    "Strength.analyze(security)" => fn ->
-      ExkPasswd.Strength.analyze(Enum.at(test_passwords, 3), Enum.at(test_configs, 3))
-    end,
-    "Entropy.calculate()" => fn ->
-      ExkPasswd.Entropy.calculate(Enum.at(test_passwords, 0), Enum.at(test_configs, 0))
+    "buffered batch 1,000" => fn ->
+      ExkPasswd.Batch.generate_batch(1_000, config)
     end
   },
-  time: 2,
-  memory_time: 1,
-  warmup: 1
+  warmup: 1,
+  time: 3,
+  memory_time: 1
 )
 ```
 
-## Character Substitution Performance
+Do not assume the batch path wins at every size. Buffer refill cost, config
+validation, scheduler behavior, and the crypto implementation can change the
+result. Read the generated report rather than relying on a fixed speedup claim.
 
-Test the impact of character substitutions:
+The checked report from 2026-07-10 (Apple M4 Max, Elixir 1.20.2, OTP 29.0.3)
+measured 2.20 ms versus 2.41 ms at 100 outputs and 23.10 ms versus 25.66 ms at
+1,000 outputs, favoring the buffered batch by about 9–10%. At 10,000 outputs the
+individual loop measured 256.28 ms versus 285.50 ms for the batch, so the batch
+was about 11% slower and allocated about 3% more memory in that scenario.
 
-```elixir
-no_subst = Config.new!(num_words: 4, case_transform: :capitalize)
-
-with_subst =
-  Config.new!(
-    num_words: 4,
-    case_transform: :capitalize,
-    meta: %{
-      transforms: [
-        %ExkPasswd.Transform.Substitution{
-          mode: :always,
-          map: %{"a" => "@", "e" => "3", "i" => "1", "o" => "0", "s" => "$"}
-        }
-      ]
-    }
-  )
-
-Benchee.run(
-  %{
-    "no substitutions" => fn -> ExkPasswd.generate(no_subst) end,
-    "with substitutions" => fn -> ExkPasswd.generate(with_subst) end
-  },
-  time: 2,
-  memory_time: 1,
-  warmup: 1
-)
-```
-
-## Memory Usage Comparison
-
-Compare memory allocation across different operations:
+## Dictionary selection
 
 ```elixir
 Benchee.run(
   %{
-    "generate() default" => fn -> ExkPasswd.generate() end,
-    "generate() security" => fn -> ExkPasswd.generate(:security) end,
-    "batch 100" => fn -> Batch.generate_batch(100, Config.preset(:default)) end
+    "count 4..8" => fn -> ExkPasswd.Dictionary.count_between(4, 8) end,
+    "select 4..8" => fn -> ExkPasswd.Dictionary.random_word_between(4, 8) end,
+    "list outputs 4..8" => fn -> ExkPasswd.Dictionary.words_between(4, 8) end
   },
+  warmup: 1,
   time: 2,
-  memory_time: 2,
-  warmup: 1
+  memory_time: 1
 )
 ```
 
-## Performance Summary
+Common EFF ranges use precomputed tuples. Uncommon and custom ranges may scan
+the small by-length index and assemble a candidate tuple, so “every dictionary
+operation is O(1)” would be inaccurate.
 
-Based on typical results (will vary by hardware):
+## Entropy analysis cost
 
-**Expected Performance:**
+```elixir
+password = ExkPasswd.generate(config)
 
-* **Single password generation**: ~10-50 microseconds
-* **Dictionary lookups**: <1 microsecond (O(1) compile-time index)
-* **Batch generation speedup**: 1.5-3x faster for 1000+ passwords
-* **Memory per password**: ~1-5 KB
-* **Strength analysis**: ~5-20 microseconds
+Benchee.run(
+  %{
+    "generate default" => fn -> ExkPasswd.generate(config) end,
+    "seen entropy" => fn -> ExkPasswd.Entropy.calculate_seen(config) end,
+    "full report" => fn -> ExkPasswd.Entropy.calculate(password, config) end
+  },
+  warmup: 1,
+  time: 2,
+  memory_time: 1
+)
+```
 
-<!-- livebook:{"break_markdown":true} -->
+Seen-entropy analysis enumerates reachable word outputs so it can detect
+transform collisions. It is intentionally more work than generating one
+password.
 
-### Key Insights
+## Repository benchmark suite
 
-1. **Dictionary is blazing fast** - O(1) compile-time indexing works!
-2. **Batch generation scales** - Significant speedup for bulk operations
-3. **Minimal memory** - Efficient string building keeps allocations low
-4. **Consistent performance** - No surprises across different configurations
-
-## Run Full Benchmark Suite
-
-To run the complete benchmark suite from the command line:
+From a checkout:
 
 ```bash
-# From the project root
-mix bench.all
-
-# Individual benchmarks
 mix bench.password
 mix bench.dict
 mix bench.batch
+mix bench.all
 ```
 
-These scripts are located in the `bench/` directory and output to the console.
-
-## Performance Tips
-
-For maximum performance when generating many passwords:
-
-```elixir
-# ✓ GOOD: Use batch generation
-passwords = Batch.generate_batch(10_000, :default)
-
-# ✗ SLOWER: Generate individually
-passwords = for _ <- 1..10_000, do: ExkPasswd.generate(:default)
-```
-
-Batch generation uses buffered random bytes, reducing the number of calls to `:crypto.strong_rand_bytes/1` and improving throughput significantly.
-
-## Next Steps
-
-* [Security Analysis](security.livemd) - Password strength and entropy
-* [Advanced Usage](advanced.livemd) - Custom configurations
-* [Quick Start](quickstart.livemd) - Back to basics
+Use `CI=true mix bench.all` only as a short compile/run smoke test. Its sampling
+windows are too short for performance conclusions.

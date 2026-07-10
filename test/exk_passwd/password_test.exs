@@ -150,8 +150,7 @@ defmodule ExkPasswd.PasswordTest do
       assert String.match?(password, ~r/^[a-z'-]+$/i)
     end
 
-    test "single character separator is respected (ANALYSIS.md issue)" do
-      # From ANALYSIS.md lines 224-252
+    test "single character separator is respected" do
       # Test that separator: "_" actually uses underscore, not randomly selected
       config =
         Config.new!(
@@ -320,8 +319,7 @@ defmodule ExkPasswd.PasswordTest do
       assert String.length(password) > 10
     end
 
-    test "fixed padding with explicit digits configuration (ANALYSIS.md issue)" do
-      # From ANALYSIS.md lines 196-206
+    test "fixed padding with explicit digits configuration" do
       # Test that explicit padding configuration is respected, not overridden by defaults
       config =
         Config.new!(
@@ -350,8 +348,7 @@ defmodule ExkPasswd.PasswordTest do
              "Expected 3 digits before or after words, got: #{password}"
     end
 
-    test "no padding configuration is respected (ANALYSIS.md issue)" do
-      # From ANALYSIS.md - ensure padding: 0 actually means no padding
+    test "no padding configuration is respected" do
       config =
         Config.new!(
           num_words: 4,

@@ -751,9 +751,10 @@ defmodule ExkPasswd.Transform.Romaji do
     @doc """
     Returns entropy contribution of Romaji transform.
 
-    Romaji conversion is deterministic (one-to-one mapping), so it contributes
-    no additional entropy. Security comes from the random word selection, not
-    from the romanization.
+    Romaji conversion is deterministic, so it contributes no additional
+    randomness. Distinct kana inputs can produce the same output;
+    `ExkPasswd.Entropy` counts reachable built-in transform outputs when
+    estimating seen min-entropy.
 
     ## Returns
 
