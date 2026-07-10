@@ -353,7 +353,22 @@ defmodule ExkPasswd.Config.Schema do
     {:error, "dictionary must be an atom, got: #{inspect(dict)}"}
   end
 
-  defp validate_meta(%{meta: meta}) when is_map(meta), do: :ok
+  defp validate_meta(%{meta: meta}) when is_map(meta) do
+    case Map.get(meta, :transforms, []) do
+      transforms when is_list(transforms) ->
+        case Enum.find(transforms, &is_nil(ExkPasswd.Transform.impl_for(&1))) do
+          nil ->
+            :ok
+
+          invalid ->
+            {:error, "meta.transforms contains an unsupported transform: #{inspect(invalid)}"}
+        end
+
+      transforms ->
+        {:error, "meta.transforms must be a list, got: #{inspect(transforms)}"}
+    end
+  end
+
   defp validate_meta(%{meta: meta}), do: {:error, "meta must be a map, got: #{inspect(meta)}"}
 
   defp validate_validators(%{validators: validators}) when is_list(validators) do

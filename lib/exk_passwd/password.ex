@@ -34,6 +34,7 @@ defmodule ExkPasswd.Password do
   """
 
   alias ExkPasswd.{Buffer, Config, Dictionary, Random, Token, Transform}
+  alias ExkPasswd.Transform.Substitution
 
   @doc """
   Create a password based on the config either passed in or the default config.
@@ -272,19 +273,14 @@ defmodule ExkPasswd.Password do
   # Handle the case when `pad_to_length` is > 0
   defp add_padding(password, config)
        when is_integer(config.padding.to_length) and config.padding.to_length > 0 do
-    cond do
-      config.padding.to_length < String.length(password) ->
-        String.slice(password, 0, config.padding.to_length)
-
-      config.padding.to_length > String.length(password) ->
-        password <>
-          Token.get_n_of(
-            config.padding.char,
-            config.padding.to_length - String.length(password)
-          )
-
-      true ->
-        password
+    if config.padding.to_length > String.length(password) do
+      password <>
+        Token.get_n_of(
+          config.padding.char,
+          config.padding.to_length - String.length(password)
+        )
+    else
+      password
     end
   end
 
@@ -297,6 +293,23 @@ defmodule ExkPasswd.Password do
 
   # Apply custom transforms using the Transform protocol
   defp apply_custom_transforms(words, config) do
+    words
+    |> apply_configured_substitutions(config)
+    |> apply_meta_transforms(config)
+  end
+
+  defp apply_configured_substitutions(words, %{substitution_mode: :none}), do: words
+
+  defp apply_configured_substitutions(words, %{substitutions: substitutions})
+       when map_size(substitutions) == 0,
+       do: words
+
+  defp apply_configured_substitutions(words, config) do
+    transform = %Substitution{map: config.substitutions, mode: config.substitution_mode}
+    Enum.map(words, &Transform.apply(transform, &1, config))
+  end
+
+  defp apply_meta_transforms(words, config) do
     case Config.get_meta(config, :transforms, []) do
       [] ->
         words

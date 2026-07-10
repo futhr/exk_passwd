@@ -338,6 +338,12 @@ defmodule ExkPasswd.Config.SchemaTest do
 
       assert {:error, message} = Schema.validate(%Config{validators: [String]})
       assert message =~ "exporting validate/1"
+
+      assert {:error, message} = Schema.validate(%Config{meta: %{transforms: :invalid}})
+      assert message =~ "meta.transforms must be a list"
+
+      assert {:error, message} = Schema.validate(%Config{meta: %{transforms: [%{}]}})
+      assert message =~ "unsupported transform"
     end
 
     test "rejects unknown padding keys" do

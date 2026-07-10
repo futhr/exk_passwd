@@ -55,7 +55,27 @@ defmodule ExkPasswd.Config.PresetsTest do
     test "get/1 returns apple_id preset" do
       config = Presets.get(:apple_id)
       assert %Config{} = config
-      assert config.case_transform == :random
+      assert config.case_transform == :alternate
+    end
+
+    test "apple_id outputs meet documented composition rules" do
+      for _ <- 1..50 do
+        password = ExkPasswd.generate(:apple_id)
+
+        assert String.length(password) >= 8
+        assert password =~ ~r/[a-z]/
+        assert password =~ ~r/[A-Z]/
+        assert password =~ ~r/[0-9]/
+        refute password =~ ~r/(.)\1\1/u
+      end
+    end
+
+    test "wifi outputs are 63 printable ASCII characters" do
+      for _ <- 1..20 do
+        password = ExkPasswd.generate(:wifi)
+        assert String.length(password) == 63
+        assert password =~ ~r/^[\x20-\x7E]{63}$/
+      end
     end
 
     test "get/1 returns security preset" do

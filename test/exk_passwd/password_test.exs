@@ -312,12 +312,12 @@ defmodule ExkPasswd.PasswordTest do
       assert String.ends_with?(password, "=")
     end
 
-    test "truncates to exact length if too long" do
+    test "does not truncate when the requested minimum is shorter" do
       config =
         Config.new!(padding: %{char: "=", before: 0, after: 0, to_length: 10}, num_words: 5)
 
       password = Password.create(config)
-      assert String.length(password) == 10
+      assert String.length(password) > 10
     end
 
     test "fixed padding with explicit digits configuration (ANALYSIS.md issue)" do
@@ -641,7 +641,7 @@ defmodule ExkPasswd.PasswordTest do
       assert String.ends_with?(password, "=")
     end
 
-    test "truncates password when to_length < current length" do
+    test "preserves password when to_length is below its current length" do
       config =
         Config.new!(
           padding: %{char: "=", before: 0, after: 0, to_length: 10},
@@ -652,7 +652,7 @@ defmodule ExkPasswd.PasswordTest do
         )
 
       password = Password.create(config)
-      assert String.length(password) == 10
+      assert String.length(password) > 10
     end
 
     test "leaves password unchanged when to_length == current length" do
@@ -765,6 +765,28 @@ defmodule ExkPasswd.PasswordTest do
       assert_raise ArgumentError, ~r/num_words/, fn ->
         Password.create_with_state(invalid, Buffer.new(100))
       end
+    end
+  end
+
+  describe "configured substitutions" do
+    test "applies the top-level substitution fields" do
+      ExkPasswd.Dictionary.load_custom(:configured_substitutions, ["aaaa"])
+
+      config =
+        Config.new!(
+          num_words: 2,
+          dictionary: :configured_substitutions,
+          word_length: 4..4,
+          case_transform: :none,
+          separator: "-",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          substitutions: %{"a" => "@"},
+          substitution_mode: :always
+        )
+
+      assert Password.create(config) == "@@@@-@@@@"
+      assert {"@@@@-@@@@", _} = Password.create_with_state(config, Buffer.new(100))
     end
   end
 

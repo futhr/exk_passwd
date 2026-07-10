@@ -155,12 +155,17 @@ defprotocol ExkPasswd.Transform do
 
   ## Entropy Considerations
 
-  The `entropy_bits/2` callback is critical for accurate strength analysis:
+  The `entropy_bits/2` callback describes randomness introduced by a transform:
   - Return 0.0 for deterministic transforms (always the same output)
   - Calculate bits for random transforms based on possibilities
   - Random binary choice (yes/no): 1 bit per word
   - Random N choices: log2(N) bits per word
   - Independent random per character: sum across all characters
+
+  ExkPasswd calculates exact reachable outcomes for its built-in transforms.
+  It does not add a custom random transform's callback value to the security
+  rating because the library cannot verify that transform's output
+  distribution. Such transforms are rated conservatively.
 
   ## See Also
 

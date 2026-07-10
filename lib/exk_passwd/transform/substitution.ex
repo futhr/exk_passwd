@@ -13,7 +13,8 @@ defmodule ExkPasswd.Transform.Substitution do
 
   - `:none` - No substitutions
   - `:always` - Always apply substitutions (deterministic, no entropy)
-  - `:random` - Randomly apply per word (adds 1 bit entropy per word)
+  - `:random` - Randomly apply per word. This adds a bit only when the original
+    and substituted forms are distinct.
 
   ## Examples
 

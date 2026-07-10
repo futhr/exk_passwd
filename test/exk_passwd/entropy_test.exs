@@ -23,6 +23,12 @@ defmodule ExkPasswd.EntropyTest do
       assert is_float(result)
       assert result > 0
     end
+
+    test "handles very long passwords without floating-point overflow" do
+      result = Entropy.calculate_blind(String.duplicate("a", 100_000))
+      assert is_float(result)
+      assert result > 400_000
+    end
   end
 
   describe "calculate_seen/1" do
@@ -80,9 +86,10 @@ defmodule ExkPasswd.EntropyTest do
     end
 
     test "handles config with padding to_length" do
-      config = Config.new!(padding: %{char: "!", before: 0, after: 0, to_length: 50})
+      config = Config.new!(padding: %{char: "!@", before: 0, after: 0, to_length: 50})
       result = Entropy.calculate_seen_detailed(config)
-      assert is_float(result.padding_entropy)
+      # Minimum-length padding is output-dependent and is therefore not credited.
+      assert result.padding_entropy == 0.0
     end
   end
 
@@ -111,6 +118,10 @@ defmodule ExkPasswd.EntropyTest do
     test "estimates time for extremely high entropy" do
       result = Entropy.estimate_crack_time(200)
       assert is_binary(result)
+    end
+
+    test "handles entropy far beyond floating-point exponent limits" do
+      assert Entropy.estimate_crack_time(10_000) == "billions of years"
     end
   end
 
@@ -179,8 +190,77 @@ defmodule ExkPasswd.EntropyTest do
     test "handles substitution_mode :random" do
       config = Config.new!(num_words: 3) |> Map.put(:substitution_mode, :random)
       result = Entropy.calculate_seen_detailed(config)
-      # Random substitution adds 1 bit per word
+      # An empty substitution map cannot create additional outcomes.
+      assert result.substitution_entropy == 0.0
+    end
+
+    test "credits only reachable substitution outcomes" do
+      ExkPasswd.Dictionary.load_custom(:substitution_entropy, ["aaaa"])
+
+      config =
+        Config.new!(
+          num_words: 3,
+          dictionary: :substitution_entropy,
+          word_length: 4..4,
+          case_transform: :none,
+          separator: "-",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0, to_length: 0},
+          substitutions: %{"a" => "@"},
+          substitution_mode: :random
+        )
+
+      result = Entropy.calculate_seen_detailed(config)
       assert result.substitution_entropy == 3.0
+    end
+
+    test "accounts for deterministic substitution collisions" do
+      ExkPasswd.Dictionary.load_custom(:substitution_collision, ["aaaa", "@@@@"])
+
+      config =
+        Config.new!(
+          num_words: 1,
+          dictionary: :substitution_collision,
+          word_length: 4..4,
+          case_transform: :none,
+          substitutions: %{"a" => "@"},
+          substitution_mode: :always
+        )
+
+      assert Entropy.calculate_seen_detailed(config).word_entropy == 0.0
+    end
+
+    test "does not credit random casing when outputs are caseless" do
+      ExkPasswd.Dictionary.load_custom(:caseless_entropy, ["中国", "世界"])
+
+      config =
+        Config.new!(
+          num_words: 2,
+          dictionary: :caseless_entropy,
+          word_length: 2..2,
+          word_length_bounds: 1..10,
+          case_transform: :random
+        )
+
+      assert Entropy.calculate_seen_detailed(config).case_entropy == 0.0
+    end
+
+    test "accounts for deterministic Pinyin collisions" do
+      ExkPasswd.Dictionary.load_custom(:pinyin_collision, ["是", "事"])
+
+      config =
+        Config.new!(
+          num_words: 1,
+          dictionary: :pinyin_collision,
+          word_length: 1..1,
+          word_length_bounds: 1..10,
+          case_transform: :none,
+          meta: %{transforms: [%ExkPasswd.Transform.Pinyin{}]}
+        )
+
+      result = Entropy.calculate_seen_detailed(config)
+      assert result.word_entropy == 0.0
+      assert result.transform_entropy == 0.0
     end
 
     test "handles substitution_mode :always" do
@@ -298,7 +378,9 @@ defmodule ExkPasswd.EntropyTest do
 
     test "formats times in millennia range" do
       result = Entropy.estimate_crack_time(85)
-      assert String.contains?(result, "millennia") or String.contains?(result, "billion")
+
+      assert String.contains?(result, "millennia") or String.contains?(result, "million") or
+               String.contains?(result, "billion")
     end
 
     test "formats very large times as billions of years" do
@@ -395,7 +477,9 @@ defmodule ExkPasswd.EntropyTest do
     test "formats exactly 315360000000000 seconds (boundary to billions of years)" do
       # 10 million years, log2(6.3072e23) ≈ 79.09 bits
       result = Entropy.estimate_crack_time(79.09)
-      assert String.contains?(result, "billion") or String.contains?(result, "millennia")
+
+      assert String.contains?(result, "billion") or String.contains?(result, "million") or
+               String.contains?(result, "millennia")
     end
 
     test "formats less than 1 second as instant" do

@@ -5,11 +5,13 @@ defmodule ExkPasswd.Entropy do
   This module provides entropy metrics to assess password strength
   from two perspectives:
 
-  - **Blind Entropy**: Assumes attacker uses brute force with no knowledge of
-    how the password was generated. Based on character set size and length.
+  - **Blind estimate**: A heuristic brute-force search-space estimate based on
+    the character classes present and the password length. It is not a claim
+    about the probability distribution of an observed password.
 
-  - **Seen Entropy**: Assumes attacker knows the dictionary and configuration
-    used. Based on the actual number of possible password combinations.
+  - **Seen entropy**: A conservative min-entropy estimate when the attacker
+    knows the dictionary and configuration. Deterministic case, substitution,
+    Pinyin, and Romaji collisions are included.
 
   ## Security Model
 
@@ -17,9 +19,9 @@ defmodule ExkPasswd.Entropy do
   and **cryptographically secure randomness**, not from keeping the generation
   method secret.
 
-  ## Entropy Thresholds
+  ## Project Ratings
 
-  Based on NIST and OWASP guidelines:
+  ExkPasswd uses these project-defined bands for its convenience rating:
 
   - **< 40 bits**: Weak - DO NOT USE (crackable in minutes/hours)
   - **40-52 bits**: Fair - Minimal acceptable (crackable in days/months)
@@ -40,7 +42,8 @@ defmodule ExkPasswd.Entropy do
       ...> # Returns entropy in bits (float)
   """
 
-  alias ExkPasswd.{Config, Dictionary}
+  alias ExkPasswd.{Config, Dictionary, Transform}
+  alias ExkPasswd.Transform.{CaseTransform, Pinyin, Romaji, Substitution}
 
   @type entropy_result :: %{
           blind: float(),
@@ -90,6 +93,7 @@ defmodule ExkPasswd.Entropy do
   """
   @spec calculate(String.t(), Config.t()) :: entropy_result()
   def calculate(password, settings) do
+    settings = Config.validate!(settings)
     blind = calculate_blind(password)
     seen_result = calculate_seen_detailed(settings)
     seen = seen_result.total
@@ -105,12 +109,12 @@ defmodule ExkPasswd.Entropy do
   end
 
   @doc """
-  Calculate blind entropy from a password string.
+  Calculate a blind brute-force search-space estimate for a password string.
 
   Analyzes the actual password to determine alphabet size (character types used)
   and calculates entropy based on brute-force attack assumptions.
 
-  Formula: Eb = log₂(A^L)
+  Formula: `L × log₂(A)`
   - A = alphabet size (number of unique character types)
   - L = password length
 
@@ -139,15 +143,16 @@ defmodule ExkPasswd.Entropy do
     if length == 0 do
       0.0
     else
-      :math.log2(:math.pow(alphabet_size, length))
+      length * :math.log2(alphabet_size)
     end
   end
 
   @doc """
   Calculate seen entropy from settings.
 
-  Calculates entropy assuming attacker knows the dictionary and configuration.
-  This is the "true" entropy based on the number of possible combinations.
+  Calculates conservative min-entropy assuming the attacker knows the
+  dictionary and configuration. Random custom transforms whose output
+  distribution cannot be verified are credited with no entropy.
 
   ## Parameters
 
@@ -191,12 +196,15 @@ defmodule ExkPasswd.Entropy do
   """
   @spec calculate_seen_detailed(Config.t()) :: map()
   def calculate_seen_detailed(settings) do
-    word_entropy = calculate_word_entropy(settings)
+    settings = Config.validate!(settings)
+    word_details = calculate_word_entropy(settings)
+    word_entropy = word_details.word
     separator_entropy = calculate_separator_entropy(settings)
     padding_entropy = calculate_padding_entropy(settings)
     digit_entropy = calculate_digit_entropy(settings)
-    case_entropy = calculate_case_entropy(settings)
-    substitution_entropy = calculate_substitution_entropy(settings)
+    case_entropy = word_details.case
+    substitution_entropy = word_details.substitution
+    transform_entropy = word_details.transform
 
     total =
       [
@@ -205,7 +213,8 @@ defmodule ExkPasswd.Entropy do
         padding_entropy,
         digit_entropy,
         case_entropy,
-        substitution_entropy
+        substitution_entropy,
+        transform_entropy
       ]
       |> Enum.sum()
 
@@ -216,7 +225,8 @@ defmodule ExkPasswd.Entropy do
       padding_entropy: padding_entropy,
       digit_entropy: digit_entropy,
       case_entropy: case_entropy,
-      substitution_entropy: substitution_entropy
+      substitution_entropy: substitution_entropy,
+      transform_entropy: transform_entropy
     }
   end
 
@@ -301,8 +311,11 @@ defmodule ExkPasswd.Entropy do
       true
   """
   @spec estimate_crack_time(float()) :: String.t()
+  def estimate_crack_time(entropy_bits) when entropy_bits >= 100, do: "billions of years"
+
   def estimate_crack_time(entropy_bits) do
-    # Total combinations = 2^entropy_bits
+    # This is a deliberately simple comparison model, not a prediction for a
+    # particular password hash or an online service with rate limiting.
     total_combinations = :math.pow(2, entropy_bits)
 
     # Average time to crack (assuming found at 50% of search space)
@@ -336,19 +349,18 @@ defmodule ExkPasswd.Entropy do
     |> max(1)
   end
 
-  defp calculate_word_entropy(%Config{dictionary: dictionary} = config) do
-    word_count =
-      Dictionary.count_between(
-        config.word_length.first,
-        config.word_length.last,
-        dictionary
-      )
+  defp calculate_word_entropy(config) do
+    base_entropy =
+      config
+      |> dictionary_words(:none)
+      |> uniform_distribution()
+      |> distribution_entropy()
 
-    if word_count == 0 do
-      0.0
-    else
-      :math.log2(:math.pow(word_count, config.num_words))
-    end
+    0..(config.num_words - 1)
+    |> Enum.map(&word_entropy_for_position(config, &1, base_entropy))
+    |> Enum.reduce(%{word: 0.0, case: 0.0, substitution: 0.0, transform: 0.0}, fn item, acc ->
+      Map.merge(acc, item, fn _, left, right -> left + right end)
+    end)
   end
 
   defp calculate_separator_entropy(config) do
@@ -367,8 +379,8 @@ defmodule ExkPasswd.Entropy do
     padding_chars = String.graphemes(config.padding.char)
     char_count = length(padding_chars)
 
-    if char_count > 0 and
-         (config.padding.to_length > 0 or config.padding.before > 0 or config.padding.after > 0) do
+    if char_count > 0 and config.padding.to_length == 0 and
+         (config.padding.before > 0 or config.padding.after > 0) do
       :math.log2(char_count)
     else
       0.0
@@ -383,27 +395,172 @@ defmodule ExkPasswd.Entropy do
   defp digit_entropy(0), do: 0.0
   defp digit_entropy(n), do: n * :math.log2(10)
 
-  defp calculate_case_entropy(config) do
-    case config.case_transform do
-      # Random case adds 1 bit per word (choice of upper or lower)
-      :random -> config.num_words * 1.0
-      # All other transforms are deterministic
-      _ -> 0.0
+  defp word_entropy_for_position(config, position, base_entropy) do
+    case_distribution = case_distribution(config, position)
+    case_entropy = distribution_entropy(case_distribution)
+    substitution_distribution = apply_configured_substitution(case_distribution, config)
+    substitution_entropy = distribution_entropy(substitution_distribution)
+
+    final_entropy =
+      case apply_meta_transforms(substitution_distribution, config) do
+        {:ok, distribution} -> distribution_entropy(distribution)
+        :unknown_random_transform -> 0.0
+      end
+
+    allocate_word_entropy(base_entropy, case_entropy, substitution_entropy, final_entropy)
+  end
+
+  defp allocate_word_entropy(base, after_case, after_substitution, final) do
+    word = min(base, final)
+    remaining = max(final - word, 0.0)
+    case_part = min(max(after_case - base, 0.0), remaining)
+    remaining = remaining - case_part
+    substitution = min(max(after_substitution - after_case, 0.0), remaining)
+
+    %{
+      word: word,
+      case: case_part,
+      substitution: substitution,
+      transform: max(remaining - substitution, 0.0)
+    }
+  end
+
+  defp case_distribution(%{case_transform: :random} = config, _) do
+    mix_distributions(
+      config |> dictionary_words(:lower) |> uniform_distribution(),
+      config |> dictionary_words(:upper) |> uniform_distribution()
+    )
+  end
+
+  defp case_distribution(%{case_transform: :alternate} = config, position) do
+    variant = if rem(position, 2) == 0, do: :lower, else: :upper
+    config |> dictionary_words(variant) |> uniform_distribution()
+  end
+
+  defp case_distribution(%{case_transform: :invert} = config, _) do
+    config
+    |> dictionary_words(:none)
+    |> uniform_distribution()
+    |> map_distribution(&invert_case/1)
+  end
+
+  defp case_distribution(config, _) do
+    config |> dictionary_words(config.case_transform) |> uniform_distribution()
+  end
+
+  defp dictionary_words(config, variant) do
+    Dictionary.words_between(
+      config.word_length.first,
+      config.word_length.last,
+      variant,
+      config.dictionary
+    )
+  end
+
+  defp apply_configured_substitution(distribution, %{substitution_mode: :none}),
+    do: distribution
+
+  defp apply_configured_substitution(distribution, %{substitutions: substitutions})
+       when map_size(substitutions) == 0,
+       do: distribution
+
+  defp apply_configured_substitution(distribution, config) do
+    transform = %Substitution{map: config.substitutions, mode: config.substitution_mode}
+    transform_distribution(distribution, transform, config)
+  end
+
+  defp apply_meta_transforms(distribution, config) do
+    config
+    |> Config.get_meta(:transforms, [])
+    |> Enum.reduce_while({:ok, distribution}, fn transform, {:ok, current} ->
+      case transform_distribution(current, transform, config) do
+        :unknown_random_transform -> {:halt, :unknown_random_transform}
+        transformed -> {:cont, {:ok, transformed}}
+      end
+    end)
+  end
+
+  defp transform_distribution(distribution, %Substitution{mode: :none}, _), do: distribution
+
+  defp transform_distribution(distribution, %Substitution{mode: :always} = transform, config) do
+    map_distribution(distribution, &Transform.apply(transform, &1, config))
+  end
+
+  defp transform_distribution(distribution, %Substitution{mode: :random} = transform, config) do
+    applied = %{transform | mode: :always}
+    random_map_distribution(distribution, & &1, &Transform.apply(applied, &1, config))
+  end
+
+  defp transform_distribution(distribution, %CaseTransform{mode: :random} = transform, config) do
+    lower = %{transform | mode: :lower}
+    upper = %{transform | mode: :upper}
+
+    random_map_distribution(
+      distribution,
+      &Transform.apply(lower, &1, config),
+      &Transform.apply(upper, &1, config)
+    )
+  end
+
+  defp transform_distribution(distribution, %CaseTransform{} = transform, config) do
+    map_distribution(distribution, &Transform.apply(transform, &1, config))
+  end
+
+  defp transform_distribution(distribution, transform, config)
+       when is_struct(transform, Pinyin) or is_struct(transform, Romaji) do
+    map_distribution(distribution, &Transform.apply(transform, &1, config))
+  end
+
+  defp transform_distribution(distribution, transform, config) do
+    if Transform.entropy_bits(transform, config) == 0.0 do
+      map_distribution(distribution, &Transform.apply(transform, &1, config))
+    else
+      :unknown_random_transform
     end
   end
 
-  defp calculate_substitution_entropy(config) do
-    case config.substitution_mode do
-      :random ->
-        # Each word has 50% chance of substitution = 1 bit per word
-        config.num_words * 1.0
+  defp uniform_distribution([]), do: %{}
 
-      :always ->
-        # Deterministic, no entropy
-        0.0
+  defp uniform_distribution(words) do
+    probability = 1.0 / length(words)
+    Map.new(words, &{&1, probability})
+  end
 
-      :none ->
-        0.0
+  defp map_distribution(distribution, mapper) do
+    Enum.reduce(distribution, %{}, fn {word, probability}, acc ->
+      Map.update(acc, mapper.(word), probability, &(&1 + probability))
+    end)
+  end
+
+  defp random_map_distribution(distribution, first_mapper, second_mapper) do
+    first = distribution |> map_distribution(first_mapper) |> scale_distribution(0.5)
+    second = distribution |> map_distribution(second_mapper) |> scale_distribution(0.5)
+    merge_distributions(first, second)
+  end
+
+  defp mix_distributions(first, second) do
+    merge_distributions(scale_distribution(first, 0.5), scale_distribution(second, 0.5))
+  end
+
+  defp scale_distribution(distribution, factor) do
+    Map.new(distribution, fn {word, probability} -> {word, probability * factor} end)
+  end
+
+  defp merge_distributions(first, second) do
+    Map.merge(first, second, fn _, left, right -> left + right end)
+  end
+
+  defp distribution_entropy(distribution) when map_size(distribution) == 0, do: 0.0
+
+  defp distribution_entropy(distribution) do
+    max_probability = distribution |> Map.values() |> Enum.max()
+    -:math.log2(max_probability)
+  end
+
+  defp invert_case(word) do
+    case String.next_codepoint(word) do
+      {head, rest} -> String.downcase(head) <> String.upcase(rest)
+      nil -> word
     end
   end
 
@@ -435,7 +592,7 @@ defmodule ExkPasswd.Entropy do
     "#{Float.round(years, 1)} years"
   end
 
-  defp format_time(seconds) when seconds < 315_360_000_000 do
+  defp format_time(seconds) when seconds < 31_536_000_000 do
     centuries = seconds / 3_153_600_000
     "#{Float.round(centuries, 1)} centuries"
   end
@@ -443,6 +600,11 @@ defmodule ExkPasswd.Entropy do
   defp format_time(seconds) when seconds < 31_536_000_000_000 do
     millennia = seconds / 31_536_000_000
     "#{Float.round(millennia, 1)} millennia"
+  end
+
+  defp format_time(seconds) when seconds < 31_536_000_000_000_000 do
+    millions = seconds / 31_536_000_000_000
+    "#{Float.round(millions, 1)} million years"
   end
 
   defp format_time(_) do

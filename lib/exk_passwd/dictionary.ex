@@ -342,6 +342,52 @@ defmodule ExkPasswd.Dictionary do
   end
 
   @doc """
+  Returns the unique dictionary outputs available for a length range and case variant.
+
+  This is primarily useful for auditing a configured output space. Unknown
+  custom dictionaries return an empty list.
+
+  ## Parameters
+
+  - `min` - Minimum word length, inclusive
+  - `max` - Maximum word length, inclusive
+  - `case_transform` - One of `:none`, `:lower`, `:upper`, or `:capitalize`
+  - `dict` - `:eff` or the name of a loaded custom dictionary
+  """
+  @spec words_between(pos_integer(), pos_integer(), atom(), atom()) :: [String.t()]
+  def words_between(min, max, case_transform \\ :none, dict \\ :eff)
+
+  def words_between(min, max, case_transform, :eff)
+      when case_transform in [:none, :lower, :upper, :capitalize] do
+    case get_tuples_map(case_transform) |> tuple_between(min, max) do
+      {_, 0} -> []
+      {tuple, _} -> Tuple.to_list(tuple)
+    end
+  end
+
+  def words_between(min, max, case_transform, dict)
+      when is_atom(dict) and case_transform in [:none, :lower, :upper, :capitalize] do
+    case fetch_custom(dict) do
+      nil ->
+        []
+
+      data ->
+        case_key = case_transform_to_key(case_transform)
+
+        case get_in(data, [:by_length, case_key]) |> tuple_between(min, max) do
+          {_, 0} -> []
+          {tuple, _} -> Tuple.to_list(tuple)
+        end
+    end
+  end
+
+  def words_between(_, _, case_transform, dict) do
+    raise ArgumentError,
+          "case transform and dictionary must be supported atoms, got: " <>
+            "#{inspect(case_transform)}, #{inspect(dict)}"
+  end
+
+  @doc """
   Returns a random word between min and max length with optional case transformation.
 
   Uses tuple-based constant-time lookups for efficient word selection.

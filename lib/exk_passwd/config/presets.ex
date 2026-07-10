@@ -147,7 +147,7 @@ defmodule ExkPasswd.Config.Presets do
       Config.new!(
         num_words: 3,
         word_length: 4..7,
-        case_transform: :random,
+        case_transform: :alternate,
         separator: ~s(-:.@&),
         digits: {2, 2},
         padding: %{
@@ -160,8 +160,8 @@ defmodule ExkPasswd.Config.Presets do
         meta: %{
           name: "apple_id",
           description:
-            "A preset respecting the many prerequisites Apple places on Apple ID passwords. " <>
-              "The preset also limits itself to symbols found on the iOS letter and number keyboards."
+            "A preset meeting Apple Account requirements for length, upper- and lowercase " <>
+              "letters, and numbers. It uses punctuation available on standard Apple keyboards."
         }
       ),
     security:
@@ -270,6 +270,7 @@ defmodule ExkPasswd.Config.Presets do
   @spec register(atom(), Config.t()) :: :ok
   def register(name, %Config{} = config) when is_atom(name) do
     ensure_registry_running!()
+    config = Config.validate!(config)
     Agent.update(__MODULE__, &Map.put(&1, name, config))
   end
 
