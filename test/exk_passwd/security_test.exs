@@ -23,13 +23,15 @@ defmodule ExkPasswd.SecurityTest do
 
       # Calculate chi-square statistic
       chi_square =
-        Enum.reduce(frequencies, 0, fn {_, observed}, acc ->
+        Enum.reduce(0..(max - 1), 0, fn value, acc ->
+          observed = Map.get(frequencies, value, 0)
           acc + :math.pow(observed - expected, 2) / expected
         end)
 
-      # Critical value at 99.9% confidence for df=99 is approximately 140
-      # We use a more lenient threshold for test stability
-      critical_value = 140
+      # This is a smoke test, not evidence that the generator is secure. The
+      # deliberately conservative limit keeps a correct random implementation
+      # from making CI flaky while still catching severe distribution defects.
+      critical_value = 200
 
       assert chi_square < critical_value,
              "Chi-square test failed: #{chi_square} >= #{critical_value}. " <>

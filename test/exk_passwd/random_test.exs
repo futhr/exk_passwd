@@ -122,6 +122,20 @@ defmodule ExkPasswd.RandomTest do
       assert value >= 0 and value < 4_294_967_295
     end
 
+    test "supports ranges larger than 32 bits" do
+      max = Integer.pow(2, 80)
+      values = for _ <- 1..20, do: Random.integer(max)
+
+      assert Enum.all?(values, &(&1 >= 0 and &1 < max))
+      assert Enum.any?(values, &(&1 >= Integer.pow(2, 32)))
+    end
+
+    test "raises for invalid upper bounds" do
+      for invalid <- [0, -1, 1.5, :invalid] do
+        assert_raise ArgumentError, fn -> Random.integer(invalid) end
+      end
+    end
+
     test "handles max=1 (always returns 0)" do
       value = Random.integer(1)
       assert value == 0

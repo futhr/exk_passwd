@@ -36,7 +36,7 @@ defmodule ExkPasswd.Buffer do
 
   # 10KB buffer reduces crypto syscalls by ~100x for typical batch sizes
   @default_buffer_size 10_000
-  # 4 bytes = 32-bit unsigned integer, provides sufficient entropy for common use cases
+  # Use at least four bytes for common ranges, and expand for larger ranges.
   @bytes_per_int 4
 
   @type t :: %__MODULE__{
@@ -69,12 +69,18 @@ defmodule ExkPasswd.Buffer do
       5000
   """
   @spec new(pos_integer()) :: t()
-  def new(buffer_size \\ @default_buffer_size) when buffer_size > 0 do
+  def new(buffer_size \\ @default_buffer_size)
+
+  def new(buffer_size) when is_integer(buffer_size) and buffer_size > 0 do
     %__MODULE__{
       buffer: :crypto.strong_rand_bytes(buffer_size),
       offset: 0,
       buffer_size: buffer_size
     }
+  end
+
+  def new(buffer_size) do
+    raise ArgumentError, "buffer_size must be a positive integer, got: #{inspect(buffer_size)}"
   end
 
   @doc """
@@ -101,19 +107,18 @@ defmodule ExkPasswd.Buffer do
       true
   """
   @spec random_integer(t(), pos_integer()) :: {non_neg_integer(), t()}
-  def random_integer(_, max) when is_integer(max) and max <= 0 do
-    raise ArgumentError, "max must be a positive integer, got: #{max}"
-  end
+  def random_integer(state, 1), do: {0, state}
 
   def random_integer(state, max) when is_integer(max) and max > 0 do
-    {bytes, new_state} = consume_bytes(state, @bytes_per_int)
+    byte_count = max(@bytes_per_int, bytes_for(max))
+    range_size = Integer.pow(2, byte_count * 8)
+    threshold = range_size - rem(range_size, max)
 
-    value =
-      bytes
-      |> :binary.decode_unsigned()
-      |> rem(max)
+    random_integer_unbiased(state, max, threshold, byte_count)
+  end
 
-    {value, new_state}
+  def random_integer(_, max) do
+    raise ArgumentError, "max must be a positive integer, got: #{inspect(max)}"
   end
 
   @doc """
@@ -229,18 +234,39 @@ defmodule ExkPasswd.Buffer do
 
   @spec consume_bytes(t(), pos_integer()) :: {binary(), t()}
   defp consume_bytes(%__MODULE__{buffer: buffer, offset: offset} = state, num_bytes) do
-    # Check if we need to refresh the buffer
-    if offset + num_bytes > byte_size(buffer) do
-      # Generate new buffer
-      new_buffer = :crypto.strong_rand_bytes(state.buffer_size)
-      bytes = binary_part(new_buffer, 0, num_bytes)
-      new_state = %{state | buffer: new_buffer, offset: num_bytes}
-      {bytes, new_state}
-    else
-      # Consume from existing buffer
+    available = byte_size(buffer) - offset
+
+    if available >= num_bytes do
       bytes = binary_part(buffer, offset, num_bytes)
-      new_state = %{state | offset: offset + num_bytes}
-      {bytes, new_state}
+      {bytes, %{state | offset: offset + num_bytes}}
+    else
+      prefix = binary_part(buffer, offset, available)
+      refreshed = refill(state)
+      {suffix, new_state} = consume_bytes(refreshed, num_bytes - available)
+      {prefix <> suffix, new_state}
     end
+  end
+
+  defp bytes_for(max) do
+    max
+    |> Kernel.-(1)
+    |> :binary.encode_unsigned()
+    |> byte_size()
+    |> max(1)
+  end
+
+  defp random_integer_unbiased(state, max, threshold, byte_count) do
+    {bytes, new_state} = consume_bytes(state, byte_count)
+    value = :binary.decode_unsigned(bytes)
+
+    if value < threshold do
+      {rem(value, max), new_state}
+    else
+      random_integer_unbiased(new_state, max, threshold, byte_count)
+    end
+  end
+
+  defp refill(%__MODULE__{buffer_size: buffer_size} = state) do
+    %{state | buffer: :crypto.strong_rand_bytes(buffer_size), offset: 0}
   end
 end

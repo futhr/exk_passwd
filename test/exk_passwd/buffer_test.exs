@@ -24,6 +24,12 @@ defmodule ExkPasswd.BufferTest do
       assert %Buffer{} = buffer
       assert byte_size(buffer.buffer) == 8
     end
+
+    test "rejects invalid buffer sizes" do
+      for invalid <- [0, -1, 1.5, :invalid] do
+        assert_raise ArgumentError, fn -> Buffer.new(invalid) end
+      end
+    end
   end
 
   describe "random_integer/2" do
@@ -212,6 +218,25 @@ defmodule ExkPasswd.BufferTest do
       {value, _} = Buffer.random_integer(state, 1_000_000)
 
       assert value >= 0 and value < 1_000_000
+    end
+
+    test "supports ranges larger than 32 bits" do
+      state = Buffer.new(5)
+      max = Integer.pow(2, 80)
+      {value, new_state} = Buffer.random_integer(state, max)
+
+      assert value >= 0 and value < max
+      assert %Buffer{} = new_state
+    end
+
+    test "reads integers across buffers smaller than four bytes" do
+      for size <- 1..3 do
+        state = Buffer.new(size)
+        {value, new_state} = Buffer.random_integer(state, 10)
+
+        assert value in 0..9
+        assert %Buffer{} = new_state
+      end
     end
 
     test "handles large list" do

@@ -256,4 +256,13 @@ defmodule ExkPasswd.TokenTest do
       assert unique_count >= 3
     end
   end
+
+  describe "large numbers" do
+    test "generates ten-digit numbers without hanging" do
+      assert Token.get_number(10) =~ ~r/^\d{10}$/
+
+      {number, _} = Token.get_number_with_state(10, Buffer.new(7))
+      assert number =~ ~r/^\d{10}$/
+    end
+  end
 end

@@ -220,7 +220,7 @@ defmodule ExkPasswd do
       ExkPasswd.generate_batch(5, config)
       #=> ["word-word-word-word", ...]
   """
-  @spec generate_batch(pos_integer(), Config.t()) :: [String.t()]
+  @spec generate_batch(non_neg_integer(), Config.t()) :: [String.t()]
   defdelegate generate_batch(count, config \\ Config.new!()), to: Batch
 
   @doc """
@@ -239,7 +239,7 @@ defmodule ExkPasswd do
       length(Enum.uniq(passwords)) == 10
       #=> true
   """
-  @spec generate_unique_batch(pos_integer(), Config.t()) :: [String.t()]
+  @spec generate_unique_batch(non_neg_integer(), Config.t()) :: [String.t()]
   defdelegate generate_unique_batch(count, config \\ Config.new!()), to: Batch
 
   @doc """
@@ -257,7 +257,7 @@ defmodule ExkPasswd do
       ExkPasswd.generate_parallel(1000)
       #=> [... 1000 passwords ...]
   """
-  @spec generate_parallel(pos_integer(), Config.t()) :: [String.t()]
+  @spec generate_parallel(non_neg_integer(), Config.t()) :: [String.t()]
   defdelegate generate_parallel(count, config \\ Config.new!()), to: Batch
 
   @doc """

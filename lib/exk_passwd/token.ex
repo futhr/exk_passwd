@@ -158,7 +158,7 @@ defmodule ExkPasswd.Token do
   """
   @spec get_number(integer()) :: String.t()
   def get_number(digits) when is_integer(digits) and digits >= 1 do
-    max = round(:math.pow(10, digits))
+    max = Integer.pow(10, digits)
 
     Random.integer(max)
     |> Integer.to_string()
@@ -289,7 +289,7 @@ defmodule ExkPasswd.Token do
   def get_number_with_state(0, random_state), do: {"", random_state}
 
   def get_number_with_state(digits, random_state) when is_integer(digits) and digits >= 1 do
-    max = round(:math.pow(10, digits))
+    max = Integer.pow(10, digits)
 
     {value, new_state} = Buffer.random_integer(random_state, max)
 

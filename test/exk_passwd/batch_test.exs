@@ -158,5 +158,35 @@ defmodule ExkPasswd.BatchTest do
       assert length(passwords) == 5
       assert Enum.all?(passwords, &is_binary/1)
     end
+
+    test "supports very small buffers" do
+      config = Config.new!(num_words: 2)
+      assert length(Batch.generate_batch(3, config, buffer_size: 1)) == 3
+    end
+
+    test "rejects invalid counts and options" do
+      config = Config.new!()
+
+      assert_raise ArgumentError, fn -> Batch.generate_batch(-1, config) end
+      assert_raise ArgumentError, fn -> Batch.generate_parallel(1, config, workers: 0) end
+
+      assert_raise ArgumentError, fn ->
+        apply(Batch, :generate_batch, [1, config, %{buffer_size: 10}])
+      end
+
+      assert_raise ArgumentError, fn -> Batch.generate_batch(1, config, unknown: true) end
+
+      assert_raise ArgumentError, fn ->
+        Batch.generate_unique_batch(1, config, max_attempts: 0)
+      end
+    end
+
+    test "returns an empty list for zero count" do
+      config = Config.new!()
+
+      assert Batch.generate_batch(0, config) == []
+      assert Batch.generate_unique_batch(0, config) == []
+      assert Batch.generate_parallel(0, config) == []
+    end
   end
 end

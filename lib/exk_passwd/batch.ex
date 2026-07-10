@@ -60,8 +60,11 @@ defmodule ExkPasswd.Batch do
       ...> length(Enum.uniq(passwords))
       5
   """
-  @spec generate_batch(pos_integer(), Config.t(), keyword()) :: [String.t()]
+  @spec generate_batch(non_neg_integer(), Config.t(), keyword()) :: [String.t()]
   def generate_batch(count, config \\ Config.new!(), opts \\ []) do
+    validate_count!(count)
+    validate_options!(opts, [:buffer_size])
+
     buffer_size =
       Keyword.get(
         opts,
@@ -104,13 +107,20 @@ defmodule ExkPasswd.Batch do
       iex> length(Enum.uniq(passwords))
       10
   """
-  @spec generate_unique_batch(pos_integer(), Config.t(), keyword()) :: [String.t()]
+  @spec generate_unique_batch(non_neg_integer(), Config.t(), keyword()) :: [String.t()]
   @dialyzer {:nowarn_function, generate_unique_batch: 3}
   def generate_unique_batch(count, config \\ Config.new!(), opts \\ []) do
-    max_attempts = Keyword.get(opts, :max_attempts, count * 100)
-    seen_set = MapSet.new()
+    validate_count!(count)
+    validate_options!(opts, [:max_attempts])
 
-    generate_unique_recursive(count, config, seen_set, 0, max_attempts)
+    max_attempts = Keyword.get(opts, :max_attempts, count * 100)
+    validate_max_attempts!(count, max_attempts)
+
+    if count == 0 do
+      []
+    else
+      generate_unique_recursive(count, config, MapSet.new(), 0, max_attempts)
+    end
   end
 
   @doc """
@@ -136,25 +146,16 @@ defmodule ExkPasswd.Batch do
       ...> length(passwords)
       100
   """
-  @spec generate_parallel(pos_integer(), Config.t(), keyword()) :: [String.t()]
-  def generate_parallel(count, config \\ Config.new!(), opts \\ []) do
+  @spec generate_parallel(non_neg_integer(), Config.t(), keyword()) :: [String.t()]
+  def generate_parallel(count, config \\ Config.new!(), opts \\ [])
+
+  def generate_parallel(count, config, opts) do
+    validate_count!(count)
+    validate_options!(opts, [:workers])
     workers = Keyword.get(opts, :workers, System.schedulers_online())
+    validate_workers!(workers)
 
-    # Divide work among workers
-    per_worker = div(count, workers)
-    remainder = rem(count, workers)
-
-    # Create tasks for each worker
-    tasks =
-      for i <- 0..(workers - 1) do
-        batch_size = if i < remainder, do: per_worker + 1, else: per_worker
-        Task.async(fn -> create_passwords(batch_size, config) end)
-      end
-
-    # Collect results
-    tasks
-    |> Task.await_many(:infinity)
-    |> List.flatten()
+    if count == 0, do: [], else: generate_parallel_tasks(count, config, workers)
   end
 
   defp create_passwords(0, _), do: []
@@ -186,7 +187,7 @@ defmodule ExkPasswd.Batch do
        when attempts >= max_attempts do
     raise "Failed to generate #{count} unique passwords after #{max_attempts} attempts. " <>
             "This suggests very low entropy in the config. " <>
-            "Try increasing num_words, word_length_max, or enabling more variation."
+            "Try increasing num_words, widening word_length, or enabling more variation."
   end
 
   @dialyzer {:nowarn_function, generate_unique_recursive: 5}
@@ -209,5 +210,48 @@ defmodule ExkPasswd.Batch do
     password = Password.create(config)
     new_seen_set = MapSet.put(seen_set, password)
     generate_unique_recursive(count, config, new_seen_set, attempts + 1, max_attempts)
+  end
+
+  defp validate_count!(count) when is_integer(count) and count >= 0, do: :ok
+
+  defp validate_count!(count) do
+    raise ArgumentError, "count must be a non-negative integer, got: #{inspect(count)}"
+  end
+
+  defp validate_max_attempts!(0, 0), do: :ok
+  defp validate_max_attempts!(_, value) when is_integer(value) and value > 0, do: :ok
+
+  defp validate_max_attempts!(_, value) do
+    raise ArgumentError, "max_attempts must be a positive integer, got: #{inspect(value)}"
+  end
+
+  defp generate_parallel_tasks(count, config, workers) do
+    per_worker = div(count, workers)
+    remainder = rem(count, workers)
+
+    0..(workers - 1)
+    |> Enum.map(fn worker_id ->
+      batch_size = per_worker + if worker_id < remainder, do: 1, else: 0
+      Task.async(fn -> create_passwords(batch_size, config) end)
+    end)
+    |> Task.await_many(:infinity)
+    |> List.flatten()
+  end
+
+  defp validate_options!(opts, allowed) do
+    unless Keyword.keyword?(opts) do
+      raise ArgumentError, "options must be a keyword list, got: #{inspect(opts)}"
+    end
+
+    case Keyword.keys(opts) -- allowed do
+      [] -> :ok
+      unknown -> raise ArgumentError, "unknown options: #{inspect(unknown)}"
+    end
+  end
+
+  defp validate_workers!(workers) when is_integer(workers) and workers > 0, do: :ok
+
+  defp validate_workers!(workers) do
+    raise ArgumentError, "workers must be a positive integer, got: #{inspect(workers)}"
   end
 end

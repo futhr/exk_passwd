@@ -38,11 +38,9 @@ defmodule ExkPasswd.Random do
 
   ## Security
 
-  This function uses rejection sampling to avoid modulo bias. When `max` doesn't
-  evenly divide 2^32, naive modulo creates statistical bias where some values
-  appear more frequently. This implementation rejects biased values and retries.
-
-  **Performance**: Rejection rate is ~(max/2^32), negligible for all practical values.
+  This function reads enough bytes to represent the requested range, then uses
+  rejection sampling. This avoids the statistical bias introduced by reducing
+  every random value with `rem/2`.
 
   ## Parameters
 
@@ -62,30 +60,37 @@ defmodule ExkPasswd.Random do
       ...> n
       0
   """
-  # Maximum value for 32-bit unsigned integer (2^32)
-  @uint32_max 0x1_0000_0000
-
   @spec integer(pos_integer()) :: non_neg_integer()
-  def integer(max) when is_integer(max) and max > 0 do
-    # Use rejection sampling to eliminate modulo bias
-    # Calculate the largest value that gives us a complete set of max-sized ranges
-    threshold = @uint32_max - rem(@uint32_max, max)
+  def integer(1), do: 0
 
-    integer_unbiased(max, threshold)
+  def integer(max) when is_integer(max) and max > 0 do
+    byte_count = bytes_for(max)
+    range_size = Integer.pow(2, byte_count * 8)
+    threshold = range_size - rem(range_size, max)
+
+    integer_unbiased(max, threshold, byte_count)
   end
 
-  # Private helper for rejection sampling
-  defp integer_unbiased(max, threshold) do
-    value = :crypto.strong_rand_bytes(4) |> :binary.decode_unsigned()
+  def integer(max) do
+    raise ArgumentError, "max must be a positive integer, got: #{inspect(max)}"
+  end
+
+  defp bytes_for(max) do
+    max
+    |> Kernel.-(1)
+    |> :binary.encode_unsigned()
+    |> byte_size()
+    |> max(1)
+  end
+
+  defp integer_unbiased(max, threshold, byte_count) do
+    value = :crypto.strong_rand_bytes(byte_count) |> :binary.decode_unsigned()
 
     if value < threshold do
-      # Value is in unbiased range - accept it
       rem(value, max)
     else
-      # Value is in biased range - reject and retry
-      # This happens rarely: probability = (2^32 mod max) / 2^32
       # coveralls-ignore-start
-      integer_unbiased(max, threshold)
+      integer_unbiased(max, threshold, byte_count)
       # coveralls-ignore-stop
     end
   end
