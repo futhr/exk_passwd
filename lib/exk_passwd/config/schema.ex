@@ -119,13 +119,16 @@ defmodule ExkPasswd.Config.Schema do
   def validate(%Config{} = config) do
     with :ok <- validate_num_words(config),
          :ok <- validate_word_length(config),
+         :ok <- validate_word_length_bounds(config),
          :ok <- validate_case_transform(config),
          :ok <- validate_separator(config),
          :ok <- validate_digits(config),
          :ok <- validate_padding(config),
          :ok <- validate_substitutions(config),
          :ok <- validate_substitution_mode(config),
-         :ok <- validate_dictionary(config) do
+         :ok <- validate_dictionary(config),
+         :ok <- validate_meta(config),
+         :ok <- validate_validators(config) do
       :ok
     end
   end
@@ -142,8 +145,8 @@ defmodule ExkPasswd.Config.Schema do
   end
 
   # Validate word_length field (should be a Range)
-  defp validate_word_length(%{word_length: %Range{first: min, last: max}} = config)
-       when is_integer(min) and is_integer(max) do
+  defp validate_word_length(%{word_length: %Range{first: min, last: max, step: step}} = config)
+       when is_integer(min) and is_integer(max) and step == 1 do
     cond do
       min > max ->
         {:error, "word_length range invalid: #{min}..#{max} (min must be <= max)"}
@@ -155,15 +158,36 @@ defmodule ExkPasswd.Config.Schema do
         {:error, "word_length maximum must be at most 50, got: #{max}"}
 
       not is_nil(config.word_length_bounds) ->
-        validate_word_length_against_bounds(min, max, config.word_length_bounds)
+        with :ok <- validate_word_length_bounds(config) do
+          validate_word_length_against_bounds(min, max, config.word_length_bounds)
+        end
 
       true ->
         validate_word_length_default_bounds(min, max)
     end
   end
 
+  defp validate_word_length(%{word_length: %Range{first: min, last: max}})
+       when is_integer(min) and is_integer(max) and min > max do
+    {:error, "word_length range invalid: #{min}..#{max} (min must be <= max)"}
+  end
+
   defp validate_word_length(%{word_length: other}) do
-    {:error, "word_length must be a Range (e.g., 4..8), got: #{inspect(other)}"}
+    {:error,
+     "word_length must be a Range that ascends with step 1 (e.g., 4..8), got: #{inspect(other)}"}
+  end
+
+  defp validate_word_length_bounds(%{word_length_bounds: nil}), do: :ok
+
+  defp validate_word_length_bounds(%{
+         word_length_bounds: %Range{first: min, last: max, step: 1}
+       })
+       when is_integer(min) and is_integer(max) and min >= 1 and min <= max and max <= 50,
+       do: :ok
+
+  defp validate_word_length_bounds(%{word_length_bounds: bounds}) do
+    {:error,
+     "word_length_bounds must be nil or an ascending Range within 1..50, got: #{inspect(bounds)}"}
   end
 
   # Validate against default bounds (4-10 for English/Latin scripts)
@@ -228,7 +252,8 @@ defmodule ExkPasswd.Config.Schema do
 
   # Validate padding field (should be a map with specific keys)
   defp validate_padding(%{padding: padding}) when is_map(padding) do
-    with :ok <- validate_padding_char(padding),
+    with :ok <- validate_padding_keys(padding),
+         :ok <- validate_padding_char(padding),
          :ok <- validate_padding_amounts(padding),
          :ok <- validate_padding_to_length(padding) do
       :ok
@@ -237,6 +262,13 @@ defmodule ExkPasswd.Config.Schema do
 
   defp validate_padding(%{padding: other}) do
     {:error, "padding must be a map, got: #{inspect(other)}"}
+  end
+
+  defp validate_padding_keys(padding) do
+    case Map.keys(padding) -- [:char, :before, :after, :to_length] do
+      [] -> :ok
+      unknown -> {:error, "padding contains unknown keys: #{inspect(unknown)}"}
+    end
   end
 
   defp validate_padding_char(%{char: char}) when is_binary(char) do
@@ -286,7 +318,8 @@ defmodule ExkPasswd.Config.Schema do
     # Check all keys and values are strings
     all_strings? =
       Enum.all?(subs, fn {k, v} ->
-        is_binary(k) and is_binary(v) and String.length(k) == 1 and String.length(v) == 1
+        is_binary(k) and is_binary(v) and String.valid?(k) and String.valid?(v) and
+          String.length(k) == 1 and String.length(v) == 1
       end)
 
     if all_strings? do
@@ -320,19 +353,49 @@ defmodule ExkPasswd.Config.Schema do
     {:error, "dictionary must be an atom, got: #{inspect(dict)}"}
   end
 
+  defp validate_meta(%{meta: meta}) when is_map(meta), do: :ok
+  defp validate_meta(%{meta: meta}), do: {:error, "meta must be a map, got: #{inspect(meta)}"}
+
+  defp validate_validators(%{validators: validators}) when is_list(validators) do
+    case Enum.find(validators, &(not valid_validator?(&1))) do
+      nil ->
+        :ok
+
+      invalid ->
+        {:error, "validator must be a module exporting validate/1, got: #{inspect(invalid)}"}
+    end
+  end
+
+  defp validate_validators(%{validators: validators}) do
+    {:error, "validators must be a list of modules, got: #{inspect(validators)}"}
+  end
+
+  defp valid_validator?(module) when is_atom(module) do
+    case Code.ensure_loaded(module) do
+      {:module, ^module} -> function_exported?(module, :validate, 1)
+      _ -> false
+    end
+  end
+
+  defp valid_validator?(_), do: false
+
   # Helper to validate allowed symbols
   defp validate_allowed_symbols("", _), do: :ok
 
   defp validate_allowed_symbols(string, field_name) when is_binary(string) do
-    # Reject letters and digits, but allow all other Unicode characters including symbols
-    case Enum.filter(String.graphemes(string), &String.match?(&1, ~r/^[\p{L}\p{N}]$/u)) do
-      [] ->
-        :ok
+    if String.valid?(string) do
+      # Reject letters and digits, but allow all other Unicode characters including symbols
+      case Enum.filter(String.graphemes(string), &String.match?(&1, ~r/^[\p{L}\p{N}]$/u)) do
+        [] ->
+          :ok
 
-      invalid ->
-        {:error,
-         "#{field_name} cannot contain letters or numbers, got: #{inspect(invalid)}. " <>
-           "Only symbols and punctuation are allowed (including Unicode symbols)."}
+        invalid ->
+          {:error,
+           "#{field_name} cannot contain letters or numbers, got: #{inspect(invalid)}. " <>
+             "Only symbols and punctuation are allowed (including Unicode symbols)."}
+      end
+    else
+      {:error, "#{field_name} must contain valid UTF-8"}
     end
   end
 

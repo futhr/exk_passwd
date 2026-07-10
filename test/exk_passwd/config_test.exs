@@ -89,6 +89,30 @@ defmodule ExkPasswd.ConfigTest do
       assert {:error, msg} = Config.new(num_words: 0)
       assert is_binary(msg)
     end
+
+    test "rejects unknown and duplicate options" do
+      assert {:error, message} = Config.new(unknown: true)
+      assert message =~ "unknown configuration options"
+
+      assert {:error, message} = Config.new(num_words: 3, num_words: 4)
+      assert message =~ "duplicate configuration options"
+    end
+
+    test "returns tagged errors for malformed padding and map keys" do
+      assert {:error, message} = Config.new(padding: :invalid)
+      assert message =~ "padding must be a map"
+
+      assert {:error, message} = Config.new(%{"num_words" => 4})
+      assert message =~ "keyword list"
+    end
+
+    test "validates directly constructed structs" do
+      invalid = %Config{num_words: 0}
+
+      assert {:error, message} = Config.validate(invalid)
+      assert message =~ "num_words"
+      assert_raise ArgumentError, ~r/num_words/, fn -> Config.validate!(invalid) end
+    end
   end
 
   describe "merge!/2" do

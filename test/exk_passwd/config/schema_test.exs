@@ -319,6 +319,32 @@ defmodule ExkPasswd.Config.SchemaTest do
       assert {:error, msg} = Schema.validate(config)
       assert msg =~ "exceeds custom bounds"
     end
+
+    test "rejects malformed custom bounds" do
+      for bounds <- ["1..10", 10..1//-1, 0..10, 1..51, 1..10//2] do
+        assert {:error, msg} = Schema.validate(%Config{word_length_bounds: bounds})
+        assert msg =~ "word_length_bounds"
+      end
+    end
+  end
+
+  describe "validate/1 with extension fields" do
+    test "rejects invalid meta and validators" do
+      assert {:error, message} = Schema.validate(%Config{meta: []})
+      assert message =~ "meta must be a map"
+
+      assert {:error, message} = Schema.validate(%Config{validators: :invalid})
+      assert message =~ "validators must be a list"
+
+      assert {:error, message} = Schema.validate(%Config{validators: [String]})
+      assert message =~ "exporting validate/1"
+    end
+
+    test "rejects unknown padding keys" do
+      padding = %{char: "!", before: 0, after: 0, to_length: 0, typo: true}
+      assert {:error, message} = Schema.validate(%Config{padding: padding})
+      assert message =~ "unknown keys"
+    end
   end
 
   describe "validate/1 with substitutions edge cases" do

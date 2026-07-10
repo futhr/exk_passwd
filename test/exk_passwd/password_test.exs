@@ -756,6 +756,18 @@ defmodule ExkPasswd.PasswordTest do
     end
   end
 
+  describe "configuration validation" do
+    test "rejects invalid directly constructed configs at generation boundaries" do
+      invalid = %Config{num_words: 0}
+
+      assert_raise ArgumentError, ~r/num_words/, fn -> Password.create(invalid) end
+
+      assert_raise ArgumentError, ~r/num_words/, fn ->
+        Password.create_with_state(invalid, Buffer.new(100))
+      end
+    end
+  end
+
   describe "unsatisfiable dictionary configurations" do
     test "create/1 raises ArgumentError for an unknown custom dictionary" do
       config =

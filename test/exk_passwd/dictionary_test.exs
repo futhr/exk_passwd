@@ -47,6 +47,53 @@ defmodule ExkPasswd.DictionaryTest do
         Dictionary.load_custom(:invalid_atom_entry, ["valid", :oops])
       end
     end
+
+    test "rejects invalid UTF-8 and duplicates after Unicode normalization" do
+      assert_raise ArgumentError, ~r/valid UTF-8/, fn ->
+        Dictionary.load_custom(:invalid_utf8, [<<255>>])
+      end
+
+      assert_raise ArgumentError, ~r/duplicate words/, fn ->
+        Dictionary.load_custom(:duplicate_words, ["same", "same"])
+      end
+
+      assert_raise ArgumentError, ~r/Unicode normalization/, fn ->
+        Dictionary.load_custom(:normalized_duplicates, ["caf\u00E9", "cafe\u0301"])
+      end
+    end
+
+    test "protects the built-in dictionary name" do
+      assert_raise ArgumentError, ~r/reserved/, fn ->
+        Dictionary.load_custom(:eff, ["replacement"])
+      end
+
+      assert_raise ArgumentError, ~r/cannot be deleted/, fn -> Dictionary.delete_custom(:eff) end
+    end
+
+    test "rejects invalid dictionary arguments predictably" do
+      assert_raise ArgumentError, ~r/name must be an atom/, fn ->
+        apply(Dictionary, :load_custom, ["name", ["word"]])
+      end
+
+      assert_raise ArgumentError, ~r/name must be an atom/, fn ->
+        apply(Dictionary, :delete_custom, ["name"])
+      end
+    end
+
+    test "handles sparse dictionaries with extreme word lengths" do
+      long_word = String.duplicate("界", 100_000)
+      assert :ok = Dictionary.load_custom(:sparse_extreme, ["短", long_word])
+      assert Dictionary.count_between(1, 100_000, :sparse_extreme) == 2
+      assert Dictionary.random_word_between(100_000, 100_000, :none, :sparse_extreme) == long_word
+    end
+
+    test "deduplicates case-transformed output choices" do
+      Dictionary.load_custom(:case_collision, ["Apple", "apple"])
+
+      for _ <- 1..10 do
+        assert Dictionary.random_word_between(5, 5, :lower, :case_collision) == "apple"
+      end
+    end
   end
 
   describe "empty pre-computed range buckets" do
@@ -636,6 +683,7 @@ defmodule ExkPasswd.DictionaryTest do
 
       assert word in ["ab", "abc", "abcd", "abcdefghij", "abcdefghijk"]
       assert %Buffer{} = new_state
+      assert new_state.offset > state.offset
     end
   end
 

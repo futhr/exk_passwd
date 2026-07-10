@@ -65,7 +65,7 @@ defmodule ExkPasswd.Dictionary do
       true
   """
 
-  alias ExkPasswd.Random
+  alias ExkPasswd.{Buffer, Random}
 
   # Load EFF Large Wordlist from priv directory at compile time
   @external_resource wordlist_path = Path.join([__DIR__, "../../priv/dict/eff_large.txt"])
@@ -158,7 +158,7 @@ defmodule ExkPasswd.Dictionary do
   ## Parameters
 
   - `name` - Atom identifier for the dictionary
-  - `wordlist` - Non-empty list of non-empty words (strings)
+  - `wordlist` - Non-empty list of unique, valid UTF-8 words
 
   ## Examples
 
@@ -166,12 +166,18 @@ defmodule ExkPasswd.Dictionary do
       ...> ExkPasswd.Dictionary.load_custom(:spanish, words)
       :ok
 
-  Empty word lists, empty strings, and non-string entries raise an
-  `ArgumentError`.
+  Words are normalized to Unicode NFC. Empty lists, invalid strings, and words
+  that become duplicates after normalization raise `ArgumentError`. Case
+  variants that produce the same output are stored once so every reachable
+  output remains uniformly selectable.
   """
   @spec load_custom(atom(), [String.t()]) :: :ok
+  def load_custom(:eff, _) do
+    raise ArgumentError, ":eff is reserved for the built-in dictionary"
+  end
+
   def load_custom(name, wordlist) when is_atom(name) and is_list(wordlist) do
-    validate_wordlist!(wordlist)
+    wordlist = normalize_wordlist!(wordlist)
 
     {t_orig, r_orig} = build_variant(wordlist, & &1)
     {t_lower, r_lower} = build_variant(wordlist, &String.downcase/1)
@@ -198,6 +204,12 @@ defmodule ExkPasswd.Dictionary do
     :ok
   end
 
+  def load_custom(name, wordlist) do
+    raise ArgumentError,
+          "dictionary name must be an atom and wordlist must be a list, got: " <>
+            "#{inspect(name)}, #{inspect(wordlist)}"
+  end
+
   @doc """
   Delete a previously loaded custom dictionary.
 
@@ -212,9 +224,17 @@ defmodule ExkPasswd.Dictionary do
       :ok
   """
   @spec delete_custom(atom()) :: :ok
+  def delete_custom(:eff) do
+    raise ArgumentError, ":eff is the built-in dictionary and cannot be deleted"
+  end
+
   def delete_custom(name) when is_atom(name) do
     :persistent_term.erase(persistent_key(name))
     :ok
+  end
+
+  def delete_custom(name) do
+    raise ArgumentError, "dictionary name must be an atom, got: #{inspect(name)}"
   end
 
   @doc """
@@ -313,11 +333,11 @@ defmodule ExkPasswd.Dictionary do
   end
 
   defp count_between_fallback(min, max, by_length) do
-    Enum.reduce(min(min, max)..max(min, max), 0, fn len, acc ->
-      case Map.get(by_length, len) do
-        {_, count} -> acc + count
-        nil -> acc
-      end
+    lower = min(min, max)
+    upper = max(min, max)
+
+    Enum.reduce(by_length, 0, fn {length, bucket}, acc ->
+      if length >= lower and length <= upper, do: acc + bucket_size(bucket), else: acc
     end)
   end
 
@@ -377,7 +397,8 @@ defmodule ExkPasswd.Dictionary do
 
   # Custom dictionary support
   def random_word_between(min, max, case_transform, dict_name)
-      when is_atom(dict_name) and dict_name != :eff do
+      when is_atom(dict_name) and dict_name != :eff and
+             case_transform in [:none, :lower, :upper, :capitalize] do
     case fetch_custom(dict_name) do
       nil ->
         nil
@@ -402,22 +423,19 @@ defmodule ExkPasswd.Dictionary do
     end
   end
 
+  def random_word_between(_, _, case_transform, dict) do
+    raise ArgumentError,
+          "case transform and dictionary must be supported atoms, got: " <>
+            "#{inspect(case_transform)}, #{inspect(dict)}"
+  end
+
   # Fallback for uncommon ranges (dynamically build tuple)
   defp random_word_between_fallback(min, max, case_transform, :eff) do
     tuples_map = get_tuples_map(case_transform)
 
-    words =
-      min..max
-      |> Enum.flat_map(fn len ->
-        case Map.get(tuples_map, len) do
-          {tuple, _} -> Tuple.to_list(tuple)
-          nil -> []
-        end
-      end)
-
-    case words do
-      [] -> nil
-      _ -> Random.select(words)
+    case tuple_between(tuples_map, min, max) do
+      {_, 0} -> nil
+      {tuple, count} -> :erlang.element(Random.integer(count) + 1, tuple)
     end
   end
 
@@ -440,18 +458,9 @@ defmodule ExkPasswd.Dictionary do
   defp random_word_between_custom_fallback(min, max, case_key, data) do
     by_length = get_in(data, [:by_length, case_key])
 
-    words =
-      min..max
-      |> Enum.flat_map(fn len ->
-        case Map.get(by_length, len) do
-          {tuple, _} -> Tuple.to_list(tuple)
-          nil -> []
-        end
-      end)
-
-    case words do
-      [] -> nil
-      _ -> Random.select(words)
+    case tuple_between(by_length, min, max) do
+      {_, 0} -> nil
+      {tuple, count} -> :erlang.element(Random.integer(count) + 1, tuple)
     end
   end
 
@@ -459,6 +468,7 @@ defmodule ExkPasswd.Dictionary do
     by_length =
       wordlist
       |> Enum.map(transform_fn)
+      |> Enum.uniq()
       |> Enum.group_by(&String.length/1)
 
     tuples =
@@ -473,23 +483,25 @@ defmodule ExkPasswd.Dictionary do
   # words_by_length is never empty: load_custom/2 validates wordlists up front
   defp build_range_tuples(words_by_length) do
     lengths = Map.keys(words_by_length)
-    min_len = Enum.min(lengths)
-    max_len = Enum.max(lengths)
+    # Configured word lengths stop at 50. Bounding the cache prevents sparse
+    # dictionaries from allocating ranges across extreme gaps; direct queries
+    # still use the by-length fallback.
+    min_len = lengths |> Enum.min() |> max(1)
+    max_len = lengths |> Enum.max() |> min(50)
 
-    # Precompute common ranges within the actual word lengths
-    # Limit to reasonable range size to avoid memory explosion
-    for min <- min_len..max_len,
-        max <- min..max_len,
-        max - min <= 10,
-        into: %{} do
-      words =
-        min..max
-        |> Enum.flat_map(fn len ->
-          # words_by_length contains lists from Enum.group_by
-          Map.get(words_by_length, len, [])
-        end)
+    if min_len <= max_len do
+      for min <- min_len..max_len,
+          max <- min..max_len,
+          max - min <= 10,
+          into: %{} do
+        words =
+          min..max
+          |> Enum.flat_map(&Map.get(words_by_length, &1, []))
 
-      {{min, max}, {List.to_tuple(words), length(words)}}
+        {{min, max}, {List.to_tuple(words), length(words)}}
+      end
+    else
+      %{}
     end
   end
 
@@ -530,7 +542,7 @@ defmodule ExkPasswd.Dictionary do
           atom(),
           atom(),
           ExkPasswd.Buffer.t()
-        ) :: {String.t(), ExkPasswd.Buffer.t()}
+        ) :: {String.t() | nil, Buffer.t()}
   def random_word_between_with_state(
         min,
         max,
@@ -555,8 +567,12 @@ defmodule ExkPasswd.Dictionary do
         {word, new_state}
 
       nil ->
-        word = random_word_between_fallback(min, max, case_transform, :eff)
-        {word, random_state}
+        random_word_between_with_state_fallback(
+          min,
+          max,
+          get_tuples_map(case_transform),
+          random_state
+        )
     end
   end
 
@@ -566,7 +582,8 @@ defmodule ExkPasswd.Dictionary do
   end
 
   def random_word_between_with_state(min, max, case_transform, dict_name, random_state)
-      when is_atom(dict_name) and dict_name != :eff do
+      when is_atom(dict_name) and dict_name != :eff and
+             case_transform in [:none, :lower, :upper, :capitalize] do
     case fetch_custom(dict_name) do
       nil ->
         raise ArgumentError,
@@ -587,10 +604,26 @@ defmodule ExkPasswd.Dictionary do
             {word, new_state}
 
           nil ->
-            word = random_word_between_custom_fallback(min, max, case_key, data)
-            {word, random_state}
+            random_word_between_with_state_fallback(
+              min,
+              max,
+              get_in(data, [:by_length, case_key]),
+              random_state
+            )
         end
     end
+  end
+
+  def random_word_between_with_state(
+        _,
+        _,
+        case_transform,
+        dict,
+        _
+      ) do
+    raise ArgumentError,
+          "case transform and dictionary must be supported atoms, got: " <>
+            "#{inspect(case_transform)}, #{inspect(dict)}"
   end
 
   # Custom dictionaries are keyed per name so loads and deletes of one
@@ -599,11 +632,46 @@ defmodule ExkPasswd.Dictionary do
 
   defp fetch_custom(name), do: :persistent_term.get(persistent_key(name), nil)
 
-  defp validate_wordlist!(wordlist) do
-    if wordlist == [] or Enum.any?(wordlist, &(not is_binary(&1) or &1 == "")) do
-      raise ArgumentError, "wordlist must be a non-empty list of non-empty strings"
+  defp normalize_wordlist!(wordlist) do
+    if wordlist == [] or
+         Enum.any?(wordlist, &(not is_binary(&1) or &1 == "" or not String.valid?(&1))) do
+      raise ArgumentError,
+            "wordlist must be a non-empty list of non-empty strings containing valid UTF-8"
     end
 
-    :ok
+    normalized = Enum.map(wordlist, &String.normalize(&1, :nfc))
+
+    if length(Enum.uniq(normalized)) != length(normalized) do
+      raise ArgumentError, "wordlist contains duplicate words after Unicode normalization"
+    end
+
+    normalized
+  end
+
+  defp tuple_between(by_length, min, max) do
+    lower = min(min, max)
+    upper = max(min, max)
+
+    words =
+      by_length
+      |> Enum.filter(fn {length, _} -> length >= lower and length <= upper end)
+      |> Enum.sort_by(&elem(&1, 0))
+      |> Enum.flat_map(fn {_, {tuple, _}} -> Tuple.to_list(tuple) end)
+
+    {List.to_tuple(words), length(words)}
+  end
+
+  defp bucket_size({_, count}), do: count
+  defp bucket_size(words) when is_list(words), do: length(words)
+
+  defp random_word_between_with_state_fallback(min, max, by_length, random_state) do
+    case tuple_between(by_length, min, max) do
+      {_, 0} ->
+        {nil, random_state}
+
+      {tuple, count} ->
+        {index, new_state} = Buffer.random_integer(random_state, count)
+        {:erlang.element(index + 1, tuple), new_state}
+    end
   end
 end

@@ -43,6 +43,21 @@ defmodule ExkPasswd.Config do
   @type case_transform :: :none | :alternate | :capitalize | :invert | :lower | :upper | :random
   @type substitution_mode :: :none | :always | :random
 
+  @config_keys [
+    :num_words,
+    :word_length,
+    :case_transform,
+    :separator,
+    :digits,
+    :padding,
+    :substitutions,
+    :substitution_mode,
+    :dictionary,
+    :meta,
+    :validators,
+    :word_length_bounds
+  ]
+
   @derive {Inspect,
            only: [
              :num_words,
@@ -113,24 +128,66 @@ defmodule ExkPasswd.Config do
   def new(opts \\ [], overrides \\ [])
 
   def new(%__MODULE__{} = config, overrides) when is_list(overrides) do
-    config
-    |> Map.from_struct()
-    |> Map.merge(Map.new(overrides))
-    |> new()
+    with :ok <- validate_options(overrides) do
+      config
+      |> Map.from_struct()
+      |> Map.merge(Map.new(overrides))
+      |> new()
+    end
   end
 
   def new(opts, []) when is_list(opts) do
-    opts = merge_padding(opts)
-    config = struct(__MODULE__, opts)
+    with :ok <- validate_options(opts),
+         {:ok, opts} <- merge_padding(opts) do
+      config = struct!(__MODULE__, opts)
 
-    with :ok <- Schema.validate(config),
-         :ok <- run_custom_validators(config) do
-      {:ok, config}
+      case validate(config) do
+        :ok -> {:ok, config}
+        {:error, _} = error -> error
+      end
     end
   end
 
   def new(opts, []) when is_map(opts) do
     new(Map.to_list(opts))
+  end
+
+  def new(opts, overrides) do
+    {:error,
+     "expected options to be a keyword list, map, or Config struct and overrides to be a keyword list, got: " <>
+       "#{inspect(opts)}, #{inspect(overrides)}"}
+  end
+
+  @doc """
+  Validate an existing configuration.
+
+  This is useful at public API boundaries where callers may have assembled a
+  `%Config{}` directly instead of using `new/1`.
+
+  ## Returns
+
+  - `:ok` when the configuration and its custom validators pass
+  - `{:error, reason}` otherwise
+  """
+  @spec validate(t()) :: :ok | {:error, String.t()}
+  def validate(%__MODULE__{} = config) do
+    with :ok <- Schema.validate(config),
+         :ok <- run_custom_validators(config) do
+      :ok
+    end
+  end
+
+  @doc """
+  Validate an existing configuration, raising `ArgumentError` when invalid.
+
+  Returns the validated configuration unchanged.
+  """
+  @spec validate!(t()) :: t()
+  def validate!(%__MODULE__{} = config) do
+    case validate(config) do
+      :ok -> config
+      {:error, reason} -> raise ArgumentError, reason
+    end
   end
 
   @doc """
@@ -187,8 +244,10 @@ defmodule ExkPasswd.Config do
       {:ok, config} = Config.merge(base_config, %{separator: "-"})
   """
   @spec merge(t(), keyword() | map()) :: {:ok, t()} | {:error, String.t()}
-  def merge(%__MODULE__{} = base, overrides) when is_list(overrides) or is_map(overrides) do
-    new(base, Map.to_list(Map.new(overrides)))
+  def merge(%__MODULE__{} = base, overrides) when is_list(overrides), do: new(base, overrides)
+
+  def merge(%__MODULE__{} = base, overrides) when is_map(overrides) do
+    new(base, Map.to_list(overrides))
   end
 
   @doc """
@@ -289,7 +348,40 @@ defmodule ExkPasswd.Config do
   end
 
   defp merge_padding(opts) do
-    Keyword.update(opts, :padding, @default_padding, &Map.merge(@default_padding, &1))
+    case Keyword.fetch(opts, :padding) do
+      :error ->
+        {:ok, opts}
+
+      {:ok, padding} when is_map(padding) ->
+        {:ok, Keyword.put(opts, :padding, Map.merge(@default_padding, padding))}
+
+      {:ok, padding} ->
+        {:error, "padding must be a map, got: #{inspect(padding)}"}
+    end
+  end
+
+  defp validate_options(opts) do
+    cond do
+      not Keyword.keyword?(opts) ->
+        {:error, "options must be a keyword list, got: #{inspect(opts)}"}
+
+      duplicate_keys(opts) != [] ->
+        {:error, "duplicate configuration options: #{inspect(duplicate_keys(opts))}"}
+
+      true ->
+        case Keyword.keys(opts) -- @config_keys do
+          [] -> :ok
+          unknown -> {:error, "unknown configuration options: #{inspect(unknown)}"}
+        end
+    end
+  end
+
+  defp duplicate_keys(opts) do
+    opts
+    |> Keyword.keys()
+    |> Enum.frequencies()
+    |> Enum.filter(fn {_, count} -> count > 1 end)
+    |> Enum.map(&elem(&1, 0))
   end
 
   defp run_custom_validators(%__MODULE__{validators: []}), do: :ok
@@ -297,8 +389,14 @@ defmodule ExkPasswd.Config do
   defp run_custom_validators(%__MODULE__{validators: validators} = config) do
     Enum.reduce_while(validators, :ok, fn validator_mod, :ok ->
       case validator_mod.validate(config) do
-        :ok -> {:cont, :ok}
-        {:error, _} = error -> {:halt, error}
+        :ok ->
+          {:cont, :ok}
+
+        {:error, reason} when is_binary(reason) ->
+          {:halt, {:error, reason}}
+
+        other ->
+          {:halt, {:error, "validator #{inspect(validator_mod)} returned #{inspect(other)}"}}
       end
     end)
   end

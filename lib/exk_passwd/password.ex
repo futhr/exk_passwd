@@ -62,6 +62,7 @@ defmodule ExkPasswd.Password do
   """
   @spec create(Config.t()) :: String.t()
   def create(config \\ Config.new!()) do
+    config = Config.validate!(config)
     separator = Token.get_token(config.separator)
 
     # Select words with optimized O(1) lookup and pre-transformed cases
@@ -104,6 +105,7 @@ defmodule ExkPasswd.Password do
   """
   @spec create_with_state(Config.t(), Buffer.t()) :: {String.t(), Buffer.t()}
   def create_with_state(config, random_state) do
+    config = Config.validate!(config)
     separator = Token.get_token(config.separator)
 
     # Select words using the buffered random state
