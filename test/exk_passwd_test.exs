@@ -25,6 +25,12 @@ defmodule ExkPasswdTest do
       assert password =~ "-"
     end
 
+    test "generates password with preset string" do
+      password = ExkPasswd.generate("xkcd")
+      assert is_binary(password)
+      assert password =~ "-"
+    end
+
     test "generates password with keyword list" do
       password = ExkPasswd.generate(num_words: 3, separator: "_")
       assert is_binary(password)
@@ -42,6 +48,10 @@ defmodule ExkPasswdTest do
       assert_raise ArgumentError, ~r/Unknown preset/, fn ->
         ExkPasswd.generate(:nonexistent)
       end
+
+      assert_raise ArgumentError, ~r/Unknown preset/, fn ->
+        ExkPasswd.generate("nonexistent")
+      end
     end
   end
 
@@ -51,6 +61,11 @@ defmodule ExkPasswdTest do
       assert is_binary(password)
       parts = String.split(password, "-")
       assert length(parts) == 3
+    end
+
+    test "accepts a string preset with overrides" do
+      password = ExkPasswd.generate("xkcd", num_words: 3)
+      assert length(String.split(password, "-")) == 3
     end
   end
 

@@ -1,10 +1,10 @@
 defmodule ExkPasswd do
   @moduledoc """
-  ExkPasswd is a highly optimized password generation and analysis library for Elixir.
+  Generates memorable passwords from cryptographically random words and tokens.
 
-  This library provides secure, customizable password generation based on the
-  XKPasswd concept - creating memorable yet strong passwords by combining
-  random words with numbers, symbols, and various transformations.
+  ExkPasswd uses `:crypto.strong_rand_bytes/1`, ships with a filtered EFF Large
+  Wordlist, and has no runtime dependencies outside Elixir/Erlang. Applications
+  can provide their own dictionaries and transforms.
 
   ## Quick Start
 
@@ -40,18 +40,18 @@ defmodule ExkPasswd do
 
   ## Features
 
-  - **Efficient generation**: Constant-time word selection using tuple indexing
-  - **Entropy calculation**: Security analysis with blind and seen entropy metrics
-  - **Character substitutions**: Leetspeak-style transformations for added complexity
+  - **Indexed generation**: Precomputed tuples for common EFF word ranges
+  - **Entropy calculation**: Blind search-space and seen min-entropy estimates
+  - **Character substitutions**: Deterministic or random per-word substitution
   - **Custom dictionaries**: Load your own word lists for any language or domain
-  - **Batch generation**: Optimized for generating multiple passwords
+  - **Batch generation**: Buffered and parallel generation APIs
   - **Strength analysis**: Password feedback and improvement suggestions
   - **Extensibility**: Transform protocol for custom password transformations
   - **Zero dependencies**: Only uses Elixir stdlib and `:crypto`
 
   ## Performance
 
-  - **Tuple-based lookups**: Constant-time word selection
+  - **Tuple-based lookups**: Direct indexing for precomputed word ranges
   - **Cached transformations**: Pre-computed case variants
   - **Buffered random generation**: Reduced syscalls for batch operations
 
@@ -59,11 +59,11 @@ defmodule ExkPasswd do
 
   - `:default` - Balanced security and memorability (~59 bits entropy)
   - `:web32` - For websites allowing up to 32 characters (~65 bits)
-  - `:web16` - For websites with 16 character limit (~42 bits - ⚠️ low security)
-  - `:wifi` - 63 character WPA2 keys (~85 bits)
+  - `:web16` - Compatibility fallback for a 16-character limit (~37 bits)
+  - `:wifi` - 63 printable ASCII characters for WPA/WPA2 passphrases (~105 bits)
   - `:apple_id` - Meets Apple ID requirements (~55 bits)
   - `:security` - For security questions (~77 bits)
-  - `:xkcd` - Similar to the famous XKCD comic (~65 bits)
+  - `:xkcd` - Similar to the famous XKCD comic (~68 bits)
 
   See `ExkPasswd.Config.Presets` for more details on each preset.
 
@@ -104,6 +104,9 @@ defmodule ExkPasswd do
       config = ExkPasswd.Config.new!(
         num_words: 2,
         dictionary: :japanese,
+        word_length: 2..3,
+        word_length_bounds: 1..10,
+        case_transform: :none,
         meta: %{
           transforms: [%MyApp.RomajiTransform{mode: :hiragana}]
         }
@@ -160,8 +163,15 @@ defmodule ExkPasswd do
       #=> "45_HAPPY_forest_23"
   """
 
-  @spec generate(atom() | keyword() | Config.t()) :: String.t()
+  @spec generate(atom() | String.t() | keyword() | Config.t()) :: String.t()
   def generate(preset) when is_atom(preset) do
+    case Config.Presets.get(preset) do
+      nil -> raise ArgumentError, "Unknown preset: #{inspect(preset)}"
+      config -> Password.create(config)
+    end
+  end
+
+  def generate(preset) when is_binary(preset) do
     case Config.Presets.get(preset) do
       nil -> raise ArgumentError, "Unknown preset: #{inspect(preset)}"
       config -> Password.create(config)
@@ -192,8 +202,9 @@ defmodule ExkPasswd do
       ExkPasswd.generate(:default, separator: "_", num_words: 5)
       #=> "12_word_WORD_word_WORD_89"
   """
-  @spec generate(atom(), keyword()) :: String.t()
-  def generate(preset, overrides) when is_atom(preset) and is_list(overrides) do
+  @spec generate(atom() | String.t(), keyword()) :: String.t()
+  def generate(preset, overrides)
+      when (is_atom(preset) or is_binary(preset)) and is_list(overrides) do
     case Config.Presets.get(preset) do
       nil -> raise ArgumentError, "Unknown preset: #{inspect(preset)}"
       config -> Config.merge!(config, overrides) |> Password.create()
@@ -201,10 +212,11 @@ defmodule ExkPasswd do
   end
 
   @doc """
-  Generate multiple passwords in batch with optimized performance.
+  Generate multiple passwords with buffered random bytes.
 
-  For generating 100+ passwords, this is approximately 30% faster than
-  calling `generate/1` multiple times due to reduced cryptographic overhead.
+  Buffering reduces calls to the cryptographic random source. Throughput varies
+  by batch size, runtime, and hardware; benchmark both paths for the target
+  environment.
 
   ## Parameters
 

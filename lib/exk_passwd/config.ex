@@ -1,6 +1,6 @@
 defmodule ExkPasswd.Config do
   @moduledoc """
-  Modern schema-driven configuration system for password generation.
+  Validated configuration for password generation.
 
   This module provides a flexible, extensible configuration approach that supports:
   - Declarative schema validation
@@ -168,6 +168,15 @@ defmodule ExkPasswd.Config do
 
   - `:ok` when the configuration and its custom validators pass
   - `{:error, reason}` otherwise
+
+  ## Examples
+
+      iex> ExkPasswd.Config.validate(%ExkPasswd.Config{})
+      :ok
+
+      iex> {:error, reason} = ExkPasswd.Config.validate(%ExkPasswd.Config{num_words: 0})
+      ...> reason =~ "num_words"
+      true
   """
   @spec validate(t()) :: :ok | {:error, String.t()}
   def validate(%__MODULE__{} = config) do
@@ -181,6 +190,12 @@ defmodule ExkPasswd.Config do
   Validate an existing configuration, raising `ArgumentError` when invalid.
 
   Returns the validated configuration unchanged.
+
+  ## Examples
+
+      iex> config = %ExkPasswd.Config{}
+      ...> ExkPasswd.Config.validate!(config) == config
+      true
   """
   @spec validate!(t()) :: t()
   def validate!(%__MODULE__{} = config) do
@@ -228,7 +243,7 @@ defmodule ExkPasswd.Config do
 
   ## Parameters
 
-  - `base` - Base configuration (Config struct, preset atom, or preset string)
+  - `base` - Base `Config` struct
   - `overrides` - Keyword list or map of overrides
 
   ## Returns
