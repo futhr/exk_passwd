@@ -296,6 +296,10 @@ defmodule ExkPasswd.Transform.PinyinTest do
     test "handles CJK extension ranges" do
       # CJK Extension A character (U+3400)
       assert Pinyin.hanzi?(<<0xE3, 0x90, 0x80>>)
+      # CJK Extension B character (U+20000)
+      assert Pinyin.hanzi?("𠀀")
+      # CJK Compatibility Ideograph
+      assert Pinyin.hanzi?("﨑")
     end
 
     test "returns true for first character of multi-char string" do

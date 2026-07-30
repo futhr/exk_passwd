@@ -90,6 +90,7 @@ defmodule ExkPasswd.Transform.Pinyin do
   defstruct []
 
   @type t :: %__MODULE__{}
+  @han_regex ~r/\p{Han}/u
 
   # Starter mapping assembled from frequent and commonly useful characters.
   # Using keyboard-compatible conventions: v for ü after l/n
@@ -843,12 +844,13 @@ defmodule ExkPasswd.Transform.Pinyin do
   @doc """
   Check if a string contains Chinese characters (Hanzi).
 
-  Detects characters in the CJK Unified Ideographs Unicode ranges.
+  Detection uses Unicode's Han script property rather than a fixed list of
+  codepoint ranges.
 
-  ## Unicode Ranges Covered
+  ## Unicode Coverage
 
-  - CJK Unified Ideographs: U+4E00 to U+9FFF (most common)
-  - CJK Extension A: U+3400 to U+4DBF
+  This covers unified ideographs, extension blocks, and compatibility
+  ideographs recognized by the Unicode data in the running Erlang/OTP system.
 
   ## Examples
 
@@ -865,10 +867,7 @@ defmodule ExkPasswd.Transform.Pinyin do
       false
   """
   @spec contains_hanzi?(String.t()) :: boolean()
-  def contains_hanzi?(text) do
-    String.graphemes(text)
-    |> Enum.any?(&hanzi?/1)
-  end
+  def contains_hanzi?(text), do: Regex.match?(@han_regex, text)
 
   @doc """
   Check if a single character is a Chinese character (Hanzi).
@@ -888,14 +887,11 @@ defmodule ExkPasswd.Transform.Pinyin do
       false
   """
   @spec hanzi?(String.t()) :: boolean()
-  def hanzi?(char) when byte_size(char) == 0, do: false
-
   def hanzi?(char) do
-    [codepoint | _] = String.to_charlist(char)
-
-    # CJK Unified Ideographs and Extension A
-    (codepoint >= 0x4E00 and codepoint <= 0x9FFF) or
-      (codepoint >= 0x3400 and codepoint <= 0x4DBF)
+    case String.next_codepoint(char) do
+      {codepoint, _} -> Regex.match?(@han_regex, codepoint)
+      nil -> false
+    end
   end
 
   defimpl ExkPasswd.Transform do

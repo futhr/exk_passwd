@@ -110,6 +110,7 @@ defmodule ExkPasswd.Transform.Romaji do
   defstruct []
 
   @type t :: %__MODULE__{}
+  @han_regex ~r/\p{Han}/u
 
   # Hiragana to Romaji mapping
   @hiragana_map %{
@@ -392,11 +393,11 @@ defmodule ExkPasswd.Transform.Romaji do
   Kanji are Chinese characters used in Japanese writing. This transform cannot
   convert Kanji to romaji without additional dictionary/morphological analysis.
 
-  ## Kanji Unicode Ranges
+  ## Unicode Coverage
 
-  - CJK Unified Ideographs: U+4E00 to U+9FFF (most common Kanji)
-  - CJK Extension A: U+3400 to U+4DBF
-  - CJK Extension B+: U+20000 to U+2EBEF (rare, requires surrogate pairs)
+  Detection uses Unicode's Han script property. This covers unified
+  ideographs, extension blocks, and compatibility ideographs recognized by
+  the Unicode data in the running Erlang/OTP system.
 
   ## Examples
 
@@ -413,10 +414,7 @@ defmodule ExkPasswd.Transform.Romaji do
       false
   """
   @spec contains_kanji?(String.t()) :: boolean()
-  def contains_kanji?(text) do
-    String.graphemes(text)
-    |> Enum.any?(&kanji?/1)
-  end
+  def contains_kanji?(text), do: Regex.match?(@han_regex, text)
 
   @doc """
   Check if a single character is a Kanji character.
@@ -433,16 +431,11 @@ defmodule ExkPasswd.Transform.Romaji do
       true
   """
   @spec kanji?(String.t()) :: boolean()
-  def kanji?(char) when byte_size(char) == 0, do: false
-
   def kanji?(char) do
-    # Get the Unicode codepoint of the first character
-    [codepoint | _] = String.to_charlist(char)
-
-    # Check if codepoint is in Kanji ranges
-    (codepoint >= 0x4E00 and codepoint <= 0x9FFF) or
-      (codepoint >= 0x3400 and codepoint <= 0x4DBF) or
-      (codepoint >= 0x20000 and codepoint <= 0x2EBEF)
+    case String.next_codepoint(char) do
+      {codepoint, _} -> Regex.match?(@han_regex, codepoint)
+      nil -> false
+    end
   end
 
   defimpl ExkPasswd.Transform do
@@ -491,46 +484,35 @@ defmodule ExkPasswd.Transform.Romaji do
 
     # Handle sokuon (っ/ッ) - doubles the next consonant
     # Special case: っちゃ/っちゅ/っちょ → "tcha/tchu/tcho" (Modified Hepburn rule)
-    defp convert_with_context(["っ", "ち", small | rest], map, acc)
-         when small in ["ゃ", "ゅ", "ょ"] do
-      # Handle っち followed by small ya/yu/yo as palatalized: tcha, tchu, tcho
+    defp convert_with_context([sokuon, chi, small | rest], map, acc)
+         when sokuon in ["っ", "ッ"] and chi in ["ち", "チ"] and
+                small in ["ゃ", "ゅ", "ょ", "ャ", "ュ", "ョ"] do
       small_romaji = Map.get(map, small, small)
       palatalized = palatalize("chi", small_romaji)
       new_acc = acc <> "t" <> palatalized
       convert_with_context(rest, map, new_acc)
     end
 
-    defp convert_with_context(["ッ", "チ", small | rest], map, acc)
-         when small in ["ャ", "ュ", "ョ"] do
-      # Handle ッチ followed by small ya/yu/yo as palatalized: tcha, tchu, tcho
+    defp convert_with_context([sokuon, next, small | rest], map, acc)
+         when sokuon in ["っ", "ッ"] and small in ["ゃ", "ゅ", "ょ", "ャ", "ュ", "ョ"] do
+      next_romaji = Map.get(map, next, next)
       small_romaji = Map.get(map, small, small)
-      palatalized = palatalize("chi", small_romaji)
-      new_acc = acc <> "t" <> palatalized
+      palatalized = palatalize(next_romaji, small_romaji)
+      new_acc = acc <> double_consonant(palatalized) <> palatalized
       convert_with_context(rest, map, new_acc)
     end
 
     # Special case: っち/ッチ → "tch" (Modified Hepburn rule) - when not followed by palatalization
-    defp convert_with_context(["っ" | ["ち" | rest]], map, acc) do
-      chi_romaji = Map.get(map, "ち", "chi")
-      new_acc = acc <> "t" <> chi_romaji
-      convert_with_context(rest, map, new_acc)
-    end
-
-    defp convert_with_context(["ッ" | ["チ" | rest]], map, acc) do
-      chi_romaji = Map.get(map, "チ", "chi")
+    defp convert_with_context([sokuon, chi | rest], map, acc)
+         when sokuon in ["っ", "ッ"] and chi in ["ち", "チ"] do
+      chi_romaji = Map.get(map, chi, "chi")
       new_acc = acc <> "t" <> chi_romaji
       convert_with_context(rest, map, new_acc)
     end
 
     # Regular sokuon handling for other consonants
-    defp convert_with_context(["っ" | [next | rest]], map, acc) when next not in ["ゃ", "ゅ", "ょ"] do
-      next_romaji = Map.get(map, next, next)
-      doubled = double_consonant(next_romaji)
-      new_acc = acc <> doubled <> next_romaji
-      convert_with_context(rest, map, new_acc)
-    end
-
-    defp convert_with_context(["ッ" | [next | rest]], map, acc) when next not in ["ャ", "ュ", "ョ"] do
+    defp convert_with_context([sokuon, next | rest], map, acc)
+         when sokuon in ["っ", "ッ"] and next not in ["ゃ", "ゅ", "ょ", "ャ", "ュ", "ョ"] do
       next_romaji = Map.get(map, next, next)
       doubled = double_consonant(next_romaji)
       new_acc = acc <> doubled <> next_romaji
@@ -630,14 +612,11 @@ defmodule ExkPasswd.Transform.Romaji do
     end
 
     # Helper: Double the first consonant (for sokuon)
-    defp double_consonant(romaji) do
-      case String.first(romaji) do
-        nil -> ""
-        # Can't double vowels
-        first when first in ~w(a i u e o) -> ""
-        first -> first
-      end
-    end
+    defp double_consonant(<<first, _::binary>>)
+         when first in ~c"bcdfghjklmnpqrstvwxyz",
+         do: <<first>>
+
+    defp double_consonant(_), do: ""
 
     # Helper: Palatalize (combine consonant with ya/yu/yo)
     # In Hepburn: きゃ→kya, ちゃ→cha, しゃ→sha, じゃ→ja, etc.

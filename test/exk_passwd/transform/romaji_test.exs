@@ -160,13 +160,14 @@ defmodule ExkPasswd.Transform.RomajiTest do
     end
 
     test "sokuon followed by palatalized sounds" do
-      # Test っ followed by small ya/yu/yo (should not double)
-      # This tests the guard: when next not in ["ゃ", "ゅ", "ょ"]
+      assert ExkPasswd.Transform.apply(@transform, "さっきゃく", nil) == "sakkyaku"
+      assert ExkPasswd.Transform.apply(@transform, "いっしゅ", nil) == "isshu"
+      assert ExkPasswd.Transform.apply(@transform, "ろっぴゃく", nil) == "roppyaku"
       assert ExkPasswd.Transform.apply(@transform, "ちょっと", nil) == "chotto"
     end
 
     test "katakana sokuon followed by palatalized sounds" do
-      # Similar for katakana: ッ followed by ャ/ュ/ョ
+      assert ExkPasswd.Transform.apply(@transform, "フィッシュ", nil) == "fisshu"
       assert ExkPasswd.Transform.apply(@transform, "チョット", nil) == "chotto"
     end
 
@@ -403,6 +404,10 @@ defmodule ExkPasswd.Transform.RomajiTest do
       assert Romaji.kanji?("一")
       # U+9FA5 (within main CJK)
       assert Romaji.kanji?("龥")
+      # U+20000 (start of CJK Extension B)
+      assert Romaji.kanji?("𠀀")
+      # CJK Compatibility Ideograph
+      assert Romaji.kanji?("﨑")
     end
   end
 
@@ -467,6 +472,11 @@ defmodule ExkPasswd.Transform.RomajiTest do
       assert ExkPasswd.Transform.apply(@transform, "っあ", nil) == "a"
     end
 
+    test "does not duplicate unsupported characters after sokuon" do
+      assert ExkPasswd.Transform.apply(@transform, "っ桜", nil) == "桜"
+      assert ExkPasswd.Transform.apply(@transform, "っ1", nil) == "1"
+    end
+
     test "handles palatalization with non-standard consonant" do
       # Test palatalize_consonant fallback when consonant doesn't end in 'i'
       # This is tested through combine_with_small_vowel default case
@@ -525,26 +535,20 @@ defmodule ExkPasswd.Transform.RomajiTest do
     test "complex loanwords with multiple features combined" do
       # Test words that combine long vowels, small vowels, and sokuon
       assert ExkPasswd.Transform.apply(@transform, "コンピューター", nil) == "kompyuutaa"
-      # ション = shiyon
-      assert ExkPasswd.Transform.apply(@transform, "ファッション", nil) == "fasshiyon"
+      assert ExkPasswd.Transform.apply(@transform, "ファッション", nil) == "fasshon"
       assert ExkPasswd.Transform.apply(@transform, "チェックリスト", nil) == "chekkurisuto"
     end
 
     test "regression: sokuon followed by palatalized sounds" do
-      # Ensure っ before きゃ/きゅ/きょ etc. doesn't crash
-      # きゃ = kiya (ki + ya)
-      assert ExkPasswd.Transform.apply(@transform, "さっきゃく", nil) == "sakkiyaku"
-      # しゅ = shiyu (shi + yu)
-      assert ExkPasswd.Transform.apply(@transform, "いっしゅ", nil) == "isshiyu"
-      # ぴゃ = piya (pi + ya)
-      assert ExkPasswd.Transform.apply(@transform, "ろっぴゃく", nil) == "roppiyaku"
+      assert ExkPasswd.Transform.apply(@transform, "さっきゃく", nil) == "sakkyaku"
+      assert ExkPasswd.Transform.apply(@transform, "いっしゅ", nil) == "isshu"
+      assert ExkPasswd.Transform.apply(@transform, "ろっぴゃく", nil) == "roppyaku"
     end
 
     test "regression: small vowels after various consonants" do
       # Test all small vowel combination patterns
       assert ExkPasswd.Transform.apply(@transform, "ファミリー", nil) == "famirii"
-      # シュ = shiyu (shi + yu)
-      assert ExkPasswd.Transform.apply(@transform, "フィッシュ", nil) == "fisshiyu"
+      assert ExkPasswd.Transform.apply(@transform, "フィッシュ", nil) == "fisshu"
       assert ExkPasswd.Transform.apply(@transform, "フェスティバル", nil) == "fesutibaru"
       assert ExkPasswd.Transform.apply(@transform, "フォト", nil) == "foto"
     end
