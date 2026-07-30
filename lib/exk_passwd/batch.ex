@@ -30,7 +30,6 @@ defmodule ExkPasswd.Batch do
   alias ExkPasswd.{Buffer, Config, Password}
 
   @default_buffer_size 10_000
-  @bytes_per_password_estimate 100
 
   @doc """
   Generate multiple passwords in batch with optimized random byte buffering.
@@ -65,19 +64,13 @@ defmodule ExkPasswd.Batch do
     validate_count!(count)
     validate_options!(opts, [:buffer_size])
 
-    buffer_size =
-      Keyword.get(
-        opts,
-        :buffer_size,
-        max(@default_buffer_size, count * @bytes_per_password_estimate)
-      )
-
-    # Create buffered random state
-    random_state = Buffer.new(buffer_size)
-
-    {passwords, _} = generate_with_buffer(count, config, random_state, [])
-
-    passwords
+    if count == 0 do
+      []
+    else
+      random_state = Buffer.new(Keyword.get(opts, :buffer_size, @default_buffer_size))
+      {passwords, _} = generate_with_buffer(count, config, random_state, [])
+      passwords
+    end
   end
 
   @doc """
@@ -226,6 +219,7 @@ defmodule ExkPasswd.Batch do
   end
 
   defp generate_parallel_tasks(count, config, workers) do
+    workers = min(count, workers)
     per_worker = div(count, workers)
     remainder = rem(count, workers)
 

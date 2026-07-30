@@ -41,10 +41,8 @@ defmodule ExkPasswd.BatchTest do
       assert length(unique) == length(passwords)
     end
 
-    test "handles workers with zero batch_size due to division" do
+    test "caps workers at the password count" do
       config = Config.new!(num_words: 2)
-      # 3 passwords with 10 workers: workers 0-2 get 1 each, workers 3-9 get 0
-      # This triggers the batch_size == 0 else branch
       passwords = Batch.generate_parallel(3, config, workers: 10)
       assert length(passwords) == 3
       assert Enum.all?(passwords, &is_binary/1)
@@ -143,9 +141,8 @@ defmodule ExkPasswd.BatchTest do
       assert length(passwords) == 10
     end
 
-    test "handles default buffer size calculation" do
+    test "refills the fixed default buffer for larger batches" do
       config = Config.new!(num_words: 2)
-      # When count * 100 > 10000, it should use count * 100
       passwords = Batch.generate_batch(150, config)
       assert length(passwords) == 150
       assert Enum.all?(passwords, &is_binary/1)
@@ -153,7 +150,6 @@ defmodule ExkPasswd.BatchTest do
 
     test "uses default buffer size for small batches" do
       config = Config.new!(num_words: 2)
-      # When count * 100 < 10000, it should use 10000
       passwords = Batch.generate_batch(5, config)
       assert length(passwords) == 5
       assert Enum.all?(passwords, &is_binary/1)
