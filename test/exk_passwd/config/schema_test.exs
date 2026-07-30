@@ -216,6 +216,13 @@ defmodule ExkPasswd.Config.SchemaTest do
       assert msg =~ "cannot contain letters or numbers"
     end
 
+    test "rejects letters or numbers inside multi-codepoint graphemes" do
+      for separator <- ["e\u0301", "1\uFE0F\u20E3"] do
+        assert {:error, msg} = Schema.validate(%Config{separator: separator})
+        assert msg =~ "cannot contain letters or numbers"
+      end
+    end
+
     test "accepts Unicode symbols in separator" do
       config = %Config{separator: "・※→"}
       assert :ok = Schema.validate(config)

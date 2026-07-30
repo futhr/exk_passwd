@@ -102,6 +102,7 @@ defmodule ExkPasswd.Config.Schema do
 
   # credo:disable-for-next-line Credo.Check.Refactor.AppendSingleItem
   @allowed_symbols ~w(- _ ~ + * = @ ! # & $ % ? . , : ; ^ | / ' " ) ++ [" "]
+  @letter_or_number ~r/[\p{L}\p{N}]/u
 
   @doc """
   Validate a Config struct against the schema.
@@ -400,7 +401,7 @@ defmodule ExkPasswd.Config.Schema do
   defp validate_allowed_symbols(string, field_name) when is_binary(string) do
     if String.valid?(string) do
       # Reject letters and digits, but allow all other Unicode characters including symbols
-      case Enum.filter(String.graphemes(string), &String.match?(&1, ~r/^[\p{L}\p{N}]$/u)) do
+      case Enum.filter(String.graphemes(string), &Regex.match?(@letter_or_number, &1)) do
         [] ->
           :ok
 
