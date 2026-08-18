@@ -634,13 +634,14 @@ transformed outputs rather than assuming every source word stays distinct.
 # Setup
 mix setup
 
-# Required quality gates
+# Complete required quality gate
+mix check
+
+# Useful focused commands while iterating
 mix format
 mix credo --strict
 mix test
 mix coveralls.html
-
-# Additional project checks
 mix dialyzer
 mix doctor
 mix docs
@@ -692,11 +693,13 @@ docs: clarify the entropy model
 
 Releases are managed with `git_ops`:
 
-1. Run the complete project checks.
+1. Run the complete project checks with `mix check`.
 2. Run `mix release` to update the changelog and version, commit, and tag.
 3. Push the release commit and tag with `git push --follow-tags`.
 
-The publish workflow runs again for `v*` tags before publishing to Hex.pm.
+The publish workflow verifies the exact project-version tag and tagged commit,
+runs the same `mix check` gate, and exposes the Hex API key only to the final
+publish step.
 
 ---
 

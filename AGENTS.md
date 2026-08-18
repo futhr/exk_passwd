@@ -15,17 +15,21 @@ ExkPasswd is an Elixir library for generating secure, memorable passwords using 
 
 ## Code Quality Standards
 
-### Formatting and Linting
+### Canonical Quality Gate
 
-Always run after making changes:
+Run the complete gate before marking any task done or committing:
 ```bash
-mix format
-mix credo --strict
+mix check
 ```
+
+It enforces warnings-as-errors compilation, formatting, strict Credo, Hex and
+dependency audits, Dialyzer, Doctor, documentation warnings, and the 95% test
+coverage floor. Use narrower commands such as `mix format`, `mix credo --strict`,
+or `mix test` only while iterating.
 
 ### Testing
 
-Run tests before marking any task complete:
+Useful focused test commands are:
 ```bash
 mix test
 mix coveralls.html  # Check coverage
@@ -356,9 +360,7 @@ Do not add `Co-Authored-By` or any AI/Claude attribution to commit messages.
 
 ### Before Committing
 
-1. Run `mix format`
-2. Run `mix credo --strict`
-3. Run `mix test`
+1. Run `mix check` and require every configured tool to pass.
 
 ## Performance Considerations
 
@@ -539,7 +541,8 @@ This project uses `git_ops` for automated releases.
 
 1. `mix release` (alias for `mix git_ops.release`) — updates changelog, bumps version in mix.exs and README.md, commits, and tags
 2. `git push --follow-tags` — pushes commit and tag
-3. CI (`publish.yml`) triggers on `v*` tag → runs checks → `mix hex.publish`
+3. CI (`publish.yml`) accepts only the exact version tag at its tagged commit,
+   runs `mix check`, then exposes the Hex credential only to `mix hex.publish`.
 
 ## Error Messages
 

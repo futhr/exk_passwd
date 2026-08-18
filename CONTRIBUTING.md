@@ -54,8 +54,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 1. Fork the repo and create your branch from `main`
 2. Add tests for any new functionality
-3. Ensure the test suite passes (`mix test`)
-4. Make sure your code follows the style guidelines (`mix format` and `mix credo`)
+3. Ensure the complete quality gate passes (`mix check`)
+4. Use focused checks such as `mix test`, `mix format`, and `mix credo` while iterating
 5. Write clear, descriptive commit messages
 6. Issue that pull request!
 
@@ -107,7 +107,7 @@ mix credo --strict
 # Run Dialyzer for type checking
 mix dialyzer
 
-# Run all checks
+# Run the complete required gate, including coverage and documentation warnings
 mix check
 ```
 
@@ -245,10 +245,11 @@ ExkPasswd follows these core principles:
 
 Releases are managed by maintainers using git_ops:
 
-1. Ensure all tests pass: `mix check`
+1. Ensure the complete quality gate passes: `mix check`
 2. Run `mix release` (alias for `mix git_ops.release`) — updates changelog, bumps version, commits, and tags
 3. Push with tags: `git push --follow-tags`
-4. CI will publish to Hex.pm on the `v*` tag
+4. CI verifies the exact version tag and tagged commit, reruns `mix check`, and
+   exposes the Hex API key only to the publish step
 
 ## Resources
 

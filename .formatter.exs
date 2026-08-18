@@ -1,4 +1,4 @@
 [
   plugins: [DoctestFormatter],
-  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
+  inputs: ["{mix,.formatter}.exs", "{config,lib,scripts,test}/**/*.{ex,exs}"]
 ]

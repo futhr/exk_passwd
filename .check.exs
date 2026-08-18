@@ -10,12 +10,12 @@
     {:formatter, "mix format --check-formatted"},
     {:credo, "mix credo --strict"},
     {:ex_unit, false},
-    {:test, command: "mix test", env: %{"MIX_ENV" => "test"}},
+    {:test, command: "mix coveralls", env: %{"MIX_ENV" => "test"}},
     {:hex_audit, "mix hex.audit"},
     {:mix_audit, "mix deps.audit"},
     {:dialyzer, "mix dialyzer"},
     {:doctor, "mix doctor --summary"},
-    {:ex_doc, false},
+    {:ex_doc, "mix docs --warnings-as-errors"},
     {:sobelow, false}
   ]
 ]
