@@ -5,6 +5,29 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.3.0](https://github.com/futhr/exk_passwd/compare/v0.2.0...v0.3.0) (2026-08-24)
+
+
+
+
+### Features:
+
+* api: support string preset generation by futhr
+
+### Bug Fixes:
+
+* transforms: correct CJK language handling by futhr
+
+* config: reject composite alphanumeric symbols by futhr
+
+* batch: bound generation resource usage by futhr
+
+* entropy: measure reachable password outcomes by futhr
+
+* config: harden configuration and dictionaries by futhr
+
+* random: remove bias from buffered generation by futhr
+
 ## [v0.2.0](https://github.com/futhr/exk_passwd/compare/v0.1.1...v0.2.0) (2026-06-10)
 
 
