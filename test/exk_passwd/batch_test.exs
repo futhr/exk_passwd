@@ -63,6 +63,29 @@ defmodule ExkPasswd.BatchTest do
   end
 
   describe "generate_unique_batch/3" do
+    test "accepts success on the last permitted attempt" do
+      assert [_] = Batch.generate_unique_batch(1, Config.new!(), max_attempts: 1)
+    end
+
+    test "stops at the attempt budget when the output space is exhausted" do
+      ExkPasswd.Dictionary.load_custom(:single_batch_word, ["test"])
+      on_exit(fn -> ExkPasswd.Dictionary.delete_custom(:single_batch_word) end)
+
+      config =
+        Config.new!(
+          dictionary: :single_batch_word,
+          num_words: 1,
+          case_transform: :none,
+          separator: "",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0}
+        )
+
+      assert_raise RuntimeError, ~r/after 2 attempts/, fn ->
+        Batch.generate_unique_batch(2, config, max_attempts: 2)
+      end
+    end
+
     test "generates unique passwords" do
       config = Config.new!(num_words: 3)
       passwords = Batch.generate_unique_batch(15, config)

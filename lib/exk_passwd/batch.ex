@@ -101,7 +101,6 @@ defmodule ExkPasswd.Batch do
       10
   """
   @spec generate_unique_batch(non_neg_integer(), Config.t(), keyword()) :: [String.t()]
-  @dialyzer {:nowarn_function, generate_unique_batch: 3}
   def generate_unique_batch(count, config \\ Config.new!(), opts \\ []) do
     validate_count!(count)
     validate_options!(opts, [:max_attempts])
@@ -112,7 +111,7 @@ defmodule ExkPasswd.Batch do
     if count == 0 do
       []
     else
-      generate_unique_recursive(count, config, MapSet.new(), 0, max_attempts)
+      generate_unique_recursive(count, config, %{}, 0, max_attempts)
     end
   end
 
@@ -169,40 +168,25 @@ defmodule ExkPasswd.Batch do
     generate_with_buffer(count - 1, config, new_random_state, [password | acc])
   end
 
-  @spec generate_unique_recursive(
-          pos_integer(),
-          Config.t(),
-          MapSet.t(String.t()),
-          non_neg_integer(),
-          pos_integer()
-        ) :: [String.t()]
-  defp generate_unique_recursive(count, _, _, attempts, max_attempts)
-       when attempts >= max_attempts do
-    raise "Failed to generate #{count} unique passwords after #{max_attempts} attempts. " <>
-            "This suggests very low entropy in the config. " <>
-            "Try increasing num_words, widening word_length, or enabling more variation."
-  end
+  defp generate_unique_recursive(count, config, seen, attempts, max_attempts) do
+    cond do
+      map_size(seen) >= count ->
+        Map.keys(seen)
 
-  @dialyzer {:nowarn_function, generate_unique_recursive: 5}
-  defp generate_unique_recursive(count, config, seen_set, attempts, max_attempts) do
-    if MapSet.size(seen_set) >= count do
-      MapSet.to_list(seen_set) |> Enum.take(count)
-    else
-      generate_unique_continue(count, config, seen_set, attempts, max_attempts)
+      attempts >= max_attempts ->
+        raise "Failed to generate #{count} unique passwords after #{max_attempts} attempts. " <>
+                "This suggests very low entropy in the config. " <>
+                "Try increasing num_words, widening word_length, or enabling more variation."
+
+      true ->
+        generate_unique_continue(count, config, seen, attempts, max_attempts)
     end
   end
 
-  @spec generate_unique_continue(
-          pos_integer(),
-          Config.t(),
-          MapSet.t(String.t()),
-          non_neg_integer(),
-          pos_integer()
-        ) :: [String.t()]
-  defp generate_unique_continue(count, config, seen_set, attempts, max_attempts) do
+  defp generate_unique_continue(count, config, seen, attempts, max_attempts) do
     password = Password.create(config)
-    new_seen_set = MapSet.put(seen_set, password)
-    generate_unique_recursive(count, config, new_seen_set, attempts + 1, max_attempts)
+    new_seen = Map.put(seen, password, true)
+    generate_unique_recursive(count, config, new_seen, attempts + 1, max_attempts)
   end
 
   defp validate_count!(count) when is_integer(count) and count >= 0, do: :ok
