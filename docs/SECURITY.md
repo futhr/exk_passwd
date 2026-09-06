@@ -52,16 +52,34 @@ memorability, and resource usage.
 
 ## Entropy calculation
 
-`seen` entropy assumes the attacker knows the generator. It is calculated as
-min-entropy over reachable outputs, not by adding complexity points. The model:
+`seen` entropy assumes the attacker knows the generator. It is a conservative
+lower bound on min-entropy, not a sum of complexity points. The model:
 
 - counts only dictionary entries in the configured length range;
 - accounts for collisions caused by case conversion and substitutions;
 - accounts for deterministic Pinyin and Romaji collisions;
 - credits random casing or substitution only when it creates distinct outputs;
 - gives unverifiable random custom transforms no entropy credit;
-- treats digits, the selected separator, and fixed symbol padding as independent
-  choices where the implementation actually makes such choices.
+- counts repeated separator/padding characters according to their probabilities;
+- gives unused separators no credit;
+- subtracts a composition deduction when word boundaries cannot be established.
+
+ASCII letter words with punctuation separators have recoverable component
+boundaries. For other layouts, the model groups each word distribution by byte
+length and sums the maximum probability in each group. The product of these
+sums bounds the probability of a composed output once separator and padding
+choices are fixed. The bound retains fixed-width digit entropy and removes
+symbol-choice credit. This avoids assuming that different word tuples always
+produce different strings, at the cost of pessimistic estimates for some valid
+configurations. `details.composition_loss` records the deduction; use `total`,
+not the unadjusted sum of component fields.
+
+For example, two words from `["aaaa", "aaaaaaaa"]` without a separator have
+only three outputs, with probabilities 1/4, 1/2, and 1/4. Their min-entropy is
+1 bit, not 2. The conservative bound may be lower still.
+
+Unknown random transforms and unavailable word pools receive a zero total.
+Custom deterministic transforms must be pure functions of their arguments.
 
 Minimum-length padding receives no entropy credit because some generated values
 may already meet the minimum and receive no padding. This is conservative.
@@ -144,12 +162,7 @@ rating bands returned by ExkPasswd are project-defined convenience labels.
 Run the security-focused tests and normal quality gates with:
 
 ```bash
-mix test test/exk_passwd/security_test.exs test/exk_passwd/adversarial_test.exs
-mix test
-mix coveralls.html
-mix credo --strict
-mix dialyzer
-mix deps.audit
+mix check
 ```
 
 Statistical tests are regression smoke tests. Passing them does not prove that a

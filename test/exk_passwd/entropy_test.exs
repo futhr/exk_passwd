@@ -55,6 +55,199 @@ defmodule ExkPasswd.EntropyTest do
   end
 
   describe "calculate_seen_detailed/1" do
+    test "built-in meta transforms use their reachable distributions" do
+      ExkPasswd.Dictionary.load_custom(:meta_entropy, ["aaaa", "bbbb"])
+      on_exit(fn -> ExkPasswd.Dictionary.delete_custom(:meta_entropy) end)
+
+      config =
+        Config.new!(
+          dictionary: :meta_entropy,
+          num_words: 3,
+          case_transform: :none,
+          separator: "-",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0}
+        )
+
+      for {transform, bits} <- [
+            {%ExkPasswd.Transform.Substitution{mode: :none}, 3.0},
+            {%ExkPasswd.Transform.CaseTransform{mode: :upper}, 3.0},
+            {%ExkPasswd.Transform.CaseTransform{mode: :random}, 6.0}
+          ] do
+        transformed = Config.put_meta(config, :transforms, [transform])
+        assert_in_delta Entropy.calculate_seen(transformed), bits, 1.0e-12
+      end
+
+      assert Entropy.calculate_seen(%{config | substitution_mode: :always}) == 3.0
+    end
+
+    test "composition deductions are explicit and the total stays nonnegative" do
+      config = Config.new!(separator: "", word_length: 4..8)
+      result = Entropy.calculate_seen_detailed(config)
+      components = result |> Map.drop([:total, :composition_loss]) |> Map.values() |> Enum.sum()
+      assert_in_delta result.total, components - result.composition_loss, 1.0e-12
+      assert result.composition_loss > 0
+      assert result.total >= 0
+    end
+
+    test "bundled dictionary shortcut agrees with enumerated custom distributions" do
+      ExkPasswd.Dictionary.load_custom(:eff_entropy_reference, ExkPasswd.Dictionary.all())
+      on_exit(fn -> ExkPasswd.Dictionary.delete_custom(:eff_entropy_reference) end)
+
+      for mode <- [:none, :lower, :upper, :capitalize, :invert, :random, :alternate],
+          count <- [1, 5, 6],
+          separator <- ["", "-"] do
+        config = Config.new!(num_words: count, case_transform: mode, separator: separator)
+        expected = Entropy.calculate_seen_detailed(%{config | dictionary: :eff_entropy_reference})
+        actual = Entropy.calculate_seen_detailed(config)
+
+        for {key, value} <- actual do
+          assert_in_delta value,
+                          expected[key],
+                          1.0e-10,
+                          "Mismatch for #{inspect({mode, count, separator, key})}"
+        end
+      end
+    end
+
+    test "analysis sees custom dictionary replacements between calls" do
+      config =
+        Config.new!(
+          dictionary: :replaced_entropy,
+          num_words: 2,
+          case_transform: :none,
+          separator: "-",
+          digits: {0, 0},
+          padding: %{char: "", before: 0, after: 0}
+        )
+
+      on_exit(fn -> ExkPasswd.Dictionary.delete_custom(:replaced_entropy) end)
+      ExkPasswd.Dictionary.load_custom(:replaced_entropy, ["aaaa", "bbbb"])
+      assert Entropy.calculate_seen(config) == 2.0
+      ExkPasswd.Dictionary.load_custom(:replaced_entropy, ["aaaa"])
+      assert Entropy.calculate_seen(config) == 0.0
+    end
+
+    test "alternating positions retain different case pool probabilities" do
+      ExkPasswd.Dictionary.load_custom(:alternate_entropy, ["ıaaa", "iaaa", "baaa"])
+      on_exit(fn -> ExkPasswd.Dictionary.delete_custom(:alternate_entropy) end)
+
+      for count <- [1, 3, 4] do
+        config =
+          Config.new!(
+            dictionary: :alternate_entropy,
+            num_words: count,
+            word_length: 4..4,
+            case_transform: :alternate,
+            separator: "-",
+            digits: {0, 0},
+            padding: %{char: "", before: 0, after: 0}
+          )
+
+        result = Entropy.calculate_seen_detailed(config)
+        lower_count = div(count + 1, 2)
+        upper_count = div(count, 2)
+
+        assert_in_delta result.word_entropy, lower_count * :math.log2(3) + upper_count, 1.0e-12
+        assert_in_delta result.total, lower_count * -:math.log2(2 / 3) + upper_count, 1.0e-12
+      end
+    end
+
+    test "unavailable word pools remove all entropy credit" do
+      for dictionary <- [:eff, :missing_entropy_pool], mode <- [:none, :random, :alternate] do
+        config =
+          Config.new!(
+            dictionary: dictionary,
+            word_length: 50..50,
+            word_length_bounds: 1..50,
+            case_transform: mode
+          )
+
+        result = Entropy.calculate_seen_detailed(config)
+        assert result.total == 0.0
+        assert result.word_entropy == 0.0
+        assert result.case_entropy == 0.0
+        assert result.composition_loss > 0.0
+      end
+    end
+
+    test "counts symbol probabilities instead of pool length" do
+      for {pool, expected} <- [{"!!!", 0.0}, {"!!?", -:math.log2(2 / 3)}, {"!?", 1.0}] do
+        config = Config.new!(separator: pool, padding: %{char: pool, before: 1, after: 1})
+        result = Entropy.calculate_seen_detailed(config)
+        assert_in_delta result.separator_entropy, expected, 1.0e-12
+        assert_in_delta result.padding_entropy, expected, 1.0e-12
+      end
+    end
+
+    test "does not credit an unused separator" do
+      config = Config.new!(num_words: 1, separator: "!?", digits: {0, 0})
+      assert Entropy.calculate_seen_detailed(config).separator_entropy == 0.0
+      assert Entropy.calculate_seen_detailed(%{config | digits: {1, 0}}).separator_entropy == 1.0
+    end
+
+    test "ambiguous layouts retain fixed-width digits but remove symbol credit" do
+      ExkPasswd.Dictionary.load_custom(:ambiguous_digit_entropy, ["a-a", "-aa"])
+      on_exit(fn -> ExkPasswd.Dictionary.delete_custom(:ambiguous_digit_entropy) end)
+
+      config =
+        Config.new!(
+          dictionary: :ambiguous_digit_entropy,
+          num_words: 2,
+          word_length: 3..3,
+          word_length_bounds: 1..10,
+          case_transform: :none,
+          separator: "!?",
+          digits: {1, 1},
+          padding: %{char: "!!?", before: 1, after: 1}
+        )
+
+      result = Entropy.calculate_seen_detailed(config)
+      assert_in_delta result.total, 2 + 2 * :math.log2(10), 1.0e-12
+
+      assert_in_delta result.composition_loss,
+                      result.separator_entropy + result.padding_entropy,
+                      1.0e-12
+    end
+
+    test "bounds ambiguous concatenation by exhaustive output probabilities" do
+      on_exit(fn -> ExkPasswd.Dictionary.delete_custom(:composition_entropy) end)
+
+      for words <- [["aaaa", "aaaaaaaa"], ["aaaa", "bbbb"], ["a-a", "a", "-a"]],
+          separator <- ["", "-"],
+          padding <- ["", "!"],
+          to_length <- [0, 16] do
+        ExkPasswd.Dictionary.load_custom(:composition_entropy, words)
+
+        config =
+          Config.new!(
+            dictionary: :composition_entropy,
+            num_words: 2,
+            word_length: 1..8,
+            word_length_bounds: 1..10,
+            case_transform: :none,
+            separator: separator,
+            digits: {0, 0},
+            padding: %{char: padding, before: 1, after: 1, to_length: to_length}
+          )
+
+        outputs =
+          for first <- words, second <- words do
+            joined = Enum.join([first, second], separator)
+
+            if to_length > 0 do
+              joined <> String.duplicate(padding, max(0, to_length - String.length(joined)))
+            else
+              padding <> joined <> padding
+            end
+          end
+
+        max_probability = outputs |> Enum.frequencies() |> Map.values() |> Enum.max()
+        actual = -:math.log2(max_probability / length(outputs))
+        assert Entropy.calculate_seen(config) <= actual + 1.0e-12
+      end
+    end
+
     test "returns detailed entropy breakdown" do
       config = Config.new!(num_words: 3, digits: {2, 2})
       result = Entropy.calculate_seen_detailed(config)
@@ -323,6 +516,14 @@ defmodule ExkPasswd.EntropyTest do
   end
 
   describe "calculate/2" do
+    test "still validates manually modified configurations" do
+      config = %{Config.new!() | num_words: 0}
+
+      assert_raise ArgumentError, ~r/num_words/, fn ->
+        Entropy.calculate("", config)
+      end
+    end
+
     test "returns complete entropy result" do
       config = Config.new!(num_words: 3)
       password = "12-HAPPY-forest-DANCE-56"

@@ -56,7 +56,7 @@ defmodule ExkPasswd.Entropy do
           details: map()
         }
 
-  # Standard thresholds in bits
+  # Project-defined rating bands in bits
   @entropy_min_excellent 78
   @entropy_min_good 52
   @entropy_min_fair 40
@@ -95,7 +95,6 @@ defmodule ExkPasswd.Entropy do
   """
   @spec calculate(String.t(), Config.t()) :: entropy_result()
   def calculate(password, settings) do
-    settings = Config.validate!(settings)
     blind = calculate_blind(password)
     seen_result = calculate_seen_detailed(settings)
     seen = seen_result.total
@@ -179,7 +178,16 @@ defmodule ExkPasswd.Entropy do
   @doc """
   Calculate seen entropy with detailed breakdown of entropy sources.
 
-  Returns a map showing how each component contributes to total entropy.
+  Returns component entropy estimates plus `:composition_loss`. The total is
+  their sum minus this deduction, bounded below by zero. Component values alone
+  must not be added as a security estimate.
+
+  For ASCII letter words with punctuation separators, component boundaries are
+  recoverable. For other layouts, the deduction bounds collisions using output
+  byte-length distributions and removes separator/padding credit. This can be
+  deliberately pessimistic. Unknown random transforms or empty word pools return
+  a zero total. Distributions are reused within this call, never cached across
+  dictionary replacements.
 
   ## Parameters
 
@@ -199,7 +207,7 @@ defmodule ExkPasswd.Entropy do
   @spec calculate_seen_detailed(Config.t()) :: map()
   def calculate_seen_detailed(settings) do
     settings = Config.validate!(settings)
-    word_details = calculate_word_entropy(settings)
+    {word_details, layout} = calculate_word_entropy(settings)
     word_entropy = word_details.word
     separator_entropy = calculate_separator_entropy(settings)
     padding_entropy = calculate_padding_entropy(settings)
@@ -220,8 +228,12 @@ defmodule ExkPasswd.Entropy do
       ]
       |> Enum.sum()
 
+    composition_loss =
+      composition_loss(settings, layout, total, separator_entropy + padding_entropy)
+
     %{
-      total: total,
+      total: max(total - composition_loss, 0.0),
+      composition_loss: composition_loss,
       word_entropy: word_entropy,
       separator_entropy: separator_entropy,
       padding_entropy: padding_entropy,
@@ -353,41 +365,127 @@ defmodule ExkPasswd.Entropy do
   end
 
   defp calculate_word_entropy(config) do
+    if config.dictionary == :eff and
+         (config.substitution_mode == :none or map_size(config.substitutions) == 0) and
+         Config.get_meta(config, :transforms, []) == [] do
+      calculate_builtin_word_entropy(config)
+    else
+      calculate_transformed_word_entropy(config)
+    end
+  end
+
+  # The bundled lowercase ASCII dictionary has bijective deterministic casing,
+  # disjoint upper/lower outputs, and no case-dependent length changes.
+  defp calculate_builtin_word_entropy(config) do
+    counts = Enum.map(config.word_length, &Dictionary.count_between(&1, &1))
+    count = Enum.sum(counts)
+    bits = if count == 0, do: 0.0, else: :math.log2(count)
+
+    case_bits =
+      if count > 0 and config.case_transform == :random, do: config.num_words * 1.0, else: 0.0
+
+    parts = %{word: bits * config.num_words, case: case_bits, substitution: 0.0, transform: 0.0}
+
+    layout =
+      if count == 0 do
+        :unknown
+      else
+        %{letters?: true, loss: :math.log2(Enum.count(counts, &(&1 > 0)))}
+      end
+
+    {parts, [{layout, config.num_words}]}
+  end
+
+  defp calculate_transformed_word_entropy(config) do
     base_entropy =
       config
       |> dictionary_words(:none)
       |> uniform_distribution()
       |> distribution_entropy()
 
-    0..(config.num_words - 1)
-    |> Enum.map(&word_entropy_for_position(config, &1, base_entropy))
-    |> Enum.reduce(%{word: 0.0, case: 0.0, substitution: 0.0, transform: 0.0}, fn item, acc ->
-      Map.merge(acc, item, fn _, left, right -> left + right end)
+    positions =
+      if config.case_transform == :alternate do
+        [{0, div(config.num_words + 1, 2)}, {1, div(config.num_words, 2)}]
+      else
+        [{0, config.num_words}]
+      end
+
+    positions
+    |> Enum.reject(fn {_, count} -> count == 0 end)
+    |> Enum.map(fn {position, count} ->
+      {parts, layout} = word_entropy_for_position(config, position, base_entropy)
+      {Map.new(parts, fn {key, value} -> {key, value * count} end), {layout, count}}
+    end)
+    |> Enum.reduce({%{word: 0.0, case: 0.0, substitution: 0.0, transform: 0.0}, []}, fn
+      {parts, layout}, {acc, layouts} ->
+        {Map.merge(acc, parts, fn _, left, right -> left + right end), [layout | layouts]}
     end)
   end
 
-  defp calculate_separator_entropy(config) do
-    separator_chars = String.graphemes(config.separator)
-    char_count = length(separator_chars)
+  defp calculate_separator_entropy(%{num_words: 1, digits: {0, 0}}), do: 0.0
+  defp calculate_separator_entropy(config), do: symbol_entropy(config.separator)
 
-    if char_count <= 1 do
-      0.0
+  defp calculate_padding_entropy(config) do
+    if config.padding.to_length == 0 and
+         (config.padding.before > 0 or config.padding.after > 0) do
+      symbol_entropy(config.padding.char)
     else
-      # One separator choice for the entire password
-      :math.log2(char_count)
+      0.0
     end
   end
 
-  defp calculate_padding_entropy(config) do
-    padding_chars = String.graphemes(config.padding.char)
-    char_count = length(padding_chars)
+  defp symbol_entropy(""), do: 0.0
 
-    if char_count > 0 and config.padding.to_length == 0 and
-         (config.padding.before > 0 or config.padding.after > 0) do
-      :math.log2(char_count)
-    else
-      0.0
+  defp symbol_entropy(pool) do
+    pool
+    |> String.graphemes()
+    |> uniform_distribution()
+    |> distribution_entropy()
+  end
+
+  # Letter-only words and ASCII punctuation have recoverable component boundaries.
+  # Other layouts use a lower bound: for each possible vector of word byte lengths,
+  # a given output has at most one word tuple once separator/padding are fixed.
+  defp composition_loss(config, layouts, total, symbol_bits) do
+    cond do
+      Enum.any?(layouts, fn {layout, _} -> layout == :unknown end) ->
+        total
+
+      unambiguous_layout?(config, layouts) ->
+        0.0
+
+      true ->
+        length_loss = Enum.sum(Enum.map(layouts, fn {layout, count} -> layout.loss * count end))
+        min(total, length_loss + symbol_bits)
     end
+  end
+
+  defp unambiguous_layout?(config, layouts) do
+    (config.num_words == 1 or config.separator != "") and
+      ascii_symbols?(config.separator) and ascii_symbols?(config.padding.char) and
+      Enum.all?(layouts, fn {layout, _} -> layout.letters? end)
+  end
+
+  defp ascii_symbols?(string),
+    do: Regex.match?(~r/\A[\x20-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]*\z/, string)
+
+  defp distribution_layout(:unknown_random_transform), do: :unknown
+  defp distribution_layout(distribution) when map_size(distribution) == 0, do: :unknown
+
+  defp distribution_layout(distribution) do
+    length_probability =
+      distribution
+      |> Enum.reduce(%{}, fn {word, probability}, acc ->
+        Map.update(acc, byte_size(word), probability, &max(&1, probability))
+      end)
+      |> Map.values()
+      |> Enum.sum()
+
+    %{
+      letters?:
+        Enum.all?(distribution, fn {word, _} -> Regex.match?(~r/\A[a-zA-Z]+\z/, word) end),
+      loss: max(distribution_entropy(distribution) + :math.log2(length_probability), 0.0)
+    }
   end
 
   defp calculate_digit_entropy(config) do
@@ -404,13 +502,17 @@ defmodule ExkPasswd.Entropy do
     substitution_distribution = apply_configured_substitution(case_distribution, config)
     substitution_entropy = distribution_entropy(substitution_distribution)
 
-    final_entropy =
+    final_distribution =
       case apply_meta_transforms(substitution_distribution, config) do
-        {:ok, distribution} -> distribution_entropy(distribution)
-        :unknown_random_transform -> 0.0
+        {:ok, distribution} -> distribution
+        :unknown_random_transform -> :unknown_random_transform
       end
 
-    allocate_word_entropy(base_entropy, case_entropy, substitution_entropy, final_entropy)
+    final_entropy =
+      if is_map(final_distribution), do: distribution_entropy(final_distribution), else: 0.0
+
+    parts = allocate_word_entropy(base_entropy, case_entropy, substitution_entropy, final_entropy)
+    {parts, distribution_layout(final_distribution)}
   end
 
   defp allocate_word_entropy(base, after_case, after_substitution, final) do
@@ -526,7 +628,10 @@ defmodule ExkPasswd.Entropy do
 
   defp uniform_distribution(words) do
     probability = 1.0 / length(words)
-    Map.new(words, &{&1, probability})
+
+    Enum.reduce(words, %{}, fn word, acc ->
+      Map.update(acc, word, probability, &(&1 + probability))
+    end)
   end
 
   defp map_distribution(distribution, mapper) do
