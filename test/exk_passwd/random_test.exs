@@ -7,6 +7,12 @@ defmodule ExkPasswd.RandomTest do
   alias ExkPasswd.Random
 
   describe "integer/1" do
+    test "handles a range that rejects almost half of the source bytes" do
+      for _ <- 1..256 do
+        assert Random.integer(129) in 0..128
+      end
+    end
+
     test "generates integer within range" do
       value = Random.integer(100)
       assert is_integer(value)

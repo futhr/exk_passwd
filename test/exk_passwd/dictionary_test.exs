@@ -15,6 +15,10 @@ defmodule ExkPasswd.DictionaryTest do
   end
 
   describe "custom dictionary storage" do
+    test "enumerating an empty built-in length range returns no words" do
+      assert Dictionary.words_between(50, 50) == []
+    end
+
     test "survives the death of the process that loaded it" do
       Task.async(fn ->
         Dictionary.load_custom(:loaded_by_dead_process, ["uno", "dos", "tres", "cuatro"])

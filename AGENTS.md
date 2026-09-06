@@ -134,12 +134,11 @@ Enum.random(list)
 
 ### Word Selection
 
-Ensure uniform distribution:
+Ensure uniform distribution with rejection sampling. Use the existing utility;
+modulo-only reduction biases ranges that do not divide the random source range:
 ```elixir
-def random_index(count) when count > 0 do
-  :crypto.strong_rand_bytes(4)
-  |> :binary.decode_unsigned()
-  |> rem(count)
+def random_index(count) when is_integer(count) and count > 0 do
+  ExkPasswd.Random.integer(count)
 end
 ```
 

@@ -7,11 +7,7 @@ defmodule ExkPasswd.Config.PresetsTest do
   alias ExkPasswd.Config.Presets
 
   setup do
-    # Start the Agent for runtime presets (or use existing)
-    case start_supervised(Presets) do
-      {:ok, _} -> :ok
-      {:error, {:already_started, _}} -> :ok
-    end
+    start_supervised!(Presets)
 
     :ok
   end
@@ -126,6 +122,11 @@ defmodule ExkPasswd.Config.PresetsTest do
   end
 
   describe "runtime preset registration" do
+    test "each test starts with an empty runtime registry" do
+      assert Enum.sort(Presets.list()) ==
+               Enum.sort(Enum.map(Presets.all(), &String.to_existing_atom(&1.meta.name)))
+    end
+
     test "register/2 adds a new preset" do
       custom = Config.new!(num_words: 4, separator: "-")
       :ok = Presets.register(:custom, custom)
@@ -222,34 +223,11 @@ end
 defmodule ExkPasswd.Config.PresetsWithoutRegistryTest do
   @moduledoc false
 
-  # These tests stop the registry Agent to exercise the degraded path, so they
-  # must not run concurrently with tests that use it.
+  # The registry has a global name; keep these tests synchronous.
   use ExUnit.Case, async: false
 
   alias ExkPasswd.Config
   alias ExkPasswd.Config.Presets
-
-  setup do
-    # Remove any test-supervised registry, then stop the global one from
-    # test_helper so no registry is running during the test
-    _ = stop_supervised(Presets)
-
-    if pid = Process.whereis(Presets) do
-      Agent.stop(pid)
-    end
-
-    on_exit(fn ->
-      # Restore the global registry for subsequent tests. Agent.start/2 (not
-      # start_link/1) because on_exit runs in a short-lived process and a
-      # linked agent would die with it.
-      case Agent.start(fn -> %{} end, name: Presets) do
-        {:ok, _} -> :ok
-        {:error, {:already_started, _}} -> :ok
-      end
-    end)
-
-    :ok
-  end
 
   test "get/1 resolves built-in presets without the registry" do
     assert %Config{num_words: 5} = Presets.get(:xkcd)

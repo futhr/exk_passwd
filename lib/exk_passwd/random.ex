@@ -89,9 +89,7 @@ defmodule ExkPasswd.Random do
     if value < threshold do
       rem(value, max)
     else
-      # coveralls-ignore-start
       integer_unbiased(max, threshold, byte_count)
-      # coveralls-ignore-stop
     end
   end
 

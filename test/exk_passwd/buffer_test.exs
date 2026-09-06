@@ -33,6 +33,19 @@ defmodule ExkPasswd.BufferTest do
   end
 
   describe "random_integer/2" do
+    test "rejects out-of-range bytes before returning every possible index" do
+      bytes = for value <- 0..128, into: <<>>, do: <<0xFFFFFFFF::32, value::32>>
+      state = %Buffer{buffer: bytes, offset: 0, buffer_size: byte_size(bytes)}
+
+      {values, final_state} =
+        Enum.map_reduce(0..128, state, fn _, current ->
+          Buffer.random_integer(current, 129)
+        end)
+
+      assert values == Enum.to_list(0..128)
+      assert final_state.offset == byte_size(bytes)
+    end
+
     test "returns integer and new state" do
       state = Buffer.new(100)
       {value, new_state} = Buffer.random_integer(state, 100)
