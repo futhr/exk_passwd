@@ -357,12 +357,13 @@ defmodule ExkPasswd.Config.Schema do
   defp validate_meta(%{meta: meta}) when is_map(meta) do
     case Map.get(meta, :transforms, []) do
       transforms when is_list(transforms) ->
-        case Enum.find(transforms, &is_nil(ExkPasswd.Transform.impl_for(&1))) do
+        case Enum.find_index(transforms, &is_nil(ExkPasswd.Transform.impl_for(&1))) do
           nil ->
             :ok
 
-          invalid ->
-            {:error, "meta.transforms contains an unsupported transform: #{inspect(invalid)}"}
+          index ->
+            {:error,
+             "meta.transforms contains an unsupported transform: #{inspect(Enum.at(transforms, index))}"}
         end
 
       transforms ->
@@ -373,12 +374,13 @@ defmodule ExkPasswd.Config.Schema do
   defp validate_meta(%{meta: meta}), do: {:error, "meta must be a map, got: #{inspect(meta)}"}
 
   defp validate_validators(%{validators: validators}) when is_list(validators) do
-    case Enum.find(validators, &(not valid_validator?(&1))) do
+    case Enum.find_index(validators, &(not valid_validator?(&1))) do
       nil ->
         :ok
 
-      invalid ->
-        {:error, "validator must be a module exporting validate/1, got: #{inspect(invalid)}"}
+      index ->
+        {:error,
+         "validator must be a module exporting validate/1, got: #{inspect(Enum.at(validators, index))}"}
     end
   end
 

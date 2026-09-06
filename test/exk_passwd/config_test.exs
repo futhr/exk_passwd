@@ -80,6 +80,30 @@ defmodule ExkPasswd.ConfigTest do
   end
 
   describe "new/1" do
+    test "rejects nil and false extension entries with tagged errors" do
+      for invalid <- [nil, false], entries <- [[invalid], [invalid, :unsupported]] do
+        assert {:error, message} = Config.new(meta: %{transforms: entries})
+        assert message == "meta.transforms contains an unsupported transform: #{inspect(invalid)}"
+        assert {:error, message} = Config.new(validators: entries)
+
+        assert message ==
+                 "validator must be a module exporting validate/1, got: #{inspect(invalid)}"
+      end
+    end
+
+    test "rejects invalid extensions after supported entries" do
+      for invalid <- [nil, false] do
+        transforms = [%ExkPasswd.Transform.CaseTransform{mode: :upper}, invalid]
+        assert {:error, message} = Config.new(meta: %{transforms: transforms})
+        assert message == "meta.transforms contains an unsupported transform: #{inspect(invalid)}"
+
+        assert {:error, message} = Config.new(validators: [Config.Schema, invalid])
+
+        assert message ==
+                 "validator must be a module exporting validate/1, got: #{inspect(invalid)}"
+      end
+    end
+
     test "returns {:ok, config} for valid parameters" do
       assert {:ok, config} = Config.new(num_words: 3)
       assert config.num_words == 3
