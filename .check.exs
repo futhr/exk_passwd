@@ -10,7 +10,7 @@
     {:formatter, "mix format --check-formatted"},
     {:credo, "mix credo --strict"},
     {:ex_unit, false},
-    {:test, command: "mix coveralls", env: %{"MIX_ENV" => "test"}},
+    {:test, command: "mix coveralls.json", env: %{"MIX_ENV" => "test"}},
     {:hex_audit, "mix hex.audit"},
     {:mix_audit, "mix deps.audit"},
     {:dialyzer, "mix dialyzer"},

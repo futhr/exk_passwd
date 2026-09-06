@@ -180,6 +180,11 @@ end
 
 ## Coding Style
 
+The library and its test suite support Elixir 1.16+. Run development tools and
+`mix check` with the current Elixir release; some development dependencies
+require Elixir 1.18 or newer. Compatibility CI sets `MIX_ENV=test` to keep those
+tools out of minimum-version builds.
+
 ### Elixir Style Guide
 
 * Use pattern matching over conditionals when possible

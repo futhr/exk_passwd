@@ -24,9 +24,9 @@ defmodule ExkPasswd.MixProject do
       docs: docs(),
       test_coverage: [tool: ExCoveralls, minimum_coverage: 95.0],
       dialyzer: [
-        # Store PLT in priv to avoid rebuilding
+        # Dialyxir includes runtime versions in filenames to keep caches compatible.
         plt_core_path: "priv/plts",
-        plt_file: {:no_warn, "priv/plts/exk_passwd.plt"},
+        plt_local_path: "priv/plts",
 
         # Minimal warnings - only real type errors
         flags: [:error_handling, :unknown],
@@ -50,26 +50,25 @@ defmodule ExkPasswd.MixProject do
         coveralls: :test,
         "coveralls.html": :test,
         "coveralls.json": :test,
-        "test.watch": :test
+        "test.watch": :dev
       ]
     ]
   end
 
   defp deps do
     [
-      {:statistex, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:doctest_formatter, "~> 0.4", only: :dev, runtime: false},
       {:ex_check, "~> 0.16", only: [:dev], runtime: false},
       {:doctor, "~> 0.23", only: :dev, runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: :dev, runtime: false},
       {:benchee, "~> 1.5", only: :dev, runtime: false},
       {:benchee_markdown, "~> 0.3", only: :dev, runtime: false},
       {:excoveralls, "~> 0.18", only: :test},
       {:castore, "~> 1.0", only: :test},
-      {:mix_test_watch, "~> 1.2", only: [:dev, :test], runtime: false},
+      {:mix_test_watch, "~> 1.2", only: :dev, runtime: false},
       {:git_ops, "~> 2.10", only: [:dev]}
     ]
   end
