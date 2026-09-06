@@ -48,7 +48,8 @@ harder to guess than a short password built from predictable character tricks.
     <img src="https://raw.githubusercontent.com/futhr/exk_passwd/main/priv/static/xkcd.png" alt="XKCD #936, Password Strength" width="740">
   </a>
   <br>
-  <em>XKCD #936, “Password Strength,” by Randall Munroe.</em>
+  <em>XKCD #936, “Password Strength,” by Randall Munroe,
+  <a href="https://xkcd.com/license.html">CC BY-NC 2.5</a> (separate from the library license).</em>
 </p>
 
 The comic inspired [Bart Busschots](https://www.bartbusschots.ie/) to create
@@ -383,6 +384,9 @@ pool.
 The security assumptions are deliberately public: an attacker may know the
 library, dictionary, preset, and every configuration option. Only the random
 choices are secret.
+
+For ambiguous word boundaries, `details.composition_loss` deducts possible
+assembly collisions. Use the reported total rather than adding component fields.
 
 For provenance, checksums, and the exact threat model, see
 [`docs/SECURITY.md`](docs/SECURITY.md).

@@ -2,6 +2,7 @@ defmodule ExkPasswd.TransformTest do
   @moduledoc false
 
   use ExUnit.Case, async: true
+  doctest ExkPasswd.Transform
 
   alias ExkPasswd.{Config, Transform}
   alias ExkPasswd.Transform.{CaseTransform, Pinyin, Romaji, Substitution}

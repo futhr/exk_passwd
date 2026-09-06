@@ -1,181 +1,73 @@
 defprotocol ExkPasswd.Transform do
   @moduledoc """
-  Protocol for custom password transformations.
+  Protocol for transforming selected words before separators, digits, and padding are added.
 
-  Implement this protocol to create custom transformation logic that can be
-  applied during password generation. Transformations can modify words,
-  add complexity, or apply custom rules.
+  Configure transforms with `meta: %{transforms: [...]}`. They run in list order,
+  after `case_transform` and configured substitutions. Each implementation must
+  return a valid UTF-8 string. Deterministic implementations must depend only on
+  their arguments; entropy analysis may reuse their result for equivalent word
+  positions.
 
-  ## Built-in Transforms
+  ## Built-in transforms
 
-  ExkPasswd includes two built-in transforms:
-  - `ExkPasswd.Transform.Substitution` - Character substitutions (leetspeak)
-  - `ExkPasswd.Transform.CaseTransform` - Case transformations
+  - `ExkPasswd.Transform.CaseTransform` changes letter casing.
+  - `ExkPasswd.Transform.Substitution` replaces graphemes using lowercase lookup keys.
+  - `ExkPasswd.Transform.Pinyin` provides a limited, toneless Han-character mapping.
+  - `ExkPasswd.Transform.Romaji` romanizes kana; it does not translate Kanji readings.
 
-  ## Usage
+  ## Examples
 
-  Add transforms to your config via the `:meta` field:
+      iex> config =
+      ...>   ExkPasswd.Config.new!(
+      ...>     meta: %{
+      ...>       transforms: [
+      ...>         %ExkPasswd.Transform.Substitution{map: %{"e" => "3"}, mode: :always}
+      ...>       ]
+      ...>     }
+      ...>   )
+      ...>
+      ...> is_binary(ExkPasswd.generate(config))
+      true
 
-      config = ExkPasswd.Config.new!(
-        num_words: 4,
-        separator: "-",
-        meta: %{
-          transforms: [
-            %ExkPasswd.Transform.Substitution{
-              map: %{"e" => "3", "o" => "0"},
-              mode: :random
-            }
-          ]
-        }
-      )
+  ## Custom transform
 
-      ExkPasswd.generate(config)
-      #=> "h3ll0-W0RLD-t3st-PASS" (with random substitutions)
+  Define the struct and protocol implementation in your application's `lib/`
+  directory so they are compiled before protocol consolidation:
 
-  ## Custom Transform Example 1: Japanese Romaji Transform
+  ```elixir
+  defmodule MyApp.ReverseTransform do
+    @moduledoc "Reverses each selected word."
+    defstruct []
 
-  Use case: Japanese users typing passwords on English keyboards.
+    defimpl ExkPasswd.Transform do
+      def apply(_, word, _config), do: String.reverse(word)
+      def entropy_bits(_, _config), do: 0.0
+    end
+  end
+  ```
 
-      defmodule MyApp.RomajiTransform do
-        @moduledoc \"\"\"
-        Converts Japanese hiragana/katakana to romaji for keyboard portability.
+  Add `%MyApp.ReverseTransform{}` to `meta.transforms` to use it. Keep helper
+  functions or lookup tables inside the implementation module, or expose them
+  through the struct module: module attributes are not shared with `defimpl`.
 
-        Enables passwords created on Japanese keyboard layouts to be typed on
-        English QWERTY keyboards (e.g., international travel, shared workstations).
-        \"\"\"
-        defstruct [:mode]  # :hiragana | :katakana | :mixed
+  ## Entropy
 
-        # Romaji conversion tables (simplified for example)
-        @hiragana_to_romaji %{
-          "あ" => "a", "い" => "i", "う" => "u", "え" => "e", "お" => "o",
-          "か" => "ka", "き" => "ki", "く" => "ku", "け" => "ke", "こ" => "ko",
-          "さ" => "sa", "し" => "shi", "す" => "su", "せ" => "se", "そ" => "so"
-        }
+  Return `0.0` from `entropy_bits/2` for a deterministic transform. This does
+  not mean that the transform preserves entropy: different inputs may map to
+  the same output. Romanization and substitutions commonly cause collisions.
 
-        defimpl ExkPasswd.Transform do
-          def apply(%{mode: _mode}, word, _config) do
-            # Convert any Japanese characters to romaji
-            @hiragana_to_romaji
-            |> Enum.reduce(word, fn {japanese, romaji}, acc ->
-              String.replace(acc, japanese, romaji)
-            end)
-          end
+  For random transforms, the callback describes nominal randomness for the
+  whole password. A binary choice per word contributes `config.num_words * 1.0`
+  nominal bits. The analyzer enumerates supported built-in distributions;
+  it does not trust a custom callback as proof of output entropy. An unknown
+  random transform causes the conservative seen estimate to be zero.
 
-          def entropy_bits(%{mode: _mode}, _config) do
-            # Romaji conversion is deterministic, no additional entropy
-            # However, it enables cross-keyboard compatibility without security loss
-            0.0
-          end
-        end
-      end
-
-      # Use it with Japanese dictionary
-      ExkPasswd.Dictionary.load_custom(:japanese, ["さくら", "やま", "うみ"])
-
-      config = ExkPasswd.Config.new!(
-        num_words: 2,
-        dictionary: :japanese,
-        separator: "-",
-        meta: %{
-          transforms: [%MyApp.RomajiTransform{mode: :hiragana}]
-        }
-      )
-
-      ExkPasswd.generate(config)
-      #=> "45-sakura-yama-89"  # Typeable on any keyboard
-
-  ## Custom Transform Example 2: Prefix/Suffix Transform
-
-      defmodule MyApp.AffixTransform do
-        @moduledoc "Add prefixes or suffixes to words"
-        defstruct prefix: "", suffix: ""
-
-        defimpl ExkPasswd.Transform do
-          def apply(%{prefix: pre, suffix: suf}, word, _config) do
-            pre <> word <> suf
-          end
-
-          def entropy_bits(_, _config) do
-            # Deterministic transform, no entropy
-            0.0
-          end
-        end
-      end
-
-      # Use it
-      config = ExkPasswd.Config.new!(
-        num_words: 3,
-        separator: "_",
-        meta: %{
-          transforms: [
-            %MyApp.AffixTransform{prefix: "[", suffix: "]"}
-          ]
-        }
-      )
-
-      ExkPasswd.generate(config)
-      #=> "[hello]_[WORLD]_[test]"
-
-  ## Custom Transform Example 3: Unicode Normalization
-
-      defmodule MyApp.NormalizeTransform do
-        @moduledoc "Normalize unicode to ASCII-safe characters"
-        defstruct [:form]
-
-        defimpl ExkPasswd.Transform do
-          def apply(%{form: form}, word, _config) do
-            :unicode.characters_to_nfd_binary(word)
-            |> String.replace(~r/[^\\x00-\\x7F]/, "")
-          end
-
-          def entropy_bits(_, _config), do: 0.0
-        end
-      end
-
-  ## Combining Multiple Transforms
-
-  Transforms are applied in order, so you can chain them:
-
-      config = ExkPasswd.Config.new!(
-        num_words: 4,
-        meta: %{
-          transforms: [
-            %ExkPasswd.Transform.CaseTransform{mode: :upper},
-            %ExkPasswd.Transform.Substitution{
-              map: %{"E" => "3", "O" => "0"},
-              mode: :always
-            },
-            %MyApp.AffixTransform{prefix: ">>", suffix: "<<"}
-          ]
-        }
-      )
-
-      ExkPasswd.generate(config)
-      #=> ">>H3LL0<<->>W0RLD<<->>T3ST<<->>PASS<<"
-
-  ## Entropy Considerations
-
-  The `entropy_bits/2` callback describes randomness introduced by a transform:
-  - Return 0.0 for deterministic transforms (always the same output)
-  - Calculate bits for random transforms based on possibilities
-  - Random binary choice (yes/no): 1 bit per word
-  - Random N choices: log2(N) bits per word
-  - Independent random per character: sum across all characters
-
-  ExkPasswd calculates exact reachable outcomes for its built-in transforms.
-  It does not add a custom random transform's callback value to the security
-  rating because the library cannot verify that transform's output
-  distribution. Such transforms are rated conservatively.
-
-  ## See Also
-
-  - `ExkPasswd.Transform.Substitution` - Character substitution implementation
-  - `ExkPasswd.Transform.CaseTransform` - Case transformation implementation
-  - `ExkPasswd.Config` - Configuration structure with meta field
+  Word-level distributions do not always compose uniquely into strings. See
+  `ExkPasswd.Entropy.calculate_seen_detailed/1` for the composition deduction.
   """
 
   @doc """
-  Apply the transformation to a password component (word or full password).
+  Apply the transformation to a selected word.
 
   ## Parameters
 
@@ -193,8 +85,9 @@ defprotocol ExkPasswd.Transform do
   @doc """
   Calculate the entropy contribution of this transformation in bits.
 
-  This is used for password strength analysis. Return 0.0 for deterministic
-  transforms, or calculate based on the randomness introduced.
+  Return 0.0 for deterministic transforms, or describe nominal randomness for
+  the whole password. Custom random callback values are not added to the
+  security estimate without a known output distribution.
 
   ## Parameters
 

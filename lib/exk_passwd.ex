@@ -45,7 +45,7 @@ defmodule ExkPasswd do
   - **Character substitutions**: Deterministic or random per-word substitution
   - **Custom dictionaries**: Load your own word lists for any language or domain
   - **Batch generation**: Buffered and parallel generation APIs
-  - **Strength analysis**: Password feedback and improvement suggestions
+  - **Strength analysis**: Rating, score, and entropy data
   - **Extensibility**: Transform protocol for custom password transformations
   - **Zero dependencies**: Only uses Elixir stdlib and `:crypto`
 
@@ -69,51 +69,21 @@ defmodule ExkPasswd do
 
   ## Extensibility
 
-  Custom transforms can be added using the Transform protocol.
+  Add transforms through `Config.meta`. The built-in transforms support case
+  changes, substitutions, Pinyin, and Romaji. See `ExkPasswd.Transform` for a
+  complete custom implementation example and its entropy contract.
 
-  Example: Japanese Romaji Transform for cross-keyboard compatibility:
-
-      defmodule MyApp.RomajiTransform do
-        @moduledoc \"\"\"
-        Converts Japanese hiragana/katakana to romaji for keyboard portability.
-
-        Enables passwords created on Japanese keyboard layouts to be typed on
-        English QWERTY keyboards (e.g., international travel, shared workstations).
-        \"\"\"
-        defstruct [:mode]
-
-        @hiragana_to_romaji %{
-          "あ" => "a", "い" => "i", "う" => "u", "さ" => "sa", "き" => "ki"
-        }
-
-        defimpl ExkPasswd.Transform do
-          def apply(%{mode: _mode}, word, _config) do
-            @hiragana_to_romaji
-            |> Enum.reduce(word, fn {japanese, romaji}, acc ->
-              String.replace(acc, japanese, romaji)
-            end)
-          end
-
-          def entropy_bits(%{mode: _mode}, _config), do: 0.0
-        end
-      end
-
-      # Use with Japanese dictionary
-      ExkPasswd.Dictionary.load_custom(:japanese, ["さくら", "やま", "うみ"])
-
-      config = ExkPasswd.Config.new!(
-        num_words: 2,
-        dictionary: :japanese,
-        word_length: 2..3,
-        word_length_bounds: 1..10,
-        case_transform: :none,
-        meta: %{
-          transforms: [%MyApp.RomajiTransform{mode: :hiragana}]
-        }
-      )
-
-      ExkPasswd.generate(config)
-      #=> "45-sakura-yama-89"  # Typeable on any keyboard
+      iex> config =
+      ...>   ExkPasswd.Config.new!(
+      ...>     meta: %{
+      ...>       transforms: [
+      ...>         %ExkPasswd.Transform.Substitution{map: %{"a" => "@"}, mode: :always}
+      ...>       ]
+      ...>     }
+      ...>   )
+      ...>
+      ...> is_binary(ExkPasswd.generate(config))
+      true
   """
 
   alias ExkPasswd.{Batch, Config, Entropy, Password, Strength}

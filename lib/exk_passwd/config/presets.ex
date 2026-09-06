@@ -290,7 +290,7 @@ defmodule ExkPasswd.Config.Presets do
   ## Examples
 
       # Extend built-in preset
-      Presets.register(:strong_wifi, :wifi, num_words: 8, digits: {6, 6})
+      Presets.register(:strong_wifi, :wifi, num_words: 8, digits: {5, 5})
 
       # Extend custom preset
       base = Config.new!(num_words: 3)
