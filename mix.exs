@@ -110,6 +110,9 @@ defmodule ExkPasswd.MixProject do
       files: ~w(
         lib
         priv/dict
+        notebooks/*.livemd
+        bench/output/*.md
+        CONTRIBUTING.md
         docs
         .formatter.exs
         mix.exs
@@ -138,7 +141,6 @@ defmodule ExkPasswd.MixProject do
   defp docs do
     [
       main: "readme",
-      assets: %{"priv/static" => "assets"},
       extras: [
         "README.md": [title: "Overview"],
         "docs/SECURITY.md": [title: "Security"],
