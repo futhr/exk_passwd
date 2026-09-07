@@ -5,6 +5,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.3.1](https://github.com/futhr/exk_passwd/compare/v0.3.0...v0.3.1) (2026-09-07)
+
+
+
+
+### Bug Fixes:
+
+* package: include configured documentation in Hex artifacts by Tobias Bohwalli
+
+* entropy: bound assembly collisions and weighted symbol choices by Tobias Bohwalli
+
+* batch: accept unique generation at the attempt limit by Tobias Bohwalli
+
+* config: reject nil extensions with tagged errors by Tobias Bohwalli
+
 ## [v0.3.0](https://github.com/futhr/exk_passwd/compare/v0.2.0...v0.3.0) (2026-08-24)
 
 
