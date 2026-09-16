@@ -5,6 +5,11 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.3.2](https://github.com/futhr/exk_passwd/compare/v0.3.1...v0.3.2) (2026-09-16)
+
+
+
+
 ## [v0.3.1](https://github.com/futhr/exk_passwd/compare/v0.3.0...v0.3.1) (2026-09-07)
 
 
