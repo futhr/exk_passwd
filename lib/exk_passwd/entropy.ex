@@ -63,6 +63,7 @@ defmodule ExkPasswd.Entropy do
 
   # Simple comparison rate; real online and offline rates vary widely.
   @guesses_per_second 1_000_000_000
+  @atomvm_browser Application.compile_env(:exk_passwd, :atomvm_browser, false)
 
   @doc """
   Calculate blind and seen entropy metrics for a password and settings.
@@ -346,12 +347,12 @@ defmodule ExkPasswd.Entropy do
   @symbols_size 33
 
   defp detect_alphabet_size(password) do
-    graphemes = String.graphemes(password)
+    bytes = :binary.bin_to_list(password)
 
-    has_lowercase = Enum.any?(graphemes, &(&1 =~ ~r/[a-z]/))
-    has_uppercase = Enum.any?(graphemes, &(&1 =~ ~r/[A-Z]/))
-    has_digits = Enum.any?(graphemes, &(&1 =~ ~r/[0-9]/))
-    has_symbols = Enum.any?(graphemes, &(&1 =~ ~r/[^a-zA-Z0-9]/))
+    has_lowercase = Enum.any?(bytes, &(&1 in ?a..?z))
+    has_uppercase = Enum.any?(bytes, &(&1 in ?A..?Z))
+    has_digits = Enum.any?(bytes, &(&1 in ?0..?9))
+    has_symbols = Enum.any?(bytes, &(not ascii_letter_or_number?(&1)))
 
     [
       {has_lowercase, @lowercase_size},
@@ -466,8 +467,7 @@ defmodule ExkPasswd.Entropy do
       Enum.all?(layouts, fn {layout, _} -> layout.letters? end)
   end
 
-  defp ascii_symbols?(string),
-    do: Regex.match?(~r/\A[\x20-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]*\z/, string)
+  defp ascii_symbols?(string), do: Enum.all?(:binary.bin_to_list(string), &ascii_symbol?/1)
 
   defp distribution_layout(:unknown_random_transform), do: :unknown
   defp distribution_layout(distribution) when map_size(distribution) == 0, do: :unknown
@@ -482,11 +482,23 @@ defmodule ExkPasswd.Entropy do
       |> Enum.sum()
 
     %{
-      letters?:
-        Enum.all?(distribution, fn {word, _} -> Regex.match?(~r/\A[a-zA-Z]+\z/, word) end),
+      letters?: Enum.all?(distribution, fn {word, _} -> ascii_letters?(word) end),
       loss: max(distribution_entropy(distribution) + :math.log2(length_probability), 0.0)
     }
   end
+
+  defp ascii_letters?(word) when byte_size(word) > 0,
+    do: Enum.all?(:binary.bin_to_list(word), &ascii_letter?/1)
+
+  defp ascii_letters?(_), do: false
+
+  defp ascii_letter?(byte), do: byte in ?A..?Z or byte in ?a..?z
+  defp ascii_letter_or_number?(byte), do: ascii_letter?(byte) or byte in ?0..?9
+
+  defp ascii_symbol?(byte),
+    do:
+      byte in 0x20..0x2F or byte in 0x3A..0x40 or byte in 0x5B..0x60 or
+        byte in 0x7B..0x7E
 
   defp calculate_digit_entropy(config) do
     {digits_before, digits_after} = config.digits
@@ -677,45 +689,51 @@ defmodule ExkPasswd.Entropy do
   end
 
   defp format_time(seconds) when seconds < 60 do
-    "#{Float.round(seconds, 1)} seconds"
+    "#{rounded(seconds)} seconds"
   end
 
   defp format_time(seconds) when seconds < 3600 do
     minutes = seconds / 60
-    "#{Float.round(minutes, 1)} minutes"
+    "#{rounded(minutes)} minutes"
   end
 
   defp format_time(seconds) when seconds < 86400 do
     hours = seconds / 3600
-    "#{Float.round(hours, 1)} hours"
+    "#{rounded(hours)} hours"
   end
 
   defp format_time(seconds) when seconds < 31_536_000 do
     days = seconds / 86400
-    "#{Float.round(days, 1)} days"
+    "#{rounded(days)} days"
   end
 
   defp format_time(seconds) when seconds < 3_153_600_000 do
     years = seconds / 31_536_000
-    "#{Float.round(years, 1)} years"
+    "#{rounded(years)} years"
   end
 
   defp format_time(seconds) when seconds < 31_536_000_000 do
     centuries = seconds / 3_153_600_000
-    "#{Float.round(centuries, 1)} centuries"
+    "#{rounded(centuries)} centuries"
   end
 
   defp format_time(seconds) when seconds < 31_536_000_000_000 do
     millennia = seconds / 31_536_000_000
-    "#{Float.round(millennia, 1)} millennia"
+    "#{rounded(millennia)} millennia"
   end
 
   defp format_time(seconds) when seconds < 31_536_000_000_000_000 do
     millions = seconds / 31_536_000_000_000
-    "#{Float.round(millions, 1)} million years"
+    "#{rounded(millions)} million years"
   end
 
   defp format_time(_) do
     "billions of years"
+  end
+
+  if @atomvm_browser do
+    defp rounded(value), do: round(value * 10) / 10
+  else
+    defp rounded(value), do: Float.round(value, 1)
   end
 end

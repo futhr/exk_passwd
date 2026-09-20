@@ -102,7 +102,7 @@ defmodule ExkPasswd.Config.Schema do
 
   # credo:disable-for-next-line Credo.Check.Refactor.AppendSingleItem
   @allowed_symbols ~w(- _ ~ + * = @ ! # & $ % ? . , : ; ^ | / ' " ) ++ [" "]
-  @letter_or_number ~r/[\p{L}\p{N}]/u
+  @atomvm_browser Application.compile_env(:exk_passwd, :atomvm_browser, false)
 
   @doc """
   Validate a Config struct against the schema.
@@ -400,20 +400,45 @@ defmodule ExkPasswd.Config.Schema do
   # Helper to validate allowed symbols
   defp validate_allowed_symbols("", _), do: :ok
 
-  defp validate_allowed_symbols(string, field_name) when is_binary(string) do
-    if String.valid?(string) do
-      # Reject letters and digits, but allow all other Unicode characters including symbols
-      case Enum.filter(String.graphemes(string), &Regex.match?(@letter_or_number, &1)) do
-        [] ->
-          :ok
+  if @atomvm_browser do
+    defp validate_allowed_symbols(string, field_name) when is_binary(string) do
+      bytes = :binary.bin_to_list(string)
 
-        invalid ->
-          {:error,
-           "#{field_name} cannot contain letters or numbers, got: #{inspect(invalid)}. " <>
-             "Only symbols and punctuation are allowed (including Unicode symbols)."}
+      if Enum.any?(bytes, &(&1 > 127)) do
+        {:error, "#{field_name} supports ASCII symbols in the browser runtime"}
+      else
+        case Enum.filter(bytes, &ascii_letter_or_number?/1) do
+          [] ->
+            :ok
+
+          invalid ->
+            {:error,
+             "#{field_name} cannot contain letters or numbers, got: #{inspect(List.to_string(invalid))}. " <>
+               "Only symbols and punctuation are allowed."}
+        end
       end
-    else
-      {:error, "#{field_name} must contain valid UTF-8"}
+    end
+
+    defp ascii_letter_or_number?(byte),
+      do: byte in ?0..?9 or byte in ?A..?Z or byte in ?a..?z
+  else
+    @letter_or_number ~r/[\p{L}\p{N}]/u
+
+    defp validate_allowed_symbols(string, field_name) when is_binary(string) do
+      if String.valid?(string) do
+        # Reject letters and digits, but allow all other Unicode characters including symbols
+        case Enum.filter(String.graphemes(string), &Regex.match?(@letter_or_number, &1)) do
+          [] ->
+            :ok
+
+          invalid ->
+            {:error,
+             "#{field_name} cannot contain letters or numbers, got: #{inspect(invalid)}. " <>
+               "Only symbols and punctuation are allowed (including Unicode symbols)."}
+        end
+      else
+        {:error, "#{field_name} must contain valid UTF-8"}
+      end
     end
   end
 

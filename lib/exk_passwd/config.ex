@@ -139,7 +139,7 @@ defmodule ExkPasswd.Config do
   def new(opts, []) when is_list(opts) do
     with :ok <- validate_options(opts),
          {:ok, opts} <- merge_padding(opts) do
-      config = struct!(__MODULE__, opts)
+      config = Map.merge(%__MODULE__{}, Map.new(opts))
 
       case validate(config) do
         :ok -> {:ok, config}
