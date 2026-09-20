@@ -15,7 +15,7 @@ permissions:
 jobs:
   publish:
     name: Publish to Hex.pm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: hex-publish
 
     steps:
