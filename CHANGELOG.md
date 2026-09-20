@@ -5,6 +5,15 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.4.0](https://github.com/futhr/exk_passwd/compare/v0.3.2...v0.4.0) (2026-09-20)
+
+
+
+
+### Features:
+
+* browser: add AtomVM browser core by Tobias Bohwalli
+
 ## [v0.3.2](https://github.com/futhr/exk_passwd/compare/v0.3.1...v0.3.2) (2026-09-16)
 
 
