@@ -32,6 +32,8 @@ defmodule ExkPasswd.Buffer do
       true
   """
 
+  alias ExkPasswd.Random.Source
+
   # A moderate default amortizes refills without retaining a large binary.
   @default_buffer_size 10_000
   # Use at least four bytes for common ranges, and expand for larger ranges.
@@ -71,7 +73,7 @@ defmodule ExkPasswd.Buffer do
 
   def new(buffer_size) when is_integer(buffer_size) and buffer_size > 0 do
     %__MODULE__{
-      buffer: :crypto.strong_rand_bytes(buffer_size),
+      buffer: Source.strong_bytes(buffer_size),
       offset: 0,
       buffer_size: buffer_size
     }
@@ -265,6 +267,6 @@ defmodule ExkPasswd.Buffer do
   end
 
   defp refill(%__MODULE__{buffer_size: buffer_size} = state) do
-    %{state | buffer: :crypto.strong_rand_bytes(buffer_size), offset: 0}
+    %{state | buffer: Source.strong_bytes(buffer_size), offset: 0}
   end
 end

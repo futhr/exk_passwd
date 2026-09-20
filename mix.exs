@@ -185,7 +185,9 @@ defmodule ExkPasswd.MixProject do
         ],
         Utilities: [
           ExkPasswd.Dictionary,
-          ExkPasswd.Random
+          ExkPasswd.Random,
+          ExkPasswd.Random.Source,
+          ExkPasswd.Random.CryptoSource
         ]
       ],
       groups_for_extras: [

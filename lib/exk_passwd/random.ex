@@ -30,6 +30,8 @@ defmodule ExkPasswd.Random do
       true
   """
 
+  alias ExkPasswd.Random.Source
+
   @doc """
   Generates a cryptographically secure random integer between 0 and max-1.
 
@@ -84,7 +86,7 @@ defmodule ExkPasswd.Random do
   end
 
   defp integer_unbiased(max, threshold, byte_count) do
-    value = :crypto.strong_rand_bytes(byte_count) |> :binary.decode_unsigned()
+    value = Source.strong_bytes(byte_count) |> :binary.decode_unsigned()
 
     if value < threshold do
       rem(value, max)
