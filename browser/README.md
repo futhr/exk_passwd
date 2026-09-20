@@ -14,8 +14,14 @@ runtime's FissionVM commit `6c3208c7b3dbc7dacc35a19f8de1fa80b358ac73`.
 Run the build in the pinned container:
 
 ```bash
+./scripts/test-core.sh
 ./scripts/build-core.sh
 ```
+
+The test command formats and compiles the browser project with warnings as
+errors, then runs deterministic protocol conformance tests with the AtomVM
+portability branches enabled. The build command verifies that the AVM and its
+compressed copy are non-empty and byte-identical after decompression.
 
 The resulting `browser/_release/core/bundle.avm` is an intermediate input to
 Futhr's browser-core packaging job. It is never published by the Hex package.

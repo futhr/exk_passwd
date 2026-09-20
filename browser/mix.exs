@@ -26,6 +26,6 @@ defmodule ExkPasswdBrowser.MixProject do
     ]
   end
 
-  defp elixirc_paths(:conformance), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_environment), do: ["lib"]
 end

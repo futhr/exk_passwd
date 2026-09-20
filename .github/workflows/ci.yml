@@ -14,6 +14,22 @@ permissions:
   contents: read
 
 jobs:
+  browser-core:
+    name: Browser Core (Elixir 1.17 / OTP 26)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run browser protocol conformance tests
+        run: browser/scripts/test-core.sh
+
+      - name: Build and verify browser core
+        run: browser/scripts/build-core.sh
+
   quality:
     name: Complete Quality Gate (Elixir 1.20 / OTP 29)
     runs-on: ubuntu-latest
