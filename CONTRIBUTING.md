@@ -126,13 +126,13 @@ open doc/index.html
 ```
 lib/exk_passwd/
 ├── config/               # Configuration system
-│   ├── presets.ex       # Built-in presets (Agent-based)
+│   ├── presets.ex       # Compile-time built-ins and Agent-backed runtime registry
 │   └── schema.ex        # Configuration validation
 ├── transform/            # Transform protocol implementations
 │   ├── case_transform.ex
 │   └── substitution.ex
 ├── config.ex            # Configuration struct (schema-driven)
-├── dictionary.ex        # ETS-backed word storage (O(1) lookups)
+├── dictionary.ex        # Compiled EFF tuples and persistent_term custom dictionaries
 ├── password.ex          # Core password generation engine
 ├── batch.ex             # Optimized batch generation
 ├── token.ex             # Random number/symbol generation
@@ -188,7 +188,7 @@ tools out of minimum-version builds.
 ### Elixir Style Guide
 
 * Use pattern matching over conditionals when possible
-* Keep functions under 20 lines
+* Keep functions focused on one responsibility
 * Use descriptive variable and function names
 * Write `@moduledoc` and `@doc` documentation for every public module and function
 * Include doctests in documentation
@@ -260,7 +260,7 @@ Releases are managed by maintainers using git_ops:
 
 ### Documentation
 - [README](README.md) - Project overview
-- AGENTS.md (in repository root) - Agent guidelines and best practices
+- [AGENTS.md](https://github.com/futhr/exk_passwd/blob/main/AGENTS.md) - Canonical repository contract for coding agents
 - [Hex Docs](https://hexdocs.pm/exk_passwd) - Published documentation
 
 ### Interactive Notebooks

@@ -1,587 +1,109 @@
-# ExkPasswd Agent Guidelines
+# ExkPasswd repository contract
 
-This document provides context and rules for autonomous agents working on ExkPasswd.
+Read this file before editing. It owns repository-wide agent policy; use the
+linked project documentation for the details relevant to the task.
 
-## Project Overview
+## Scope and Git
 
-ExkPasswd is an Elixir library for generating secure, memorable passwords using the XKPasswd concept. It combines random words with numbers, symbols, and transformations to create strong yet easy-to-remember passwords.
+- Preserve unrelated changes and existing local client settings.
+- Never push branches, tags, commits, or other Git refs. The user performs all
+  pushes manually.
+- Never change repository visibility. If visibility blocks an outcome, report
+  the user-managed blocker and continue work that does not depend on it.
+- Use Conventional Commits: `type(optional scope): description`. `git_ops` uses
+  these messages for releases. Do not add AI attribution or `Co-Authored-By`.
+- Report decisions, sources, completed checks, and material limitations in chat.
+  Distinguish checks actually run from planned work or inferred behavior.
 
-**Key Principles:**
-- Security first: Always use cryptographically secure randomness
-- Simplicity: Keep the API clean and intuitive
-- Zero dependencies: Use only Elixir stdlib and :crypto
-- Well-tested: Maintain 95%+ test coverage
-- Well-documented: All public APIs must have docs with examples
+## Skill discovery
 
-## Code Quality Standards
+Canonical skills live in tracked `.agents/skills/<name>/SKILL.md`. Select and
+apply matching skills automatically from their descriptions as the task,
+changed mechanism, or delivery stage requires. The user does not invoke skills
+or choose slash commands. Keep implicit invocation enabled.
 
-### Canonical Quality Gate
+Use native discovery where supported. Clients without skill discovery must
+inspect the `name` and `description` of `.agents/skills/*/SKILL.md`, then read
+and apply matching files themselves. Load supporting references only when the
+active workflow needs them; resolve relative links from the containing file.
 
-Run the complete gate before marking any task done or committing:
-```bash
+Claude Code discovers skills through ignored individual directory symlinks at
+`.claude/skills/<name>` pointing to `../../.agents/skills/<name>`. Preserve local
+entries. When adding or renaming a canonical skill, create its link if the
+entry is absent and repair links that target repository-owned skills. Do not
+replace unrelated local files or links. Keep all of `.claude/` ignored.
+
+## Project boundaries
+
+ExkPasswd is an Elixir 1.16+ password-generation library with no external runtime
+dependencies. Keep core functionality in Elixir stdlib and `:crypto`; justify
+any new development or test dependency. Development tooling needs a newer
+Elixir release; use the quality-gate runtime in
+[CI](.github/workflows/ci.yml) when running `mix check`.
+
+- `lib/exk_passwd.ex` owns the public API and delegates generation and analysis.
+- `Config`, `Config.Schema`, and `Validator` own construction and validation.
+  Preserve validation of manually built or modified structs at generation time.
+- `Password`, `Batch`, `Token`, `Buffer`, and `Random` own generation and random
+  choices. Preserve equivalent behavior across single and buffered generation.
+- `Dictionary` compiles EFF ranges and case variants into tuples; custom
+  dictionaries use `:persistent_term`. Load them during provisioning or startup,
+  not in hot paths. Built-in presets are compile-time configurations; only
+  runtime preset registration requires the `Config.Presets` Agent.
+- `Transform` implementations own word transformations; `Entropy` and `Strength`
+  own analysis. See [usage rules](usage-rules.md) and the protocol documentation
+  when changing transformation order or custom transforms.
+- `browser/` is a separate AtomVM consumer outside the Hex package. Read
+  [its README](browser/README.md) before changing portability branches, browser
+  protocol behavior, or browser builds. Keep the production cryptographic source
+  and native library behavior intact.
+
+## Security and implementation
+
+- Route production password randomness through `Random.Source` and its default
+  `CryptoSource`, backed by `:crypto.strong_rand_bytes/1`. Fail if secure
+  randomness is unavailable; never add a predictable fallback.
+- Use `ExkPasswd.Random.integer/1` or the existing buffered rejection sampler for
+  bounded selection. Do not use modulo-only reduction, `:rand`, `Enum.random/1`,
+  timestamps, or user-provided seeds for password material.
+- Deterministic fixtures belong in the existing test-only source seam. Never
+  enable that seam in production or log passwords, selected words, or buffers.
+- Preserve NFC normalization, duplicate handling, transformed-length filtering,
+  and safe dictionary names. Do not create atoms from untrusted input.
+- Recommend at least three words for ordinary use. Preserve the documented
+  1–10 word configuration range and constrained presets.
+- Read [the security model](docs/SECURITY.md) when changing randomness,
+  dictionaries, composition, transforms, or entropy. Preserve collision
+  deductions and the distinction between conservative seen entropy and the
+  blind heuristic. Project ratings are not NIST or OWASP certifications.
+- Prefer pattern matching, pipelines, and focused functions. Return tagged
+  tuples for expected validation errors, with actionable messages; keep bang
+  functions' raising behavior consistent. Use `Enum.join/2` or iodata for string
+  assembly and measure performance changes with the existing `bench/` tools.
+- All public modules need `@moduledoc`; public functions need `@spec`, `@doc`,
+  parameters, return/error behavior, and examples. Add doctests where practical.
+  Update user-facing documentation when behavior changes.
+
+## Validation and delivery
+
+Run the complete gate and require every configured tool to pass before declaring
+completion or committing:
+
+```sh
 mix check
 ```
 
-It enforces warnings-as-errors compilation, formatting, strict Credo, Hex and
-dependency audits, Dialyzer, Doctor, documentation warnings, and the 95% test
-coverage floor. Use narrower commands such as `mix format`, `mix credo --strict`,
-or `mix test` only while iterating.
-
-### Testing
-
-Useful focused test commands are:
-```bash
-mix test
-mix coveralls.html  # Check coverage
-```
-
-### Type Specifications
-
-All public functions MUST have @spec:
-```elixir
-@spec generate() :: String.t()
-@spec generate(atom() | String.t() | Config.t()) :: String.t()
-```
-
-### Documentation
-
-All public modules and functions MUST have:
-- `@moduledoc` with description and examples
-- `@doc` with parameters, return values, and examples
-- Doctests where applicable
-
-## Elixir Best Practices
-
-### Pattern Matching
-
-Prefer pattern matching over conditionals:
-```elixir
-# Good
-def generate(%Config{} = config), do: create(config)
-def generate(preset) when is_atom(preset), do: ...
-
-# Avoid
-def generate(input) do
-  if is_struct(input, Config) do
-    ...
-  end
-end
-```
-
-### Pipelines
-
-Use pipelines for data transformation:
-```elixir
-# Good
-words
-|> Enum.map(&transform/1)
-|> Enum.join(separator)
-|> add_padding()
-
-# Avoid
-add_padding(Enum.join(Enum.map(words, &transform/1), separator))
-```
-
-### Function Size
-
-Keep functions small and focused (<20 lines ideally):
-```elixir
-# Good - Single responsibility
-def generate_password(settings) do
-  settings
-  |> select_words()
-  |> transform_case()
-  |> join_with_separator()
-  |> add_padding()
-end
-
-# Avoid - Too much in one function
-def generate_password(settings) do
-  # 50+ lines of mixed concerns
-end
-```
-
-### Error Handling
-
-Use tagged tuples for expected errors:
-```elixir
-# Good
-def validate(settings) do
-  cond do
-    settings.num_words < 1 -> {:error, "num_words must be at least 1"}
-    true -> {:ok, settings}
-  end
-end
-
-# For internal errors, let it crash
-def select_word!([]), do: raise "Empty word list"
-```
-
-## Security Requirements
-
-### Critical: Use Cryptographic Random
-
-**NEVER use `:rand` module or `Enum.random/1`**
-
-```elixir
-# REQUIRED - Cryptographically secure
-:crypto.strong_rand_bytes(4) |> :binary.decode_unsigned()
-
-# FORBIDDEN - Predictable, insecure
-:rand.uniform(100)
-Enum.random(list)
-```
-
-### Word Selection
-
-Ensure uniform distribution with rejection sampling. Use the existing utility;
-modulo-only reduction biases ranges that do not divide the random source range:
-```elixir
-def random_index(count) when is_integer(count) and count > 0 do
-  ExkPasswd.Random.integer(count)
-end
-```
-
-### Password Generation
-
-- Minimum 3 words for basic security
-- Use configurable separators and padding
-- Avoid common/weak words in dictionary
-- No hardcoded passwords or keys in code/tests
-
-## Module Organization
-
-```
-lib/
-├── exk_passwd.ex              # Main API (delegates to other modules)
-├── exk_passwd/
-│   ├── config.ex              # Configuration struct (schema-driven)
-│   ├── config/
-│   │   ├── presets.ex         # Built-in presets (Agent-based)
-│   │   └── schema.ex          # Configuration validation
-│   ├── password.ex            # Core password generation engine
-│   ├── dictionary.ex          # Word storage (compile-time EFF list, persistent_term custom dicts)
-│   ├── batch.ex               # Optimized batch generation
-│   ├── token.ex               # Random number/symbol generation
-│   ├── buffer.ex              # Buffered random bytes for performance
-│   ├── entropy.ex             # Entropy calculation
-│   ├── strength.ex            # Password strength analysis
-│   ├── transform.ex           # Transform protocol definition
-│   ├── transform/
-│   │   ├── case_transform.ex  # Case transformation implementations
-│   │   ├── substitution.ex    # Character substitution transform
-│   │   ├── pinyin.ex          # Chinese Pinyin romanization
-│   │   └── romaji.ex          # Japanese Romaji romanization
-│   ├── validator.ex           # Configuration validation
-│   └── random.ex              # Cryptographically secure random utilities
-```
-
-### Module Responsibilities
-
-- **ExkPasswd**: Public API only, delegate to other modules
-- **Config**: Configuration struct and validation
-- **Config.Presets**: Immutable preset configurations (Agent-based)
-- **Config.Schema**: Configuration validation rules
-- **Password**: Core password generation orchestration
-- **Dictionary**: Word loading, selection, and custom dictionary support
-- **Batch**: Optimized batch and parallel password generation
-- **Token**: Random number and symbol generation
-- **Buffer**: Buffered random bytes for performance
-- **Entropy**: Entropy calculation (blind and seen)
-- **Strength**: Password strength analysis and rating
-- **Transform**: Transform protocol and implementations
-- **Validator**: Configuration validation pipeline
-- **Random**: Cryptographically secure random utilities
-
-## Testing Guidelines
-
-### Unit Tests
-
-Test all public functions with multiple cases:
-```elixir
-describe "generate/1" do
-  test "generates password with default settings" do
-    password = ExkPasswd.generate()
-    assert is_binary(password)
-    assert String.length(password) > 0
-  end
-
-  test "generates password with preset atom" do
-    password = ExkPasswd.generate(:xkcd)
-    assert password =~ ~r/\w+-\w+-\w+/
-  end
-
-  test "generates password with preset string" do
-    password = ExkPasswd.generate("wifi")
-    assert String.length(password) <= 63
-  end
-
-  test "generates password with custom config" do
-    config = ExkPasswd.Config.new!(num_words: 2, separator: "_")
-    password = ExkPasswd.generate(config)
-    assert password =~ ~r/\w+_\w+/
-  end
-
-  test "returns different passwords each time" do
-    passwords = for _ <- 1..10, do: ExkPasswd.generate()
-    assert length(Enum.uniq(passwords)) == 10
-  end
-end
-```
-
-### Property-Based Tests
-
-Use StreamData for property testing:
-```elixir
-property "generated passwords have correct number of words" do
-  check all num_words <- integer(2..6) do
-    config = ExkPasswd.Config.new!(num_words: num_words, separator: "-")
-    password = ExkPasswd.generate(config)
-    word_count = password |> String.split("-") |> length()
-    assert word_count == num_words
-  end
-end
-```
-
-### Security Tests
-
-Test randomness and uniqueness:
-```elixir
-test "generates unique passwords" do
-  passwords = for _ <- 1..1000, do: ExkPasswd.generate()
-  unique_count = passwords |> Enum.uniq() |> length()
-  # Allow tiny collision chance but should be near 1000
-  assert unique_count > 995
-end
-
-test "no passwords contain weak patterns" do
-  forbidden = ["password", "admin", "12345", "qwerty"]
-
-  for _ <- 1..100 do
-    password = ExkPasswd.generate() |> String.downcase()
-    for pattern <- forbidden do
-      refute String.contains?(password, pattern)
-    end
-  end
-end
-```
-
-### Coverage Goals
-
-- Maintain 95%+ overall coverage
-- 100% coverage for security-critical code (Random, Dictionary selection)
-- All public API functions must be tested
-
-## Documentation Standards
-
-### Module Documentation
-
-```elixir
-defmodule ExkPasswd.Something do
-  @moduledoc """
-  Brief description of module purpose.
-
-  Longer explanation with context if needed.
-
-  ## Examples
-
-      iex> ExkPasswd.Something.function()
-      "result"
-  """
-end
-```
-
-### Function Documentation
-
-```elixir
-@doc """
-Brief one-line description.
-
-More detailed explanation if needed, including:
-- When to use this function
-- Important behavior notes
-- Edge cases
-
-## Parameters
-
-- `param1` - Description with type info
-- `param2` - Description with valid values
-
-## Returns
-
-Description of return value and possible values.
-
-## Examples
-
-    iex> function(arg1, arg2)
-    expected_result
-
-    iex> function(invalid)
-    ** (ArgumentError) error message
-"""
-@spec function(type1, type2) :: return_type
-def function(param1, param2) do
-  # implementation
-end
-```
-
-### Doctests
-
-Use doctests where practical:
-```elixir
-@doc """
-Generates a password.
-
-## Examples
-
-    iex> password = ExkPasswd.generate()
-    iex> is_binary(password)
-    true
-    iex> String.length(password) > 0
-    true
-"""
-```
-
-## Commit Conventions
-
-All commits must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. git_ops parses these to auto-generate CHANGELOG.md and determine version bumps.
-
-Format: `type(optional scope): description`
-
-Do not add `Co-Authored-By` or any AI/Claude attribution to commit messages.
-
-| Type | Version bump | Changelog |
-|------|-------------|-----------|
-| `feat:` | minor | "Features" |
-| `fix:` | patch | "Bug Fixes" |
-| `feat!:` / `fix!:` / `BREAKING CHANGE:` | major | shown |
-| `chore:`, `docs:`, `ci:`, `refactor:`, `style:`, `test:`, `build:` | none | hidden |
-
-### Before Committing
-
-1. Run `mix check` and require every configured tool to pass.
-
-## Performance Considerations
-
-### Dictionary Loading
-
-Load once, reuse:
-```elixir
-# Good - Load at compile time or startup
-@words File.read!("priv/words.txt") |> String.split("\n")
-
-def random_word, do: @words |> secure_random_select()
-
-# Avoid - Loading on every call
-def random_word do
-  File.read!("priv/words.txt") |> String.split("\n") |> ...
-end
-```
-
-### String Building
-
-Use efficient methods:
-```elixir
-# Good
-Enum.join(words, separator)
-IO.iodata_to_binary([prefix, words, suffix])
-
-# Avoid
-Enum.reduce(words, "", fn w, acc -> acc <> w <> sep end)
-```
-
-### Presets
-
-Use compile-time constants:
-```elixir
-# Good - Computed at compile time
-@presets %{
-  "default" => Config.new!(...),
-  "wifi" => Config.new!(...)
-}
-
-def get(name), do: Map.get(@presets, name)
-
-# Avoid - Rebuilding on every call
-def get(name) do
-  presets = %{"default" => Config.new!(...), ...}
-  Map.get(presets, name)
-end
-```
-
-## Common Patterns
-
-### Configuration Validation
-
-```elixir
-defmodule ExkPasswd.Config do
-  defstruct [...]
-
-  def new!(opts) do
-    config = struct(__MODULE__, opts)
-
-    case ExkPasswd.Config.Schema.validate(config) do
-      :ok -> config
-      {:error, reason} -> raise ArgumentError, reason
-    end
-  end
-
-  def new(opts) do
-    config = struct(__MODULE__, opts)
-
-    case ExkPasswd.Config.Schema.validate(config) do
-      :ok -> {:ok, config}
-      {:error, _} = error -> error
-    end
-  end
-end
-```
-
-### Case Transformations
-
-```elixir
-def transform_case(word, :capitalize), do: String.capitalize(word)
-def transform_case(word, :upper), do: String.upcase(word)
-def transform_case(word, :lower), do: String.downcase(word)
-def transform_case(word, :none), do: word
-def transform_case(word, :random) do
-  if secure_random_boolean(), do: String.upcase(word), else: String.downcase(word)
-end
-```
-
-### Preset Definitions
-
-```elixir
-@presets %{
-  default: Config.new!(
-    num_words: 3,
-    separator: "-",
-    case_transform: :random,
-    word_length: 4..8,
-    digits: {2, 2}
-  ),
-  xkcd: Config.new!(
-    num_words: 4,
-    separator: "-",
-    case_transform: :lower,
-    word_length: 4..8,
-    digits: {0, 0},
-    padding: %{before: 0, after: 0}
-  ),
-  # ... more presets
-}
-```
-
-## CLI Development
-
-If building CLI functionality:
-
-### Escript Configuration
-
-In mix.exs:
-```elixir
-escript: [main_module: ExkPasswd.CLI]
-```
-
-### CLI Module
-
-```elixir
-defmodule ExkPasswd.CLI do
-  def main(args) do
-    args
-    |> parse_args()
-    |> execute()
-    |> output()
-  end
-
-  defp parse_args(args) do
-    {opts, _, _} = OptionParser.parse(args,
-      switches: [
-        preset: :string,
-        words: :integer,
-        separator: :string,
-        count: :integer,
-        help: :boolean
-      ],
-      aliases: [p: :preset, w: :words, s: :separator, c: :count, h: :help]
-    )
-    opts
-  end
-end
-```
-
-### CLI Features
-
-Support these options:
-- `--preset <name>` or `-p <name>`: Use preset
-- `--words <n>` or `-w <n>`: Number of words
-- `--separator <char>` or `-s <char>`: Separator character
-- `--count <n>` or `-c <n>`: Generate N passwords
-- `--help` or `-h`: Show help
-- `--version` or `-v`: Show version
-
-## Dependencies
-
-Keep dependencies minimal:
-
-### Allowed (only if necessary)
-- No runtime dependencies currently
-- Dev/test only: credo, dialyxir, ex_doc, excoveralls, mix_test_watch
-
-### Avoid
-- Don't add external dependencies without strong justification
-- Use Elixir stdlib and :crypto for all core functionality
-
-## Releasing
-
-This project uses `git_ops` for automated releases.
-
-### Release Flow
-
-1. `mix release` (alias for `mix git_ops.release`) — updates changelog, bumps version in mix.exs and README.md, commits, and tags
-2. `git push --follow-tags` — pushes commit and tag
-3. CI (`publish.yml`) accepts only the exact version tag at its tagged commit,
-   runs `mix check`, then exposes the Hex credential only to `mix hex.publish`.
-
-## Error Messages
-
-Make error messages helpful:
-
-```elixir
-# Good - Clear, actionable
-{:error, "num_words must be at least 1, got: #{n}"}
-{:error, "word_length_min (#{min}) must be <= word_length_max (#{max})"}
-
-# Avoid - Vague
-{:error, "invalid settings"}
-```
-
-## Debugging
-
-Use Logger for development debugging:
-```elixir
-require Logger
-Logger.debug("Selected word: #{word}, length: #{String.length(word)}")
-```
-
-Remove debug logs before committing.
-
-## Questions and Clarifications
-
-When uncertain:
-- Consult OWASP password guidelines
-- Reference NIST Digital Identity Guidelines
-- Check XKPasswd documentation for inspiration
-- Ask user for clarification on security decisions
-
-## Remember
-
-- Security is paramount - never compromise on cryptographic quality
-- Keep it simple - resist feature creep
-- Document everything - others will use this library
-- Test thoroughly - passwords are security-critical
-- Performance matters - but not at cost of security or clarity
-
----
-
-**When in doubt, prioritize security over convenience.**
+[`.check.exs`](.check.exs) owns its configured commands: warnings-as-errors
+compilation, formatting, strict Credo, dependency audits, Dialyzer, Doctor,
+documentation warnings, and tests with the 95% overall coverage floor. Use
+focused commands such as `mix test test/exk_passwd/random_test.exs`, `mix format`,
+or `mix credo --strict` while iterating. Test public APIs, errors, and changed
+security boundaries; maintain full coverage of security-critical selection and
+randomness. Statistical smoke tests and text searches do not prove security or
+semantic correctness. Review the relevant implementation and test behavior.
+
+For an explicitly requested release, follow
+[the release process](CONTRIBUTING.md#release-process). `mix release` updates
+the changelog and versions and creates a local commit and tag. Leave every push
+to the user. The publishing workflow verifies the exact version/tag/commit,
+runs the gate, and exposes the Hex credential only to the publishing step.

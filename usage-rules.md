@@ -137,9 +137,4 @@ cryptographic source directly. Measure throughput on the target runtime and
 hardware before selecting buffered or parallel generation. Neither is
 universally faster than a loop.
 
-## Verification
-
-Run `mix check` before considering a change complete. It includes compilation,
-formatting, strict Credo, dependency audits, Dialyzer, Doctor, documentation,
-package regression tests, and the 95% coverage floor. Statistical smoke tests
-can catch gross defects; they do not prove cryptographic security.
+For repository development and verification, follow [AGENTS.md](AGENTS.md).
