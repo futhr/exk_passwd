@@ -61,7 +61,7 @@ defmodule ExkPasswd.MixProject do
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:doctest_formatter, "~> 0.4", only: :dev, runtime: false},
-      {:ex_check, "~> 0.16", only: [:dev], runtime: false},
+      {:ex_check, "~> 0.17", only: [:dev], runtime: false},
       {:doctor, "~> 0.23", only: :dev, runtime: false},
       {:mix_audit, "~> 2.1", only: :dev, runtime: false},
       {:benchee, "~> 1.5", only: :dev, runtime: false},
