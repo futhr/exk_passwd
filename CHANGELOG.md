@@ -5,6 +5,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.4.1](https://github.com/futhr/exk_passwd/compare/v0.4.0...v0.4.1) (2026-10-10)
+
+### Maintenance
+
+* Update development dependencies and repository guidance.
+
 ## [v0.4.0](https://github.com/futhr/exk_passwd/compare/v0.3.2...v0.4.0) (2026-09-20)
 
 
