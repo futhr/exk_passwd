@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## Unreleased
+
+### Maintenance
+
+* Update Decimal to 3.2.0 and Req to 0.7.5 in the development lockfile.
+* Update the browser core's published ExkPasswd dependency to 0.4.1 and
+  refresh pinned GitHub Actions.
+
 ## [v0.4.1](https://github.com/futhr/exk_passwd/compare/v0.4.0...v0.4.1) (2026-10-10)
 
 ### Maintenance

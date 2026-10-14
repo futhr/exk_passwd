@@ -21,7 +21,7 @@ defmodule ExkPasswdBrowser.MixProject do
 
   defp deps do
     [
-      {:exk_passwd, "== 0.4.0"},
+      {:exk_passwd, "== 0.4.1"},
       {:popcorn, "== 0.3.3"}
     ]
   end
